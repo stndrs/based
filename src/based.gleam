@@ -6,7 +6,6 @@ pub type Value {
   Int(Int)
   Float(Float)
   Bool(Bool)
-  List(List(Value))
   Null
 }
 
@@ -48,10 +47,6 @@ pub fn float(value: Float) -> Value {
 
 pub fn bool(value: Bool) -> Value {
   Bool(value)
-}
-
-pub fn list(value: List(Value)) -> Value {
-  List(value)
 }
 
 pub fn null() -> Value {

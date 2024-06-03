@@ -79,12 +79,3 @@ pub fn bool_test() {
     _ -> should.fail()
   }
 }
-
-pub fn list_test() {
-  let list_value = based.list([based.int(1), based.string("2")])
-
-  case list_value {
-    based.List(val) -> val |> list.length |> should.equal(2)
-    _ -> should.fail()
-  }
-}
