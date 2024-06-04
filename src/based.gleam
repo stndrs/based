@@ -1,5 +1,7 @@
 import gleam/dynamic
+import gleam/list
 import gleam/option.{type Option}
+import gleam/result
 
 pub type Value {
   String(String)
@@ -25,6 +27,20 @@ pub type Adapter(a, c) =
 
 pub type DB(a, c) {
   DB(conn: c, execute: Adapter(a, c))
+}
+
+pub fn all(query: Query(a), db: DB(a, c)) -> Result(Returned(a), Nil) {
+  exec(query, db)
+}
+
+pub fn one(query: Query(a), db: DB(a, c)) -> Result(a, Nil) {
+  use returned <- result.try(query |> db.execute(db.conn))
+
+  let Returned(_, rows) = returned
+
+  use row <- result.try(rows |> list.first)
+
+  Ok(row)
 }
 
 pub fn exec(query: Query(a), db: DB(a, c)) -> Result(Returned(a), Nil) {
