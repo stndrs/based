@@ -5,7 +5,7 @@ pub type Connection {
 }
 
 pub fn adapter(returning: Result(Returned(a), Nil)) -> Adapter(a, c) {
-  fn(_, _, _, _) { returning }
+  fn(_query, _connection) { returning }
 }
 
 pub fn with_connection(

@@ -1,6 +1,5 @@
 import based.{Query, Returned}
 import gleam/dynamic
-import gleam/list
 import gleam/option.{None, Some}
 import gleeunit
 import gleeunit/should

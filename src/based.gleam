@@ -21,16 +21,14 @@ pub type Returned(a) {
 }
 
 pub type Adapter(a, c) =
-  fn(String, c, List(Value), Option(dynamic.Decoder(a))) ->
-    Result(Returned(a), Nil)
+  fn(Query(a), c) -> Result(Returned(a), Nil)
 
 pub type DB(a, c) {
   DB(conn: c, execute: Adapter(a, c))
 }
 
 pub fn exec(query: Query(a), db: DB(a, c)) -> Result(Returned(a), Nil) {
-  query.sql
-  |> db.execute(db.conn, query.args, query.decoder)
+  query |> db.execute(db.conn)
 }
 
 pub fn string(value: String) -> Value {
