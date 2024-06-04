@@ -1,9 +1,9 @@
 import based.{Query, Returned}
+import based/testing
 import gleam/dynamic
 import gleam/option.{None, Some}
 import gleeunit
 import gleeunit/should
-import testing
 
 pub fn main() {
   gleeunit.main()
