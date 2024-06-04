@@ -34,7 +34,7 @@ pub fn all(query: Query(a), db: DB(a, c)) -> Result(Returned(a), Nil) {
 }
 
 pub fn one(query: Query(a), db: DB(a, c)) -> Result(a, Nil) {
-  use returned <- result.try(query |> db.execute(db.conn))
+  use returned <- result.try(exec(query, db))
 
   let Returned(_, rows) = returned
 
