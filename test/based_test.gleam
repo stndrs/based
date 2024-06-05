@@ -18,9 +18,9 @@ pub fn exec_test() {
   let query = Query(sql: "SELECT 1;", args: [], decoder: Some(decoder))
 
   let result = {
-    let returning = Ok(Returned(1, [Record(1)]))
+    let returned = Ok(Returned(1, [Record(1)]))
 
-    use db <- testing.with_connection(returning)
+    use db <- based.register(testing.with_connection, returned)
 
     query |> based.exec(db)
   }
