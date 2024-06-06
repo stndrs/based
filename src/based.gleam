@@ -18,8 +18,8 @@ pub type Query(a) {
 }
 
 /// Defines a valid `with_connection` function
-pub type WithConnection(a, b, c) =
-  fn(b, fn(DB(a, c)) -> Result(Returned(a), Nil)) -> Result(Returned(a), Nil)
+pub type WithConnection(a, b, c, t) =
+  fn(b, fn(DB(a, c)) -> t) -> t
 
 pub type Returned(a) {
   Returned(count: Int, rows: List(a))
@@ -38,10 +38,10 @@ pub type DB(a, c) {
 /// In the case of `based/testing.with_connection`, the required argument is the expected
 /// return data.
 pub fn register(
-  with_connection: WithConnection(a, b, c),
+  with_connection: WithConnection(a, b, c, t),
   b: b,
-  callback: fn(DB(a, c)) -> Result(Returned(a), Nil),
-) -> Result(Returned(a), Nil) {
+  callback: fn(DB(a, c)) -> t,
+) -> t {
   with_connection(b, callback)
 }
 
