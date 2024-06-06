@@ -23,10 +23,14 @@ pub fn exec_test() {
 
     use db <- based.register(testing.with_connection, returned)
 
-    query |> based.exec(db)
+    query
+    |> based.exec(db)
+    |> should.be_ok
+
+    Nil
   }
 
-  result |> should.be_ok
+  result |> should.equal(Nil)
 }
 
 pub fn exec_without_return_test() {
@@ -36,12 +40,16 @@ pub fn exec_without_return_test() {
   let result = {
     let returning = Ok(Returned(0, []))
 
-    use db <- testing.with_connection(returning)
+    use db <- based.register(testing.with_connection, returning)
 
-    query |> based.exec(db)
+    query
+    |> based.exec(db)
+    |> should.be_ok
+
+    Nil
   }
 
-  result |> should.be_ok
+  result |> should.equal(Nil)
 }
 
 pub fn new_query_test() {
