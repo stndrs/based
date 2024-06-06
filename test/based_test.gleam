@@ -1,6 +1,7 @@
 import based.{Query, Returned}
 import based/testing
 import gleam/dynamic
+import gleam/list
 import gleam/option.{None, Some}
 import gleeunit
 import gleeunit/should
@@ -41,6 +42,40 @@ pub fn exec_without_return_test() {
   }
 
   result |> should.be_ok
+}
+
+pub fn new_query_test() {
+  let sql = "SELECT 1;"
+  let query = based.new_query(sql)
+
+  query.sql |> should.equal(sql)
+  query.args |> list.length |> should.equal(0)
+  query.decoder |> should.be_none
+}
+
+pub fn new_query_with_args_test() {
+  let sql = "SELECT * FROM users WHERE id=$1;"
+  let query =
+    based.new_query(sql)
+    |> based.with_args([based.int(1)])
+
+  query.sql |> should.equal(sql)
+  query.args |> list.length |> should.equal(1)
+  query.decoder |> should.be_none
+}
+
+pub fn new_query_with_args_and_decoder_test() {
+  let sql = "SELECT 1;"
+  let decoder = dynamic.decode1(Record, dynamic.element(0, dynamic.int))
+
+  let query =
+    based.new_query(sql)
+    |> based.with_args([based.int(1)])
+    |> based.with_decoder(decoder)
+
+  query.sql |> should.equal(sql)
+  query.args |> list.length |> should.equal(1)
+  query.decoder |> should.be_some
 }
 
 pub fn string_test() {

@@ -1,6 +1,6 @@
 import gleam/dynamic
 import gleam/list
-import gleam/option.{type Option}
+import gleam/option.{type Option, None, Some}
 import gleam/result
 
 /// Callers will interact with these Value types when building queries. Their chosen
@@ -43,6 +43,18 @@ pub fn register(
   callback: fn(DB(a, c)) -> Result(Returned(a), Nil),
 ) -> Result(Returned(a), Nil) {
   with_connection(b, callback)
+}
+
+pub fn new_query(sql: String) -> Query(a) {
+  Query(sql, [], None)
+}
+
+pub fn with_args(query: Query(a), args: List(Value)) -> Query(a) {
+  Query(..query, args: args)
+}
+
+pub fn with_decoder(query: Query(a), decoder: dynamic.Decoder(a)) -> Query(a) {
+  Query(..query, decoder: Some(decoder))
 }
 
 /// The same as `exec`, but explicitly tells a reader that all queried rows are expected.
