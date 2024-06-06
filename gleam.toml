@@ -1,7 +1,7 @@
 name = "based"
-version = "1.0.0"
+version = "1.1.0"
 description = "A common interface for database backends"
-gleam = ">= 0.33.0"
+gleam = "~> 1.0"
 
 licences = ["Apache-2.0"]
 repository = { type = "github", user = "stndrs", repo = "based" }
