@@ -13,6 +13,11 @@ definitions in this package. This can allow developers to quickly get started
 writing gleam programs using a sqlite backend, but change to postgres when
 needed without a large refactor.
 
+### Example packages that can be used with `based`:
+
+- [`based_pg`](https://github.com/stndrs/based_pg)
+- [`based_sqlite`](https://github.com/stndrs/based_sqlite)
+
 ```sh
 gleam add based
 ```
