@@ -22,7 +22,7 @@ needed without a large refactor.
 gleam add based
 ```
 ```gleam
-import based.{Query, exec}
+import based
 import based_pg
 // import based_sqlite
 import gleam/option.{None}
@@ -36,7 +36,9 @@ pub fn main() {
   // use db <- based.register(based_sqlite.with_connection, config)
 
   // Swapping out the backend doesn't require rewriting the existing queries
-  Query(sql: sql, args: [based.int(1)], decoder: None) |> exec(db)
+  based.new_query(sql)
+  |> based.with_args([based.int(1)])
+  |> based.exec(db)
 }
 ```
 
