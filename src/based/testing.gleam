@@ -14,3 +14,7 @@ pub fn with_connection(
   |> DB(fn(_, _) { returned })
   |> callback
 }
+
+pub fn mock_connection(_conf: conf, callback: fn(Connection) -> t) -> t {
+  Connection(Nil) |> callback
+}

@@ -1,4 +1,4 @@
-import based.{Query, Returned}
+import based.{type Query, type Returned, Query, Returned}
 import based/testing
 import gleam/dynamic
 import gleam/list
@@ -50,6 +50,39 @@ pub fn exec_without_return_test() {
   }
 
   result |> should.equal(Nil)
+}
+
+pub fn multiple_query_test() {
+  let records_service = fn(_: Query(a), _: c) { Ok(Returned(0, [])) }
+  let int_service = fn(_: Query(a), _: c) { Ok(Returned(1, [1])) }
+
+  let result = {
+    use conn <- based.using(testing.mock_connection, Nil)
+
+    // Query for records with records_service
+    let records =
+      based.new_query("SELECT * FROM records")
+      |> based.execute(conn, records_service)
+      |> should.be_ok
+
+    let int =
+      based.new_query("SELECT int FROM ints LIMIT 1")
+      |> based.execute(conn, int_service)
+      |> should.be_ok
+
+    let other_records =
+      based.new_query("SELECT * FROM other_records")
+      |> based.execute(conn, records_service)
+      |> should.be_ok
+
+    #(records.rows, int.rows, other_records.rows)
+  }
+
+  let #(records, int, other_records) = result
+
+  records |> should.equal([])
+  int |> should.equal([1])
+  other_records |> should.equal([])
 }
 
 pub fn new_query_test() {

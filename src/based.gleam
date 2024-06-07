@@ -21,11 +21,22 @@ pub type Query(a) {
 pub type WithConnection(a, b, c, t) =
   fn(b, fn(DB(a, c)) -> t) -> t
 
+pub type UseConnection(config, connection, return) =
+  fn(config, fn(connection) -> return) -> return
+
 pub type Returned(a) {
   Returned(count: Int, rows: List(a))
 }
 
 pub type Adapter(a, c) =
+  fn(Query(a), c) -> Result(Returned(a), Nil)
+
+/// Defines the execute function to be implemented.
+pub type Exec(a, c, v, ok, err) =
+  fn(String, c, List(v), dynamic.Decoder(a)) -> Result(ok, err)
+
+/// Defines the function which calls an implementation of `Exec`.
+pub type Service(a, c) =
   fn(Query(a), c) -> Result(Returned(a), Nil)
 
 pub type DB(a, c) {
@@ -43,6 +54,14 @@ pub fn register(
   callback: fn(DB(a, c)) -> t,
 ) -> t {
   with_connection(b, callback)
+}
+
+pub fn using(
+  use_connection: UseConnection(conf, conn, ret),
+  conf: conf,
+  callback: fn(conn) -> ret,
+) -> ret {
+  use_connection(conf, callback)
 }
 
 pub fn new_query(sql: String) -> Query(a) {
@@ -76,6 +95,14 @@ pub fn one(query: Query(a), db: DB(a, c)) -> Result(a, Nil) {
 /// Performs the query against the provided db
 pub fn exec(query: Query(a), db: DB(a, c)) -> Result(Returned(a), Nil) {
   query |> db.execute(db.conn)
+}
+
+pub fn execute(
+  query: Query(a),
+  conn: conn,
+  service: Service(a, conn),
+) -> Result(Returned(a), Nil) {
+  service(query, conn)
 }
 
 /// Converts a string to a `Value` type
