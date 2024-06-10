@@ -1,8 +1,7 @@
-import based.{type Query, type Returned, Query, Returned}
+import based.{type Query, Query}
 import based/testing
 import gleam/dynamic
 import gleam/list
-import gleam/option.{None, Some}
 import gleeunit
 import gleeunit/should
 
@@ -14,17 +13,40 @@ pub type Record {
   Record(value: Int)
 }
 
+pub type User {
+  User(name: String)
+}
+
 pub fn exec_test() {
-  let decoder = dynamic.decode1(Record, dynamic.element(0, dynamic.int))
-  let query = Query(sql: "SELECT 1;", args: [], decoder: Some(decoder))
+  let user_decoder = dynamic.decode1(User, dynamic.element(0, dynamic.string))
+  let record_decoder = dynamic.decode1(Record, dynamic.element(0, dynamic.int))
+
+  let users_sql = "SELECT name FROM users WHERE id=1"
+  let records_sql = "SELECT id FROM records LIMIT 1"
+
+  let user_query = Query(sql: users_sql, args: [])
+  let record_query = Query(sql: records_sql, args: [])
 
   let result = {
-    let returned = Ok(Returned(1, [Record(1)]))
+    let state =
+      testing.new_state()
+      |> testing.add(users_sql, [dynamic.from(#("Firstname Lastname"))])
+      |> testing.add(records_sql, [dynamic.from(#(1))])
 
-    use db <- based.register(testing.with_connection, returned)
+    use db <- based.register(
+      testing.with_connection,
+      state,
+      testing.mock_service,
+    )
 
-    query
-    |> based.exec(db)
+    user_query
+    |> based.execute(db)
+    |> based.decode(user_decoder)
+    |> should.be_ok
+
+    record_query
+    |> based.execute(db)
+    |> based.decode(record_decoder)
     |> should.be_ok
 
     Nil
@@ -34,16 +56,19 @@ pub fn exec_test() {
 }
 
 pub fn exec_without_return_test() {
-  let query =
-    Query(sql: "INSERT INTO records (id) VALUES (?);", args: [], decoder: None)
+  let query = Query(sql: "INSERT INTO records (id) VALUES (?);", args: [])
 
   let result = {
-    let returning = Ok(Returned(0, []))
+    let state = testing.empty_returns_for([query])
 
-    use db <- based.register(testing.with_connection, returning)
+    use db <- based.register(
+      testing.with_connection,
+      state,
+      testing.mock_service,
+    )
 
     query
-    |> based.exec(db)
+    |> based.execute(db)
     |> should.be_ok
 
     Nil
@@ -52,37 +77,21 @@ pub fn exec_without_return_test() {
   result |> should.equal(Nil)
 }
 
-pub fn multiple_query_test() {
-  let records_service = fn(_: Query(a), _: c) { Ok(Returned(0, [])) }
-  let int_service = fn(_: Query(a), _: c) { Ok(Returned(1, [1])) }
+pub fn register_test() {
+  let records_query = based.new_query("SELECT * FROM records")
+  let other_records_query = based.new_query("SELECT * FROM other_records")
 
-  let result = {
-    use conn <- based.using(testing.mock_connection, Nil)
+  let state = testing.empty_returns_for([records_query, other_records_query])
 
-    // Query for records with records_service
-    let records =
-      based.new_query("SELECT * FROM records")
-      |> based.execute(conn, records_service)
-      |> should.be_ok
+  use db <- based.register(testing.with_connection, state, testing.mock_service)
 
-    let int =
-      based.new_query("SELECT int FROM ints LIMIT 1")
-      |> based.execute(conn, int_service)
-      |> should.be_ok
+  records_query
+  |> based.execute(db)
+  |> should.be_ok
 
-    let other_records =
-      based.new_query("SELECT * FROM other_records")
-      |> based.execute(conn, records_service)
-      |> should.be_ok
-
-    #(records.rows, int.rows, other_records.rows)
-  }
-
-  let #(records, int, other_records) = result
-
-  records |> should.equal([])
-  int |> should.equal([1])
-  other_records |> should.equal([])
+  other_records_query
+  |> based.execute(db)
+  |> should.be_ok
 }
 
 pub fn new_query_test() {
@@ -91,7 +100,6 @@ pub fn new_query_test() {
 
   query.sql |> should.equal(sql)
   query.args |> list.length |> should.equal(0)
-  query.decoder |> should.be_none
 }
 
 pub fn new_query_with_args_test() {
@@ -102,21 +110,6 @@ pub fn new_query_with_args_test() {
 
   query.sql |> should.equal(sql)
   query.args |> list.length |> should.equal(1)
-  query.decoder |> should.be_none
-}
-
-pub fn new_query_with_args_and_decoder_test() {
-  let sql = "SELECT 1;"
-  let decoder = dynamic.decode1(Record, dynamic.element(0, dynamic.int))
-
-  let query =
-    based.new_query(sql)
-    |> based.with_args([based.int(1)])
-    |> based.with_decoder(decoder)
-
-  query.sql |> should.equal(sql)
-  query.args |> list.length |> should.equal(1)
-  query.decoder |> should.be_some
 }
 
 pub fn string_test() {
