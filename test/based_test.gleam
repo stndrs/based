@@ -40,13 +40,11 @@ pub fn exec_test() {
     )
 
     user_query
-    |> based.execute(db)
-    |> based.decode(user_decoder)
+    |> based.all(db, user_decoder)
     |> should.be_ok
 
     record_query
-    |> based.execute(db)
-    |> based.decode(record_decoder)
+    |> based.all(db, record_decoder)
     |> should.be_ok
 
     Nil

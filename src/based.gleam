@@ -34,6 +34,9 @@ pub opaque type DB {
 pub type Service(c) =
   fn(Query, c) -> Result(List(Dynamic), Nil)
 
+pub type QueryDecoder(a) =
+  fn(List(Dynamic), Decoder(a)) -> List(a)
+
 /// Expects a `with_connection` function and its first required argument. For a library
 /// implementing a `with_connection` function, the required argument will likely be its
 /// configuration data.
@@ -98,13 +101,14 @@ pub fn all(
   db: DB,
   decoder: Decoder(a),
 ) -> Result(Returned(a), BasedError) {
-  execute(query, db)
-  |> decode(decoder)
+  use rows <- result.try(execute(query, db))
+  decode(rows, decoder)
 }
 
 /// Returns one queried row
 pub fn one(query: Query, db: DB, decoder: Decoder(a)) -> Result(a, BasedError) {
-  let returned = execute(query, db) |> decode(decoder)
+  use rows <- result.try(execute(query, db))
+  let returned = decode(rows, decoder)
   use returned <- result.try(returned)
 
   let Returned(_, rows) = returned
@@ -135,10 +139,9 @@ pub fn execute(query: Query, db: DB) -> Result(List(Dynamic), BasedError) {
 }
 
 pub fn decode(
-  rows: Result(List(Dynamic), BasedError),
+  rows: List(Dynamic),
   decoder: Decoder(a),
 ) -> Result(Returned(a), BasedError) {
-  use rows <- result.try(rows)
   use rows <- result.try(
     list.try_map(over: rows, with: decoder)
     |> result.map_error(decode_error),
