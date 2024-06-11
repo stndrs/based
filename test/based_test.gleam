@@ -33,11 +33,14 @@ pub fn exec_test() {
       |> testing.add(users_sql, [dynamic.from(#("Firstname Lastname"))])
       |> testing.add(records_sql, [dynamic.from(#(1))])
 
-    use db <- based.register(
-      testing.with_connection,
-      state,
-      testing.mock_service,
-    )
+    let adapter =
+      based.BasedAdapter(
+        with_connection: testing.with_connection,
+        conf: state,
+        service: testing.mock_service,
+      )
+
+    use db <- based.register(adapter)
 
     user_query
     |> based.all(db, user_decoder)
@@ -58,12 +61,14 @@ pub fn exec_without_return_test() {
 
   let result = {
     let state = testing.empty_returns_for([query])
+    let adapter =
+      based.BasedAdapter(
+        with_connection: testing.with_connection,
+        conf: state,
+        service: testing.mock_service,
+      )
 
-    use db <- based.register(
-      testing.with_connection,
-      state,
-      testing.mock_service,
-    )
+    use db <- based.register(adapter)
 
     query
     |> based.execute(db)
@@ -80,8 +85,14 @@ pub fn register_test() {
   let other_records_query = based.new_query("SELECT * FROM other_records")
 
   let state = testing.empty_returns_for([records_query, other_records_query])
+  let adapter =
+    based.BasedAdapter(
+      with_connection: testing.with_connection,
+      conf: state,
+      service: testing.mock_service,
+    )
 
-  use db <- based.register(testing.with_connection, state, testing.mock_service)
+  use db <- based.register(adapter)
 
   records_query
   |> based.execute(db)

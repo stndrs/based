@@ -19,9 +19,17 @@ pub type Query {
   Query(sql: String, args: List(Value))
 }
 
+pub type BasedAdapter(conf, conn, t) {
+  BasedAdapter(
+    with_connection: WithConnection(conf, conn, t),
+    conf: conf,
+    service: Service(conn),
+  )
+}
+
 /// Defines a valid `with_connection` function
-pub type WithConnection(b, conn, t) =
-  fn(b, fn(conn) -> t) -> t
+pub type WithConnection(conf, conn, t) =
+  fn(conf, fn(conn) -> t) -> t
 
 pub type Returned(a) {
   Returned(count: Int, rows: List(a))
@@ -31,8 +39,8 @@ pub opaque type DB {
   DB(Subject(Message))
 }
 
-pub type Service(c) =
-  fn(Query, c) -> Result(List(Dynamic), Nil)
+pub type Service(conn) =
+  fn(Query, conn) -> Result(List(Dynamic), Nil)
 
 pub type QueryDecoder(a) =
   fn(List(Dynamic), Decoder(a)) -> List(a)
@@ -43,11 +51,11 @@ pub type QueryDecoder(a) =
 /// In the case of `based/testing.with_connection`, the required argument is the expected
 /// return data.
 pub fn register(
-  with_connection: WithConnection(conf, conn, ret),
-  conf: conf,
-  service: Service(conn),
-  callback: fn(DB) -> ret,
-) -> ret {
+  based_adapter: BasedAdapter(conf, conn, t),
+  callback: fn(DB) -> t,
+) -> t {
+  let BasedAdapter(with_connection, conf, service) = based_adapter
+
   use connection <- with_connection(conf)
 
   let assert Ok(actor) = start(connection, service)
@@ -126,11 +134,10 @@ pub fn one(query: Query, db: DB, decoder: Decoder(a)) -> Result(a, BasedError) {
   Ok(row)
 }
 
-/// The same as `exec`, but explicitly tells a reader that all queried rows are expected.
 pub fn execute(query: Query, db: DB) -> Result(List(Dynamic), BasedError) {
   let DB(subject) = db
 
-  process.call(subject, Execute(_, query), 10)
+  process.call(subject, Execute(_, query), 100)
   |> result.replace_error(BasedError(
     code: QueryExec,
     message: "Query failed",
