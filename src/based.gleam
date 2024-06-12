@@ -15,6 +15,10 @@ pub type Value {
   Null
 }
 
+pub type BasedError {
+  BasedError(code: String, name: String, message: String)
+}
+
 pub type Query {
   Query(sql: String, args: List(Value))
 }
@@ -40,10 +44,15 @@ pub opaque type DB {
 }
 
 pub type Service(conn) =
-  fn(Query, conn) -> Result(List(Dynamic), Nil)
+  fn(Query, conn) -> Result(List(Dynamic), BasedError)
 
 pub type QueryDecoder(a) =
   fn(List(Dynamic), Decoder(a)) -> List(a)
+
+pub type Message {
+  Execute(reply_with: Subject(Result(List(Dynamic), BasedError)), query: Query)
+  Shutdown
+}
 
 /// Expects a `with_connection` function and its first required argument. For a library
 /// implementing a `with_connection` function, the required argument will likely be its
@@ -63,11 +72,6 @@ pub fn register(
   let result = callback(DB(actor))
   shutdown(actor)
   result
-}
-
-pub type Message {
-  Execute(reply_with: Subject(Result(List(Dynamic), Nil)), query: Query)
-  Shutdown
 }
 
 fn start(
@@ -125,9 +129,9 @@ pub fn one(query: Query, db: DB, decoder: Decoder(a)) -> Result(a, BasedError) {
     rows
     |> list.first
     |> result.replace_error(BasedError(
-      code: NotFound,
-      message: "Not found",
-      offset: -1,
+      code: "",
+      name: "not_found",
+      message: "Expected one row but found none",
     )),
   )
 
@@ -138,11 +142,6 @@ pub fn execute(query: Query, db: DB) -> Result(List(Dynamic), BasedError) {
   let DB(subject) = db
 
   process.call(subject, Execute(_, query), 100)
-  |> result.replace_error(BasedError(
-    code: QueryExec,
-    message: "Query failed",
-    offset: -1,
-  ))
 }
 
 pub fn decode(
@@ -159,16 +158,6 @@ pub fn decode(
   |> Ok
 }
 
-pub type Code {
-  Generic
-  QueryExec
-  NotFound
-}
-
-pub type BasedError {
-  BasedError(code: Code, message: String, offset: Int)
-}
-
 fn decode_error(errors: List(dynamic.DecodeError)) -> BasedError {
   let assert [dynamic.DecodeError(expected, actual, path), ..] = errors
   let path = string.join(path, ".")
@@ -180,7 +169,7 @@ fn decode_error(errors: List(dynamic.DecodeError)) -> BasedError {
     <> " in "
     <> path
 
-  BasedError(code: Generic, message: message, offset: -1)
+  BasedError(code: "", name: "decode_error", message: message)
 }
 
 /// Converts a string to a `Value` type

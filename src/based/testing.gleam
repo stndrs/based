@@ -1,9 +1,10 @@
-import based.{type Query}
+import based.{type BasedError, type Query, BasedError}
 import gleam/dict.{type Dict}
 import gleam/dynamic.{type Dynamic}
 import gleam/erlang/process.{type Subject}
 import gleam/list
 import gleam/otp/actor
+import gleam/result
 
 /// A mock connection
 pub type Connection {
@@ -44,7 +45,7 @@ pub fn with_connection(state: State, callback: fn(Connection) -> t) -> t {
 pub fn mock_service(
   query: Query,
   conn: Connection,
-) -> Result(List(Dynamic), Nil) {
+) -> Result(List(Dynamic), BasedError) {
   let Connection(subject) = conn
 
   process.call(subject, Get(_, query.sql), 10)
@@ -53,7 +54,7 @@ pub fn mock_service(
 pub type Message {
   Shutdown
   Insert(State)
-  Get(reply_with: Subject(Result(List(Dynamic), Nil)), key: String)
+  Get(reply_with: Subject(Result(List(Dynamic), BasedError)), key: String)
 }
 
 pub fn insert(conn: Connection, state: State) -> Connection {
@@ -78,7 +79,14 @@ fn handle_message(
       |> actor.continue
     }
     Get(client, key) -> {
-      let value = store |> dict.get(key)
+      let value =
+        store
+        |> dict.get(key)
+        |> result.replace_error(BasedError(
+          code: "",
+          name: "query_error",
+          message: "Query could not be completed",
+        ))
 
       process.send(client, value)
       actor.continue(store)
