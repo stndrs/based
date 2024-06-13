@@ -1,4 +1,6 @@
-import based.{type BasedError, type Query, BasedError}
+import based.{
+  type BasedAdapter, type BasedError, type Query, BasedAdapter, BasedError,
+}
 import gleam/dict.{type Dict}
 import gleam/dynamic.{type Dynamic}
 import gleam/erlang/process.{type Subject}
@@ -32,6 +34,14 @@ pub fn add(state: State, key: String, value: List(Dynamic)) -> State {
     |> dict.insert(key, value)
 
   State(new_state)
+}
+
+pub fn mock_adapter(state: State) -> BasedAdapter(State, Connection, t) {
+  BasedAdapter(
+    with_connection: with_connection,
+    conf: state,
+    service: mock_service,
+  )
 }
 
 /// For testing code without hitting a real database
