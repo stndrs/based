@@ -15,6 +15,7 @@ pub type Value {
   Null
 }
 
+// TODO: Improve errors 
 pub type BasedError {
   BasedError(code: String, name: String, message: String)
 }
@@ -45,9 +46,6 @@ pub opaque type DB {
 
 pub type Service(conn) =
   fn(Query, conn) -> Result(List(Dynamic), BasedError)
-
-pub type QueryDecoder(a) =
-  fn(List(Dynamic), Decoder(a)) -> List(a)
 
 pub type Message {
   Execute(reply_with: Subject(Result(List(Dynamic), BasedError)), query: Query)
@@ -100,14 +98,20 @@ fn handle_message(
   }
 }
 
+/// Returns a Query record with the provided SQL string and an empty list of values.
+/// This function can be used on its own for queries that don't require values. Its
+/// return value may also be piped into `with_values` to be given the appropriate
+/// list of values required for the query.
 pub fn new_query(sql: String) -> Query {
   Query(sql, [])
 }
 
+/// Appends a list of values to the provided Query record.
 pub fn with_values(query: Query, values: List(Value)) -> Query {
-  Query(..query, values: values)
+  Query(query.sql, values: list.append(query.values, values))
 }
 
+/// Applies the provided `Decoder` to all rows returned by the Query.
 pub fn all(
   query: Query,
   db: DB,
@@ -117,7 +121,10 @@ pub fn all(
   decode(rows, decoder)
 }
 
-/// Returns one queried row
+/// Returns the first row returned by the query after being decoded by the provided
+/// `Decoder`. Useful for queries where only one row should be returned. If more rows
+/// are returned by the query, only the first row will be decoded and returned from
+/// this function.
 pub fn one(query: Query, db: DB, decoder: Decoder(a)) -> Result(a, BasedError) {
   use rows <- result.try(execute(query, db))
   let returned = decode(rows, decoder)
@@ -138,12 +145,14 @@ pub fn one(query: Query, db: DB, decoder: Decoder(a)) -> Result(a, BasedError) {
   Ok(row)
 }
 
+/// Performs a query and returns a list of Dynamic values.
 pub fn execute(query: Query, db: DB) -> Result(List(Dynamic), BasedError) {
   let DB(subject) = db
 
   process.call(subject, Execute(_, query), 100)
 }
 
+/// Decodes a list of Dynamic values with the provided `Decoder`.
 pub fn decode(
   rows: List(Dynamic),
   decoder: Decoder(a),
