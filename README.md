@@ -13,7 +13,7 @@ definitions in this package. This can allow developers to quickly get started
 writing gleam programs using a sqlite backend, but change to postgres when
 needed without a large refactor.
 
-### Example packages that can be used with `based`:
+## Example packages that can be used with `based`
 
 - [`based_pg`](https://github.com/stndrs/based_pg)
 - [`based_sqlite`](https://github.com/stndrs/based_sqlite)
@@ -21,24 +21,31 @@ needed without a large refactor.
 ```sh
 gleam add based
 ```
+
 ```gleam
 import based
+import dynamic
 import based_pg
 // import based_sqlite
-import gleam/option.{None}
 
-const sql = "DELETE FROM users WHERE id=$1;"
+const sql = "SELECT name FROM users WHERE id=$1;"
+
+pub type User {
+  User(name: String)
+}
 
 pub fn main() {
   let config = load_config()
 
-  use db <- based.register(based_pg.with_connection, config)
-  // use db <- based.register(based_sqlite.with_connection, config)
+  use db <- based.register(based_pg.adapter(config))
+  // use db <- based.register(based_sqlite.adapter(config))
+
+  let decoder = dynamic.decode1(User, dynamic.element(0, dynamic.string))
 
   // Swapping out the backend doesn't require rewriting the existing queries
   based.new_query(sql)
-  |> based.with_args([based.int(1)])
-  |> based.exec(db)
+  |> based.with_values([based.int(1)])
+  |> based.one(db, decoder)
 }
 ```
 
