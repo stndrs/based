@@ -20,7 +20,7 @@ pub type BasedError {
 }
 
 pub type Query {
-  Query(sql: String, args: List(Value))
+  Query(sql: String, values: List(Value))
 }
 
 pub type BasedAdapter(conf, conn, t) {
@@ -104,8 +104,8 @@ pub fn new_query(sql: String) -> Query {
   Query(sql, [])
 }
 
-pub fn with_args(query: Query, args: List(Value)) -> Query {
-  Query(..query, args: args)
+pub fn with_values(query: Query, values: List(Value)) -> Query {
+  Query(..query, values: values)
 }
 
 pub fn all(

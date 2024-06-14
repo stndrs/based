@@ -24,8 +24,8 @@ pub fn exec_test() {
   let users_sql = "SELECT name FROM users WHERE id=1"
   let records_sql = "SELECT id FROM records LIMIT 1"
 
-  let user_query = Query(sql: users_sql, args: [])
-  let record_query = Query(sql: records_sql, args: [])
+  let user_query = Query(sql: users_sql, values: [])
+  let record_query = Query(sql: records_sql, values: [])
 
   let result = {
     let state =
@@ -57,7 +57,7 @@ pub fn exec_test() {
 }
 
 pub fn exec_without_return_test() {
-  let query = Query(sql: "INSERT INTO records (id) VALUES (?);", args: [])
+  let query = Query(sql: "INSERT INTO records (id) VALUES (?);", values: [])
 
   let result = {
     let state = testing.empty_returns_for([query])
@@ -108,17 +108,17 @@ pub fn new_query_test() {
   let query = based.new_query(sql)
 
   query.sql |> should.equal(sql)
-  query.args |> list.length |> should.equal(0)
+  query.values |> list.length |> should.equal(0)
 }
 
-pub fn new_query_with_args_test() {
+pub fn new_query_with_values_test() {
   let sql = "SELECT * FROM users WHERE id=$1;"
   let query =
     based.new_query(sql)
-    |> based.with_args([based.int(1)])
+    |> based.with_values([based.int(1)])
 
   query.sql |> should.equal(sql)
-  query.args |> list.length |> should.equal(1)
+  query.values |> list.length |> should.equal(1)
 }
 
 pub fn string_test() {
