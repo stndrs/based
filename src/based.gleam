@@ -149,7 +149,7 @@ pub fn one(query: Query, db: DB, decoder: Decoder(a)) -> Result(a, BasedError) {
 pub fn execute(query: Query, db: DB) -> Result(List(Dynamic), BasedError) {
   let DB(subject) = db
 
-  process.call(subject, Execute(_, query), 100)
+  process.call(subject, Execute(_, query), 5000)
 }
 
 /// Decodes a list of Dynamic values with the provided `Decoder`.
