@@ -108,8 +108,8 @@ pub fn update_set_from_subquery_test() {
   let prices = sql.name("prices") |> sql.table
 
   let price_id =
-    select.new(["price"])
-    |> select.from(prices)
+    select.from(prices)
+    |> select.columns(["price"])
     |> select.where([
       sql.name("id")
       |> sql.column

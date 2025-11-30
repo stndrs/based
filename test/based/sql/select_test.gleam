@@ -13,8 +13,8 @@ pub fn select_test() {
   let users = sql.name("users") |> sql.table
 
   let query =
-    select.new(["id", "name"])
-    |> select.from(users)
+    select.from(users)
+    |> select.columns(["id", "name"])
     |> select.to_query(value.format())
 
   query.sql |> should.equal(expected)
@@ -26,8 +26,8 @@ pub fn select_alias_test() {
   let user_posts = sql.name("user_posts") |> sql.table
 
   let query =
-    select.new(["user_id AS id"])
-    |> select.from(user_posts)
+    select.from(user_posts)
+    |> select.columns(["user_id AS id"])
     |> select.to_query(value.format())
 
   query.sql |> should.equal(expected)
@@ -38,9 +38,9 @@ pub fn select_distincts_test() {
   let users = sql.name("users") |> sql.table
 
   let query =
-    select.new(["id, name"])
+    select.from(users)
+    |> select.columns(["id, name"])
     |> select.distinct
-    |> select.from(users)
     |> select.to_query(value.format())
 
   query.sql |> should.equal(expected)
@@ -54,8 +54,8 @@ pub fn select_subquery_test() {
   let posts = sql.name("posts") |> sql.table
 
   let subquery =
-    select.new(["id"])
-    |> select.from(users)
+    select.from(users)
+    |> select.columns(["id"])
     |> select.where([
       sql.name("name")
       |> sql.column
@@ -64,8 +64,8 @@ pub fn select_subquery_test() {
     |> select.to_subquery(value.format())
 
   let query =
-    select.new(["title"])
-    |> select.from(posts)
+    select.from(posts)
+    |> select.columns(["title"])
     |> select.where([
       sql.name("created_at")
         |> sql.column
@@ -86,8 +86,7 @@ pub fn select_or_test() {
   let users = sql.name("users") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(users)
+    select.from(users)
     |> select.where([
       sql.name("name")
       |> sql.column
@@ -113,8 +112,7 @@ pub fn select_where_not_test() {
   let users = sql.name("users") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(users)
+    select.from(users)
     |> select.where_not([
       sql.name("email")
       |> sql.column
@@ -131,8 +129,7 @@ pub fn select_where_not_like_test() {
   let users = sql.name("users") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(users)
+    select.from(users)
     |> select.where([
       sql.name("email")
       |> sql.column
@@ -149,9 +146,9 @@ pub fn select_distinct_test() {
   let users = sql.name("users") |> sql.table
 
   let query =
-    select.new(["value"])
+    select.from(users)
+    |> select.columns(["value"])
     |> select.distinct
-    |> select.from(users)
     |> select.to_query(value.format())
 
   query.sql |> should.equal(expected)
@@ -166,8 +163,7 @@ pub fn select_with_join_test() {
   let posts = sql.name("posts") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(users)
+    select.from(users)
     |> select.join(posts, [
       sql.name("users.id")
         |> sql.column
@@ -193,8 +189,7 @@ pub fn select_with_multiple_joins_test() {
   let followers = sql.name("followers") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(users)
+    select.from(users)
     |> select.join(posts, [
       sql.name("users.id")
         |> sql.column
@@ -229,8 +224,7 @@ pub fn select_with_in_test() {
   let users = sql.name("users") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(users)
+    select.from(users)
     |> select.where([
       sql.name("id")
       |> sql.column
@@ -248,8 +242,7 @@ pub fn select_with_in_tuples_test() {
   let posts = sql.name("posts") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(posts)
+    select.from(posts)
     |> select.where([
       sql.columns(["id", "user_id"])
       |> sql.in(
@@ -279,8 +272,7 @@ pub fn select_with_is_null_test() {
   let users = sql.name("users") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(users)
+    select.from(users)
     |> select.where([
       sql.name("deleted_at")
       |> sql.column
@@ -297,8 +289,7 @@ pub fn select_with_is_not_null_test() {
   let users = sql.name("users") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(users)
+    select.from(users)
     |> select.where([
       sql.name("active")
       |> sql.column
@@ -315,8 +306,7 @@ pub fn select_wildcard_test() {
   let users = sql.name("users") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(users)
+    select.from(users)
     |> select.to_query(value.format())
 
   query.sql |> should.equal(expected)
@@ -328,8 +318,7 @@ pub fn where_lt_test() {
   let users = sql.name("users") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(users)
+    select.from(users)
     |> select.where([
       sql.name("age")
       |> sql.column
@@ -346,8 +335,7 @@ pub fn where_lt_eq_test() {
   let users = sql.name("users") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(users)
+    select.from(users)
     |> select.where([
       sql.name("age")
       |> sql.column
@@ -364,8 +352,7 @@ pub fn where_not_eq_test() {
   let users = sql.name("users") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(users)
+    select.from(users)
     |> select.where([
       sql.name("status")
       |> sql.column
@@ -382,8 +369,7 @@ pub fn multiple_where_test() {
   let users = sql.name("users") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(users)
+    select.from(users)
     |> select.where([
       sql.name("age")
         |> sql.column
@@ -406,8 +392,7 @@ pub fn join_with_multiple_conditions_to_string_test() {
   let orders = sql.name("orders") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(users)
+    select.from(users)
     |> select.join(orders, [
       sql.name("users.id")
         |> sql.column
@@ -434,8 +419,7 @@ pub fn select_with_limit_test() {
   let users = sql.name("users") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(users)
+    select.from(users)
     |> select.limit(10, of: value.int)
     |> select.to_query(value.format())
 
@@ -448,8 +432,7 @@ pub fn select_with_limit_and_offset_test() {
   let users = sql.name("users") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(users)
+    select.from(users)
     |> select.limit(20, of: value.int)
     |> select.offset(10, of: value.int)
     |> select.to_query(value.format())
@@ -463,8 +446,7 @@ pub fn select_with_offset_test() {
   let users = sql.name("users") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(users)
+    select.from(users)
     |> select.limit(100, of: value.int)
     |> select.offset(50, of: value.int)
     |> select.to_query(value.format())
@@ -479,8 +461,8 @@ pub fn group_by_test() {
   let employees = sql.name("employees") |> sql.table
 
   let query =
-    select.new(["department", "COUNT(*)"])
-    |> select.from(employees)
+    select.from(employees)
+    |> select.columns(["department", "COUNT(*)"])
     |> select.group_by(["department"])
     |> select.to_query(value.format())
 
@@ -494,8 +476,8 @@ pub fn multiple_group_by_test() {
   let employees = sql.name("employees") |> sql.table
 
   let query =
-    select.new(["department", "location", "COUNT(*)"])
-    |> select.from(employees)
+    select.from(employees)
+    |> select.columns(["department", "location", "COUNT(*)"])
     |> select.group_by(["department", "location"])
     |> select.to_query(value.format())
 
@@ -509,8 +491,8 @@ pub fn having_test() {
   let employees = sql.name("employees") |> sql.table
 
   let query =
-    select.new(["department", "COUNT(*)"])
-    |> select.from(employees)
+    select.from(employees)
+    |> select.columns(["department", "COUNT(*)"])
     |> select.group_by(["department"])
     |> select.having([
       sql.name("COUNT(*)")
@@ -529,8 +511,8 @@ pub fn multiple_having_test() {
   let employees = sql.name("employees") |> sql.table
 
   let query =
-    select.new(["department", "AVG(salary)"])
-    |> select.from(employees)
+    select.from(employees)
+    |> select.columns(["department", "AVG(salary)"])
     |> select.group_by(["department"])
     |> select.having([
       sql.name("COUNT(*)")
@@ -551,8 +533,7 @@ pub fn order_by_with_asc_test() {
   let users = sql.name("users") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(users)
+    select.from(users)
     |> select.order_by(["name"])
     |> select.asc
     |> select.to_query(value.format())
@@ -566,8 +547,7 @@ pub fn order_by_with_desc_test() {
   let users = sql.name("users") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(users)
+    select.from(users)
     |> select.order_by(["created_at"])
     |> select.desc
     |> select.to_query(value.format())
@@ -581,8 +561,7 @@ pub fn multiple_order_by_columns_test() {
   let users = sql.name("users") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(users)
+    select.from(users)
     |> select.order_by(["department", "name"])
     |> select.asc
     |> select.to_query(value.format())
@@ -597,8 +576,8 @@ pub fn complex_query_with_order_by_test() {
   let employees = sql.name("employees") |> sql.table
 
   let query =
-    select.new(["department", "COUNT(*)"])
-    |> select.from(employees)
+    select.from(employees)
+    |> select.columns(["department", "COUNT(*)"])
     |> select.where([
       sql.name("active")
       |> sql.column
@@ -632,8 +611,8 @@ pub fn from_subquery_test() {
   let employees = sql.name("employees") |> sql.table
 
   let employees_query =
-    select.new(["id", "name", "department"])
-    |> select.from(employees)
+    select.from(employees)
+    |> select.columns(["id", "name", "department"])
     |> select.where([
       sql.name("active")
       |> sql.column
@@ -642,8 +621,8 @@ pub fn from_subquery_test() {
     |> select.to_table(value.format())
 
   let query =
-    select.new(["name", "department"])
-    |> select.from(employees_query)
+    select.from(employees_query)
+    |> select.columns(["name", "department"])
     |> select.where([
       sql.name("name")
       |> sql.column
@@ -661,8 +640,8 @@ pub fn complex_queried_with_aggregation_test() {
   let employees = sql.name("employees") |> sql.table
 
   let department_stats_query =
-    select.new(["department", "SUM(salary) as total_salary"])
-    |> select.from(employees)
+    select.from(employees)
+    |> select.columns(["department", "SUM(salary) as total_salary"])
     |> select.group_by(["department"])
     |> select.having([
       sql.name("COUNT(*)")
@@ -672,8 +651,8 @@ pub fn complex_queried_with_aggregation_test() {
     |> select.to_table(value.format())
 
   let query =
-    select.new(["department", "total_salary"])
-    |> select.from(department_stats_query)
+    select.from(department_stats_query)
+    |> select.columns(["department", "total_salary"])
     |> select.where([
       sql.name("total_salary")
       |> sql.column
@@ -690,8 +669,7 @@ pub fn for_update_test() {
   let users = sql.name("users") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(users)
+    select.from(users)
     |> select.where([
       sql.name("id")
       |> sql.column
@@ -710,8 +688,8 @@ pub fn complex_for_update_test() {
   let accounts = sql.name("accounts") |> sql.table
 
   let query =
-    select.new(["id", "name", "balance"])
-    |> select.from(accounts)
+    select.from(accounts)
+    |> select.columns(["id", "name", "balance"])
     |> select.where([
       sql.name("user_id")
         |> sql.column
@@ -740,8 +718,7 @@ pub fn format_placeholders_test() {
   let users = sql.name("users") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(users)
+    select.from(users)
     |> select.where([
       sql.name("id")
         |> sql.column
@@ -767,8 +744,7 @@ pub fn format_identifier_test() {
   let users = sql.name("users") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(users)
+    select.from(users)
     |> select.where([
       sql.name("id")
         |> sql.column
@@ -792,8 +768,8 @@ pub fn for_update_with_join_test() {
   let orders = sql.name("orders") |> sql.table
 
   let query =
-    select.new(["orders.id", "orders.amount", "users.name"])
-    |> select.from(orders)
+    select.from(orders)
+    |> select.columns(["orders.id", "orders.amount", "users.name"])
     |> select.join(users, [
       sql.name("orders.user_id")
       |> sql.column
@@ -817,8 +793,7 @@ pub fn date_time_types_test() {
   let events = sql.name("events") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(events)
+    select.from(events)
     |> select.where([
       sql.name("event_date")
         |> sql.column
@@ -844,8 +819,7 @@ pub fn time_type_test() {
   let events = sql.name("events") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(events)
+    select.from(events)
     |> select.where([
       sql.name("event_time")
       |> sql.column
@@ -862,8 +836,7 @@ pub fn duration_type_test() {
   let events = sql.name("events") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(events)
+    select.from(events)
     |> select.where([
       sql.name("event_duration")
       |> sql.column
@@ -879,8 +852,7 @@ pub fn different_value_types_test() {
   let products = sql.name("products") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(products)
+    select.from(products)
     |> select.where([
       sql.name("id")
         |> sql.column
@@ -911,8 +883,7 @@ pub fn between_test() {
   let products = sql.name("products") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(products)
+    select.from(products)
     |> select.where([
       sql.name("price")
       |> sql.column
@@ -936,8 +907,7 @@ pub fn complex_between_test() {
   let orders = sql.name("orders") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(orders)
+    select.from(orders)
     |> select.where([
       sql.name("total")
         |> sql.column
@@ -973,8 +943,7 @@ pub fn not_between_test() {
   let products = sql.name("products") |> sql.table
 
   let query =
-    select.new(["*"])
-    |> select.from(products)
+    select.from(products)
     |> select.where([
       sql.not(
         sql.name("price")

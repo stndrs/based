@@ -29,10 +29,19 @@ pub opaque type Select(v) {
   )
 }
 
-pub fn new(columns: List(String)) -> Select(v) {
+fn prepend_values(select: Select(v), values: List(v)) -> Select(v) {
+  let values = list.prepend(select.values, values)
+  Select(..select, values:)
+}
+
+pub fn distinct(select: Select(v)) -> Select(v) {
+  Select(..select, distinct: True)
+}
+
+pub fn new() -> Select(v) {
   Select(
     table: None,
-    columns:,
+    columns: [],
     distinct: False,
     join: [],
     where: [],
@@ -47,21 +56,30 @@ pub fn new(columns: List(String)) -> Select(v) {
   )
 }
 
-fn prepend_values(select: Select(v), values: List(v)) -> Select(v) {
-  let values = list.prepend(select.values, values)
-  Select(..select, values:)
-}
-
-pub fn distinct(select: Select(v)) -> Select(v) {
-  Select(..select, distinct: True)
-}
-
 // From
 
-pub fn from(select: Select(v), table: sql.Table(v)) -> Select(v) {
+pub fn from(table: sql.Table(v)) -> Select(v) {
   let values = sql.table_to_values(table)
 
-  Select(..select, table: Some(table), values: [values])
+  Select(
+    table: Some(table),
+    columns: ["*"],
+    distinct: False,
+    join: [],
+    where: [],
+    group_by: [],
+    having: [],
+    order_by: [],
+    order: None,
+    limit: None,
+    offset: None,
+    for: None,
+    values: [values],
+  )
+}
+
+pub fn columns(select: Select(v), columns: List(String)) -> Select(v) {
+  Select(..select, columns:)
 }
 
 // Where
@@ -214,7 +232,7 @@ fn build(select: Select(v), format: sql.Format(v)) -> StringTree {
   }
 
   let from_fmt = case select.table {
-    Some(table) -> fn(st) { fmt.from(st, sql.table_to_string(table, format)) }
+    Some(table) -> fmt.from(_, sql.table_to_string(table, format))
     None -> function.identity
   }
 

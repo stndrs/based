@@ -13,8 +13,8 @@ pub fn with_test() {
   let employees = sql.name("employees") |> sql.alias("e") |> sql.table
 
   let employees_select =
-    select.new(["e.name", "d.name"])
-    |> select.from(employees)
+    select.from(employees)
+    |> select.columns(["e.name", "d.name"])
     |> select.join(sql.alias(departments, "d") |> sql.table, [
       sql.name("e.dept_id")
       |> sql.column
@@ -25,8 +25,8 @@ pub fn with_test() {
   let query =
     with.new([with.cte("departments", employees_select)])
     |> with.query(fn() {
-      select.new(["*"])
-      |> select.from(sql.table(departments))
+      select.from(sql.table(departments))
+      |> select.columns(["*"])
       |> select.where([
         sql.name("name")
         |> sql.column
@@ -48,13 +48,13 @@ pub fn with_multiple_ctes_test() {
   let employees = sql.name("employees")
 
   let deps_select =
-    select.new(["id", "name"])
-    |> select.from(sql.table(departments))
+    select.from(sql.table(departments))
+    |> select.columns(["id", "name"])
     |> select.to_query(value.format())
 
   let employees_select =
-    select.new(["id", "name", "dept_id"])
-    |> select.from(sql.table(employees))
+    select.from(sql.table(employees))
+    |> select.columns(["id", "name", "dept_id"])
     |> select.to_query(value.format())
 
   let query =
@@ -63,8 +63,8 @@ pub fn with_multiple_ctes_test() {
       with.cte("employees", employees_select),
     ])
     |> with.query(fn() {
-      select.new(["e.name", "d.name"])
-      |> select.from(sql.table(sql.alias(employees, "e")))
+      select.from(sql.table(sql.alias(employees, "e")))
+      |> select.columns(["e.name", "d.name"])
       |> select.join(sql.table(sql.alias(departments, "d")), [
         sql.name("e.dept_id")
         |> sql.column
@@ -84,8 +84,8 @@ pub fn with_column_names_test() {
   let departments = sql.name("departments") |> sql.table
 
   let deps_select =
-    select.new(["id", "name"])
-    |> select.from(departments)
+    select.from(departments)
+    |> select.columns(["id", "name"])
     |> select.to_query(value.format())
 
   let query =
@@ -94,8 +94,8 @@ pub fn with_column_names_test() {
       |> with.columns(["dept_id", "dept_name"]),
     ])
     |> with.query(fn() {
-      select.new(["dept_name"])
-      |> select.from(departments)
+      select.from(departments)
+      |> select.columns(["dept_name"])
       |> select.where([
         sql.name("dept_id")
         |> sql.column
@@ -113,12 +113,12 @@ pub fn recursive_with_test() {
   let expected =
     "WITH RECURSIVE numbers (n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM numbers WHERE n < ?) SELECT n FROM numbers;"
 
-  let base_query = select.new(["1"])
+  let base_query = select.new() |> select.columns(["1"])
   let numbers = sql.name("numbers") |> sql.table
 
   let recursive_query =
-    select.new(["n + 1"])
-    |> select.from(numbers)
+    select.from(numbers)
+    |> select.columns(["n + 1"])
     |> select.where([
       sql.name("n")
       |> sql.column
@@ -133,8 +133,8 @@ pub fn recursive_with_test() {
     with.new([with.cte("numbers", union_all) |> with.columns(["n"])])
     |> with.recursive
     |> with.query(fn() {
-      select.new(["n"])
-      |> select.from(numbers)
+      select.from(numbers)
+      |> select.columns(["n"])
       |> select.to_query(value.format())
     })
     |> with.to_query(value.format())
@@ -151,12 +151,12 @@ pub fn with_union_test() {
   let combined_data = sql.name("combined_data") |> sql.table
 
   let users_select =
-    select.new(["id", "name"])
-    |> select.from(users)
+    select.from(users)
+    |> select.columns(["id", "name"])
 
   let accounts_select =
-    select.new(["id", "username"])
-    |> select.from(accounts)
+    select.from(accounts)
+    |> select.columns(["id", "username"])
 
   let union_query =
     union.new([users_select, accounts_select])
@@ -165,8 +165,8 @@ pub fn with_union_test() {
   let query =
     with.new([with.cte("combined_data", union_query)])
     |> with.query(fn() {
-      select.new(["*"])
-      |> select.from(combined_data)
+      select.from(combined_data)
+      |> select.columns(["*"])
       |> select.order_by(["id"])
       |> select.to_query(value.format())
     })
