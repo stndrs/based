@@ -4,6 +4,8 @@ import gleam/string_tree.{type StringTree}
 
 pub const placeholder = ":param"
 
+pub const null = "NULL"
+
 // Statements
 
 pub fn insert(

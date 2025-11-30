@@ -160,7 +160,7 @@ pub type Order {
   Desc
 }
 
-pub type Node(v) {
+pub opaque type Node(v) {
   TableRef(name: String, alias: Option(String))
   ColumnRef(Identifier)
   Columns(List(Identifier))
@@ -168,6 +168,7 @@ pub type Node(v) {
   Values(List(v))
   Tuples(List(List(v)))
   Query(query: db.Query(v))
+  Null
 }
 
 pub fn tuples(vals: List(List(Node(v)))) -> Node(v) {
@@ -192,14 +193,10 @@ pub fn value(value: a, of kind: fn(a) -> v) -> Node(v) {
   Value(kind(value))
 }
 
-pub fn nullable(
-  value: Option(a),
-  inner_type: fn(a) -> Node(v),
-  or_else null: fn(Nil) -> Node(v),
-) -> Node(v) {
+pub fn nullable(value: Option(a), inner_type: fn(a) -> Node(v)) -> Node(v) {
   case value {
     Some(term) -> inner_type(term)
-    None -> null(Nil)
+    None -> Null
   }
 }
 
@@ -261,6 +258,7 @@ pub fn node_to_string(node: Node(v), format: Format(v)) -> String {
       |> fmt.enclose
     }
     Query(query) -> fmt.enclose(query.sql)
+    Null -> fmt.null
   }
 }
 
