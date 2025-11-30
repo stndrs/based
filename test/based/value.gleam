@@ -1,4 +1,4 @@
-import based/format.{type Format}
+import based/sql
 import gleam/bit_array
 import gleam/float
 import gleam/function
@@ -170,11 +170,11 @@ pub fn nullable(inner_type: fn(a) -> Value, value: Option(a)) -> Value {
 
 // Format
 
-pub fn format() -> Format(Value) {
-  format.new()
-  |> format.on_identifier(function.identity)
-  |> format.on_placeholder(handle_placeholder)
-  |> format.on_value(value_to_string)
+pub fn format() -> sql.Format(Value) {
+  sql.format()
+  |> sql.on_identifier(function.identity)
+  |> sql.on_placeholder(handle_placeholder)
+  |> sql.on_value(value_to_string)
 }
 
 fn handle_placeholder(_: Int) -> String {

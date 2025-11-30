@@ -1,15 +1,14 @@
 import based/sql
 import based/sql/insert
-import based/sql/table
 import based/value
 import gleeunit/should
 
 pub fn basic_insert_test() {
   let expected = "INSERT INTO users (name, email) VALUES (?, ?)"
-  let users = table.new("users")
+  let users = sql.name("users") |> sql.table
 
   let query =
-    sql.insert(users)
+    insert.into(users)
     |> insert.columns(["name", "email"])
     |> insert.values([
       [
@@ -27,10 +26,10 @@ pub fn basic_insert_test() {
 pub fn insert_multiple_columns_test() {
   let expected =
     "INSERT INTO users (name, email, age, active) VALUES (?, ?, ?, ?)"
-  let users = table.new("users")
+  let users = sql.name("users") |> sql.table
 
   let query =
-    sql.insert(users)
+    insert.into(users)
     |> insert.columns(["name", "email", "age", "active"])
     |> insert.values([
       [
@@ -54,10 +53,10 @@ pub fn insert_multiple_columns_test() {
 
 pub fn insert_returning_test() {
   let expected = "INSERT INTO users (name) VALUES (?) RETURNING id, name"
-  let users = table.new("users")
+  let users = sql.name("users") |> sql.table
 
   let query =
-    sql.insert(users)
+    insert.into(users)
     |> insert.columns(["name"])
     |> insert.values([[sql.value("John", of: value.text)]])
     |> insert.returning(["id", "name"])
@@ -70,10 +69,10 @@ pub fn insert_returning_test() {
 pub fn insert_to_string_test() {
   let expected =
     "INSERT INTO users (name, email) VALUES ('John', 'john@example.com')"
-  let users = table.new("users")
+  let users = sql.name("users") |> sql.table
 
   let query =
-    sql.insert(users)
+    insert.into(users)
     |> insert.columns(["name", "email"])
     |> insert.values([
       [
@@ -87,10 +86,10 @@ pub fn insert_to_string_test() {
 
 pub fn insert_multiple_rows_test() {
   let expected = "INSERT INTO users (name, email) VALUES (?, ?), (?, ?)"
-  let users = table.new("users")
+  let users = sql.name("users") |> sql.table
 
   let query =
-    sql.insert(users)
+    insert.into(users)
     |> insert.columns(["name", "email"])
     |> insert.values([
       [
@@ -116,10 +115,10 @@ pub fn insert_multiple_rows_test() {
 
 pub fn insert_with_null_test() {
   let expected = "INSERT INTO users (name, middle_name) VALUES (?, ?)"
-  let users = table.new("users")
+  let users = sql.name("users") |> sql.table
 
   let query =
-    sql.insert(users)
+    insert.into(users)
     |> insert.columns(["name", "middle_name"])
     |> insert.values([
       [sql.value("John", of: value.text), sql.value(Nil, value.null)],
@@ -133,10 +132,10 @@ pub fn insert_with_null_test() {
 pub fn insert_with_different_value_types_test() {
   let expected =
     "INSERT INTO products (id, price, is_active, description) VALUES (?, ?, ?, ?)"
-  let products = table.new("products")
+  let products = sql.name("products") |> sql.table
 
   let query =
-    sql.insert(products)
+    insert.into(products)
     |> insert.columns(["id", "price", "is_active", "description"])
     |> insert.values([
       [

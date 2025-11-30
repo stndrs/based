@@ -1,16 +1,12 @@
-import based/format.{type Format}
-import based/sql/expr.{type Expr}
+import based/sql
 import based/sql/internal/fmt
-import based/sql/join.{type Join}
-import based/sql/node
-import based/sql/table
 import gleam/dict
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string_tree.{type StringTree}
 
-pub fn to_string(sql: String, values: List(v), format: Format(v)) -> String {
+pub fn to_string(sql: String, values: List(v), format: sql.Format(v)) -> String {
   let values_by_idx =
     values
     |> list.index_map(fn(val, idx) { #(idx + 1, val) })
@@ -19,7 +15,7 @@ pub fn to_string(sql: String, values: List(v), format: Format(v)) -> String {
   let with = fn(idx) {
     values_by_idx
     |> dict.get(idx)
-    |> result.map(format.to_string(format, _))
+    |> result.map(sql.to_string(format, _))
     |> result.unwrap("")
   }
 
@@ -53,8 +49,8 @@ pub fn placeholders(
 
 pub fn append_where(
   st: StringTree,
-  where: List(List(Expr(v))),
-  format: Format(v),
+  where: List(List(sql.Expr(v))),
+  format: sql.Format(v),
 ) -> StringTree {
   where
   |> list.reverse
@@ -66,7 +62,7 @@ pub fn append_where(
     }
 
     expr
-    |> expr.to_string_tree(format)
+    |> sql.expr_to_string_tree(format)
     |> expr_fmt(sql1, _)
   })
 }
@@ -80,8 +76,8 @@ pub fn append_group_by(st: StringTree, group_by: List(String)) -> StringTree {
 
 pub fn append_having(
   st: StringTree,
-  having: List(List(Expr(v))),
-  format: Format(v),
+  having: List(List(sql.Expr(v))),
+  format: sql.Format(v),
 ) -> StringTree {
   having
   |> list.reverse
@@ -93,28 +89,28 @@ pub fn append_having(
     }
 
     expr
-    |> expr.to_string_tree(format)
+    |> sql.expr_to_string_tree(format)
     |> expr_fmt(sql1, _)
   })
 }
 
 pub fn append_joins(
   st: StringTree,
-  joins: List(Join(v)),
-  format: Format(v),
+  joins: List(sql.Join(v)),
+  format: sql.Format(v),
 ) -> StringTree {
   joins
   |> list.reverse
   |> list.fold(from: st, with: fn(st, join) {
     let join_tree = case join.type_ {
-      join.InnerJoin -> fmt.inner_join
-      join.LeftJoin -> fmt.left_join
-      join.RightJoin -> fmt.right_join
-      join.FullJoin -> fmt.full_outer_join
+      sql.InnerJoin -> fmt.inner_join
+      sql.LeftJoin -> fmt.left_join
+      sql.RightJoin -> fmt.right_join
+      sql.FullJoin -> fmt.full_outer_join
     }
 
     st
-    |> join_tree(table.to_string(join.table, format))
+    |> join_tree(sql.table_to_string(join.table, format))
     |> list.index_fold(over: join.exprs, from: _, with: fn(sql1, expr, idx) {
       let expr_fmt = case idx {
         0 -> fmt.on
@@ -122,7 +118,7 @@ pub fn append_joins(
       }
 
       expr
-      |> expr.to_string_tree(format)
+      |> sql.expr_to_string_tree(format)
       |> expr_fmt(sql1, _)
     })
   })
@@ -131,15 +127,15 @@ pub fn append_joins(
 pub fn append_order_by(
   st: StringTree,
   order_by: List(String),
-  order: Option(node.Order),
+  order: Option(sql.Order),
 ) -> StringTree {
   case order_by {
     [] -> st
     columns -> {
       let append_order = fn(st) {
         case order {
-          Some(node.Asc) -> fmt.asc(st)
-          Some(node.Desc) -> fmt.desc(st)
+          Some(sql.Asc) -> fmt.asc(st)
+          Some(sql.Desc) -> fmt.desc(st)
           None -> st
         }
       }

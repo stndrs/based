@@ -7,24 +7,29 @@ import gleeunit/should
 pub fn union_test() {
   let expected =
     "SELECT id, name FROM users WHERE active IS ? UNION SELECT id, name FROM employees WHERE department = ?"
+  let users = sql.name("users") |> sql.table
+  let employees = sql.name("employees") |> sql.table
 
   let users_query =
-    sql.select(["id", "name"])
-    |> select.from(sql.table("users"))
+    select.new(["id", "name"])
+    |> select.from(users)
     |> select.where([
-      sql.column("active") |> sql.is(sql.value(True, value.bool)),
+      sql.name("active")
+      |> sql.column
+      |> sql.is(sql.value(True, value.bool)),
     ])
 
   let employees_query =
-    sql.select(["id", "name"])
-    |> select.from(sql.table("employees"))
+    select.new(["id", "name"])
+    |> select.from(employees)
     |> select.where([
-      sql.column("department")
+      sql.name("department")
+      |> sql.column
       |> sql.eq(sql.value("Engineering", of: value.text)),
     ])
 
   let query =
-    sql.union([users_query, employees_query])
+    union.new([users_query, employees_query])
     |> union.to_query(value.format())
 
   query.sql |> should.equal(expected)
@@ -34,24 +39,29 @@ pub fn union_test() {
 pub fn union_all_test() {
   let expected =
     "SELECT id, name FROM users WHERE active IS ? UNION ALL SELECT id, name FROM employees WHERE department = ?"
+  let users = sql.name("users") |> sql.table
+  let employees = sql.name("employees") |> sql.table
 
   let users_query =
-    sql.select(["id", "name"])
-    |> select.from(sql.table("users"))
+    select.new(["id", "name"])
+    |> select.from(users)
     |> select.where([
-      sql.column("active") |> sql.is(sql.value(True, value.bool)),
+      sql.name("active")
+      |> sql.column
+      |> sql.is(sql.value(True, value.bool)),
     ])
 
   let employees_query =
-    sql.select(["id", "name"])
-    |> select.from(sql.table("employees"))
+    select.new(["id", "name"])
+    |> select.from(employees)
     |> select.where([
-      sql.column("department")
+      sql.name("department")
+      |> sql.column
       |> sql.eq(sql.value("Engineering", of: value.text)),
     ])
 
   let query =
-    sql.union_all([users_query, employees_query])
+    union.all([users_query, employees_query])
     |> union.to_query(value.format())
 
   query.sql |> should.equal(expected)
@@ -61,24 +71,29 @@ pub fn union_all_test() {
 pub fn union_to_string_test() {
   let expected =
     "SELECT id, name FROM users WHERE active IS TRUE UNION SELECT id, name FROM employees WHERE department = 'Engineering'"
+  let users = sql.name("users") |> sql.table
+  let employees = sql.name("employees") |> sql.table
 
   let users_query =
-    sql.select(["id", "name"])
-    |> select.from(sql.table("users"))
+    select.new(["id", "name"])
+    |> select.from(users)
     |> select.where([
-      sql.column("active") |> sql.is(sql.value(True, value.bool)),
+      sql.name("active")
+      |> sql.column
+      |> sql.is(sql.value(True, value.bool)),
     ])
 
   let employees_query =
-    sql.select(["id", "name"])
-    |> select.from(sql.table("employees"))
+    select.new(["id", "name"])
+    |> select.from(employees)
     |> select.where([
-      sql.column("department")
+      sql.name("department")
+      |> sql.column
       |> sql.eq(sql.value("Engineering", of: value.text)),
     ])
 
   let result =
-    sql.union([users_query, employees_query])
+    union.new([users_query, employees_query])
     |> union.to_string(value.format())
 
   result |> should.equal(expected)
@@ -87,24 +102,29 @@ pub fn union_to_string_test() {
 pub fn union_all_to_string_test() {
   let expected =
     "SELECT id, name FROM users WHERE active IS TRUE UNION ALL SELECT id, name FROM employees WHERE department = 'Engineering'"
+  let users = sql.name("users") |> sql.table
+  let employees = sql.name("employees") |> sql.table
 
   let users_query =
-    sql.select(["id", "name"])
-    |> select.from(sql.table("users"))
+    select.new(["id", "name"])
+    |> select.from(users)
     |> select.where([
-      sql.column("active") |> sql.is(sql.value(True, value.bool)),
+      sql.name("active")
+      |> sql.column
+      |> sql.is(sql.value(True, value.bool)),
     ])
 
   let employees_query =
-    sql.select(["id", "name"])
-    |> select.from(sql.table("employees"))
+    select.new(["id", "name"])
+    |> select.from(employees)
     |> select.where([
-      sql.column("department")
+      sql.name("department")
+      |> sql.column
       |> sql.eq(sql.value("Engineering", of: value.text)),
     ])
 
   let result =
-    sql.union_all([users_query, employees_query])
+    union.all([users_query, employees_query])
     |> union.to_string(value.format())
 
   result |> should.equal(expected)
@@ -113,31 +133,39 @@ pub fn union_all_to_string_test() {
 pub fn multi_union_to_string_test() {
   let expected =
     "SELECT id, name FROM users WHERE active IS TRUE UNION SELECT id, name FROM employees WHERE department = 'Engineering' UNION SELECT id, name FROM contractors WHERE status = 'available'"
+  let users = sql.name("users") |> sql.table
+  let employees = sql.name("employees") |> sql.table
+  let contractors = sql.name("contractors") |> sql.table
 
   let users_query =
-    sql.select(["id", "name"])
-    |> select.from(sql.table("users"))
+    select.new(["id", "name"])
+    |> select.from(users)
     |> select.where([
-      sql.column("active") |> sql.is(sql.value(True, value.bool)),
+      sql.name("active")
+      |> sql.column
+      |> sql.is(sql.value(True, value.bool)),
     ])
 
   let employees_query =
-    sql.select(["id", "name"])
-    |> select.from(sql.table("employees"))
+    select.new(["id", "name"])
+    |> select.from(employees)
     |> select.where([
-      sql.column("department")
+      sql.name("department")
+      |> sql.column
       |> sql.eq(sql.value("Engineering", of: value.text)),
     ])
 
   let contractors_query =
-    sql.select(["id", "name"])
-    |> select.from(sql.table("contractors"))
+    select.new(["id", "name"])
+    |> select.from(contractors)
     |> select.where([
-      sql.column("status") |> sql.eq(sql.value("available", of: value.text)),
+      sql.name("status")
+      |> sql.column
+      |> sql.eq(sql.value("available", of: value.text)),
     ])
 
   let result =
-    sql.union([users_query, employees_query, contractors_query])
+    union.new([users_query, employees_query, contractors_query])
     |> union.to_string(value.format())
 
   result |> should.equal(expected)

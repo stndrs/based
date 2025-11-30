@@ -1,78 +1,195 @@
-import based/sql/column
-import based/sql/delete.{type Delete}
-import based/sql/expr.{type Expr}
-import based/sql/insert.{type Insert}
-import based/sql/node.{type Node}
-import based/sql/select.{type Select}
-import based/sql/table.{type Table}
-import based/sql/union.{type Union}
-import based/sql/update.{type Update}
-import based/sql/with.{type With}
+import based/db
+import based/sql/internal/fmt
+import gleam/function
 import gleam/list
 import gleam/option.{type Option, None, Some}
+import gleam/string
+import gleam/string_tree.{type StringTree}
 
-// Queries
-
-pub fn select(columns: List(String)) -> Select(v) {
-  select.new(columns)
+/// Format must be configured by adapter packages.
+///
+/// Example:
+///
+/// A PostgreSQL adapter might configure `Format` like this:
+///
+/// ```gleam
+/// let fmt = format.new()
+///   |> format.on_placeholder(fn(index) { "$" <> int.to_string(index) })
+///   |> format.on_identifier(function.identifier)
+///   |> format.on_value(value.to_string)
+/// ```
+/// A MariaDB adapter might configure `Format` like this:
+///
+/// ```gleam
+/// let fmt = format.new()
+///   |> format.on_placeholder(fn(_index) { "?" })
+///   |> format.on_identifier(fn(ident) { "`" <> ident <> "`" })
+///   |> format.on_value(value.to_string)
+/// ```
+///
+pub opaque type Format(v) {
+  Format(
+    handle_identifier: fn(String) -> String,
+    handle_placeholder: fn(Int) -> String,
+    handle_value: fn(v) -> String,
+  )
 }
 
-pub fn update(table: Table(v)) -> Update(v) {
-  update.new(table)
+/// Returns a `Format(v)` record with handlers that does not apply any
+/// formatting to identifiers, and returns `?` as placeholders. The value
+/// handler's default behaviour is to panic since it handles a generic type.
+pub fn format() -> Format(v) {
+  Format(
+    handle_identifier: function.identity,
+    handle_placeholder: fn(_) { "?" },
+    handle_value: fn(_) { panic as "based/format.Format not configured" },
+  )
 }
 
-pub fn insert(into table: Table(v)) -> Insert(v) {
-  insert.new(table)
+/// Apply the configured identifier format function to the provided identifier.
+pub fn to_identifier(fmt: Format(v), identifier: String) -> String {
+  fmt.handle_identifier(identifier)
 }
 
-pub fn delete() -> Delete(v) {
-  delete.new()
+/// Apply the configured value format function to the provided value.
+pub fn to_string(fmt: Format(v), value: v) -> String {
+  fmt.handle_value(value)
 }
 
-pub fn union(selects: List(Select(v))) -> Union(v) {
-  union.new(selects)
+/// Apply the configured placeholder format function to the provided
+/// placeholder index.
+pub fn to_placeholder(fmt: Format(v), value: Int) -> String {
+  fmt.handle_placeholder(value)
 }
 
-pub fn union_all(selects: List(Select(v))) -> Union(v) {
-  union.all(selects)
+/// Sets the placeholder formatting function.
+pub fn on_placeholder(
+  fmt: Format(v),
+  handle_placeholder: fn(Int) -> String,
+) -> Format(v) {
+  Format(..fmt, handle_placeholder:)
 }
 
-pub fn with(ctes: List(with.Cte(v))) -> With(v) {
-  with.new(ctes)
+/// Set the identifier formatting function.
+pub fn on_identifier(
+  fmt: Format(v),
+  handle_identifier: fn(String) -> String,
+) -> Format(v) {
+  Format(..fmt, handle_identifier:)
 }
 
-// Table
-
-pub fn table(name: String) -> Table(v) {
-  table.new(name)
+/// Set the value formatting function.
+pub fn on_value(fmt: Format(v), handle_value: fn(v) -> String) -> Format(v) {
+  Format(..fmt, handle_value:)
 }
 
-// Nodes
+// Exprs
+
+pub fn eq(left: Node(v), right: Node(v)) -> Expr(v) {
+  Compare(left:, right:, operator: Eq)
+}
+
+pub fn gt(left: Node(v), right: Node(v)) -> Expr(v) {
+  Compare(left:, right:, operator: Gt)
+}
+
+pub fn lt(left: Node(v), right: Node(v)) -> Expr(v) {
+  Compare(left:, right:, operator: Lt)
+}
+
+pub fn gt_eq(left: Node(v), right: Node(v)) -> Expr(v) {
+  Compare(left:, right:, operator: GtEq)
+}
+
+pub fn lt_eq(left: Node(v), right: Node(v)) -> Expr(v) {
+  Compare(left:, right:, operator: LtEq)
+}
+
+pub fn not_eq(left: Node(v), right: Node(v)) -> Expr(v) {
+  Compare(left:, right:, operator: NotEq)
+}
+
+pub fn between(left: Node(v), start: Node(v), end: Node(v)) -> Expr(v) {
+  Compare(left:, right: end, operator: Between(start))
+}
+
+pub fn like(
+  left: Node(v),
+  value: String,
+  of outer: fn(String) -> Node(v),
+) -> Expr(v) {
+  let right = outer(value)
+
+  Compare(left:, right:, operator: Like)
+}
+
+pub fn in(left: Node(v), right: Node(v)) -> Expr(v) {
+  Compare(left:, right:, operator: In)
+}
+
+pub fn is(left: Node(v), right: Node(v)) -> Expr(v) {
+  Compare(left:, right:, operator: Is)
+}
+
+pub fn or(left: Expr(v), right: Expr(v)) -> Expr(v) {
+  Logical(left:, right:, operator: Or)
+}
+
+pub fn and(left: Expr(v), right: Expr(v)) -> Expr(v) {
+  Logical(left:, right:, operator: And)
+}
+
+pub fn not(expr: Expr(v)) -> Expr(v) {
+  Not(expr:)
+}
+
+pub fn not_like(
+  left: Node(v),
+  value: String,
+  of outer: fn(String) -> Node(v),
+) -> Expr(v) {
+  let right = outer(value)
+
+  Compare(left:, right:, operator: NotLike)
+}
+
+// Node
+
+pub type Order {
+  Asc
+  Desc
+}
+
+pub type Node(v) {
+  TableRef(name: String, alias: Option(String))
+  ColumnRef(Identifier)
+  Columns(List(Identifier))
+  Value(v)
+  Values(List(v))
+  Tuples(List(List(v)))
+  Query(query: db.Query(v))
+}
 
 pub fn tuples(vals: List(List(Node(v)))) -> Node(v) {
   vals
-  |> list.map(list.flat_map(_, node.unwrap))
-  |> node.tuples
+  |> list.map(list.flat_map(_, unwrap))
+  |> Tuples
 }
 
 pub fn list(vals: List(a), of inner_type: fn(a) -> Node(v)) -> Node(v) {
   list.map(vals, inner_type)
-  |> list.flat_map(node.unwrap)
-  |> node.values
-}
-
-pub fn column(name: String) -> Node(v) {
-  column.new(name) |> node.column
+  |> list.flat_map(unwrap)
+  |> Values
 }
 
 pub fn columns(names: List(String)) -> Node(v) {
-  list.map(names, column.new) |> node.columns
+  names
+  |> list.map(Identifier(_, None, None))
+  |> Columns
 }
 
 pub fn value(value: a, of kind: fn(a) -> v) -> Node(v) {
-  value
-  |> kind
-  |> node.value
+  Value(kind(value))
 }
 
 pub fn nullable(
@@ -86,64 +203,297 @@ pub fn nullable(
   }
 }
 
-// Exprs
-
-pub fn eq(left: Node(v), right: Node(v)) -> Expr(v) {
-  expr.eq(left, right)
+pub fn subquery(query: db.Query(v)) -> Node(v) {
+  Query(query)
 }
 
-pub fn gt(left: Node(v), right: Node(v)) -> Expr(v) {
-  expr.gt(left, right)
+pub fn values(values: List(v)) -> Node(v) {
+  Values(values)
 }
 
-pub fn lt(left: Node(v), right: Node(v)) -> Expr(v) {
-  expr.lt(left, right)
+pub fn unwrap(node: Node(v)) -> List(v) {
+  case node {
+    Value(val) -> [val]
+    Values(vals) -> vals
+    Tuples(vals) -> list.flatten(vals)
+    Query(query) -> query.values
+    _ -> []
+  }
 }
 
-pub fn gt_eq(left: Node(v), right: Node(v)) -> Expr(v) {
-  expr.gt_eq(left, right)
+pub fn node_to_string(node: Node(v), format: Format(v)) -> String {
+  case node {
+    TableRef(name, alias) -> {
+      let escaped_name = to_identifier(format, name)
+
+      case alias {
+        Some(a) -> escaped_name <> " AS " <> a
+        None -> escaped_name
+      }
+    }
+    ColumnRef(identifier) -> {
+      identifier_to_string(identifier, format)
+      |> to_identifier(format, _)
+    }
+    Columns(identifiers) ->
+      list.map(identifiers, fn(ident) {
+        ident
+        |> identifier_to_string(format)
+        |> to_identifier(format, _)
+      })
+      |> string.join(", ")
+      |> fmt.enclose
+    Value(_val) -> fmt.placeholder
+    Values(values) -> {
+      values
+      |> list.map(fn(_value) { fmt.placeholder })
+      |> string.join(", ")
+      |> fmt.enclose
+    }
+    Tuples(tuples) -> {
+      tuples
+      |> list.map(fn(vals) {
+        list.map(vals, fn(_) { fmt.placeholder })
+        |> string.join(", ")
+        |> fmt.enclose
+      })
+      |> string.join(", ")
+      |> fmt.enclose
+    }
+    Query(query) -> fmt.enclose(query.sql)
+  }
 }
 
-pub fn lt_eq(left: Node(v), right: Node(v)) -> Expr(v) {
-  expr.lt_eq(left, right)
+pub fn node_to_string_tree(node: Node(v), format: Format(v)) -> StringTree {
+  node_to_string(node, format) |> string_tree.from_string
 }
 
-pub fn not_eq(left: Node(v), right: Node(v)) -> Expr(v) {
-  expr.not_eq(left, right)
+// Expr
+
+pub opaque type Expr(v) {
+  Compare(left: Node(v), right: Node(v), operator: ComparisonOperator(v))
+  Logical(left: Expr(v), right: Expr(v), operator: LogicalOperator)
+  Not(expr: Expr(v))
 }
 
-pub fn between(left: Node(v), start: Node(v), end: Node(v)) -> Expr(v) {
-  expr.between(left, start, end)
+pub fn expr_to_values(expr: Expr(v)) -> List(v) {
+  case expr {
+    Compare(left, right, op) -> {
+      list.flatten([unwrap(left), operator_values(op), unwrap(right)])
+    }
+    Logical(left, right, _) -> {
+      list.flatten([expr_to_values(left), expr_to_values(right)])
+    }
+    Not(expr) -> expr_to_values(expr)
+  }
 }
 
-pub fn like(
-  left: Node(v),
-  value: String,
-  of outer: fn(String) -> Node(v),
-) -> Expr(v) {
-  expr.like(left, outer(value))
+fn operator_values(op: ComparisonOperator(v)) -> List(v) {
+  case op {
+    Between(val) -> unwrap(val)
+    _ -> []
+  }
 }
 
-pub fn in(left: Node(v), right: Node(v)) -> Expr(v) {
-  expr.in(left, right)
+type ComparisonOperator(v) {
+  Eq
+  Gt
+  Lt
+  GtEq
+  LtEq
+  NotEq
+  Between(Node(v))
+  In
+  Is
+  IsNot
+  IsNull
+  IsNotNull
+  Like
+  NotLike
 }
 
-pub fn is(left: Node(v), right: Node(v)) -> Expr(v) {
-  expr.is(left, right)
+type LogicalOperator {
+  And
+  Or
 }
 
-pub fn or(expr: Expr(v), expr1: Expr(v)) -> Expr(v) {
-  expr.or(expr, expr1)
+pub fn expr_to_string_tree(expr: Expr(v), format: Format(v)) -> StringTree {
+  case expr {
+    Compare(left, right, op) -> {
+      let left = node_to_string_tree(left, format)
+      let right = node_to_string_tree(right, format)
+
+      let fmt = to_comp_fmt(op)
+      fmt(left, right)
+    }
+    Logical(left, right, logical) -> {
+      let left = expr_to_string_tree(left, format)
+      let right = expr_to_string_tree(right, format)
+
+      let fmt = to_logical_fmt(logical)
+      fmt(left, right)
+    }
+    Not(expr) -> {
+      string_tree.from_string("NOT ")
+      |> string_tree.append_tree(expr_to_string_tree(expr, format))
+    }
+  }
 }
 
-pub fn not(expr: Expr(v)) -> Expr(v) {
-  expr.not(expr)
+fn to_comp_fmt(
+  operator: ComparisonOperator(v),
+) -> fn(StringTree, StringTree) -> StringTree {
+  case operator {
+    Eq -> fmt.eq
+    Gt -> fmt.gt
+    Lt -> fmt.lt
+    GtEq -> fmt.gt_eq
+    LtEq -> fmt.lt_eq
+    NotEq -> fmt.not_eq
+    Like -> fmt.like
+    In -> fmt.in
+    Is -> fmt.is
+    Between(_start) -> fn(left, _end) {
+      let ph = string_tree.from_string(fmt.placeholder)
+
+      fmt.between(left, ph, ph)
+    }
+    IsNot -> fmt.is_not
+    IsNull -> fmt.is_null
+    IsNotNull -> fmt.is_not_null
+    NotLike -> fmt.not_like
+  }
 }
 
-pub fn not_like(
-  left: Node(v),
-  right: String,
-  of outer: fn(String) -> Node(v),
-) -> Expr(v) {
-  expr.not_like(left, outer(right))
+fn to_logical_fmt(
+  operator: LogicalOperator,
+) -> fn(StringTree, StringTree) -> StringTree {
+  case operator {
+    And -> fmt.and
+    Or -> fmt.or
+  }
+}
+
+// Join
+
+pub type JoinType {
+  InnerJoin
+  LeftJoin
+  RightJoin
+  FullJoin
+}
+
+pub type Join(v) {
+  Join(type_: JoinType, table: Table(v), exprs: List(Expr(v)))
+}
+
+pub fn inner(table: Table(v), exprs: List(Expr(v))) -> Join(v) {
+  Join(InnerJoin, table, exprs)
+}
+
+pub fn left(table: Table(v), exprs: List(Expr(v))) -> Join(v) {
+  Join(LeftJoin, table, exprs)
+}
+
+pub fn right(table: Table(v), exprs: List(Expr(v))) -> Join(v) {
+  Join(RightJoin, table, exprs)
+}
+
+pub fn full(table: Table(v), exprs: List(Expr(v))) -> Join(v) {
+  Join(FullJoin, table, exprs)
+}
+
+// Identifier
+
+pub opaque type Identifier {
+  Identifier(name: String, alias: Option(String), other: Option(Identifier))
+}
+
+pub fn name(name: String) -> Identifier {
+  Identifier(name:, alias: None, other: None)
+}
+
+pub fn alias(identifier: Identifier, alias: String) -> Identifier {
+  Identifier(..identifier, alias: Some(alias))
+}
+
+pub fn column(identifier: Identifier) -> Node(v) {
+  ColumnRef(identifier)
+}
+
+/// Convert an identifier to a string representation using the given format.
+pub fn identifier_to_string(identifier: Identifier, fmt: Format(v)) -> String {
+  let ident = case identifier.other {
+    Some(other) -> {
+      table(other)
+      |> table_to_string(fmt)
+      <> "."
+      <> identifier.name
+    }
+    None -> identifier.name
+  }
+
+  case identifier.alias {
+    Some(a) -> ident <> " AS " <> a
+    None -> ident
+  }
+}
+
+// Table
+
+pub opaque type Table(v) {
+  Table(identifier: Identifier)
+  Subquery(query: db.Query(v), alias: Option(String))
+}
+
+pub fn table(identifier: Identifier) -> Table(v) {
+  Table(identifier:)
+}
+
+pub fn attribute(table: Table(v), name: String) -> Identifier {
+  case table {
+    Table(Identifier(table_name, alias, _other)) -> {
+      let table_name = alias |> option.unwrap(table_name)
+      let other = Identifier(name: table_name, alias: None, other: None) |> Some
+
+      Identifier(name:, alias: None, other:)
+    }
+    Subquery(_, alias:) -> {
+      let table_name = alias |> option.unwrap("")
+      let other = Identifier(name: table_name, alias: None, other: None) |> Some
+
+      Identifier(name:, alias: None, other:)
+    }
+  }
+}
+
+pub fn from_query(query: db.Query(v)) -> Table(v) {
+  Subquery(query, alias: None)
+}
+
+pub fn table_to_values(table: Table(v)) -> List(v) {
+  case table {
+    Table(..) -> []
+    Subquery(query, _) -> query.values
+  }
+}
+
+pub fn table_to_string(table: Table(v), format: Format(v)) -> String {
+  case table {
+    Table(Identifier(name:, alias:, other: _)) -> {
+      to_identifier(format, name)
+      |> maybe_aliased(alias)
+    }
+    Subquery(..) -> {
+      fmt.enclose(table.query.sql)
+      |> maybe_aliased(table.alias)
+    }
+  }
+}
+
+fn maybe_aliased(left: String, alias: Option(String)) -> String {
+  case alias {
+    Some(a) -> left <> " AS " <> a
+    None -> left
+  }
 }

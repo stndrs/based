@@ -21,45 +21,37 @@
 //// ```
 
 import based/db
-import based/format.{type Format}
-import based/sql/expr.{type Expr}
+import based/sql
 import based/sql/internal/builder
 import based/sql/internal/fmt
-import based/sql/table.{type Table}
 import gleam/list
 import gleam/string_tree.{type StringTree}
 
 /// A DELETE query with table, WHERE conditions, RETURNING columns, and values.
 pub opaque type Delete(v) {
   Delete(
-    table: Table(v),
-    where: List(List(Expr(v))),
+    table: sql.Table(v),
+    where: List(List(sql.Expr(v))),
     returning: List(String),
     values: List(List(v)),
   )
 }
 
-/// Create a new DELETE query.
-pub fn new() -> Delete(v) {
-  let table = table.new("")
+/// Set the table for a DELETE query.
+pub fn from(table: sql.Table(v)) -> Delete(v) {
   Delete(table:, where: [], returning: [], values: [])
 }
 
-/// Set the table for a DELETE query.
-pub fn from(delete: Delete(v), table: Table(v)) -> Delete(v) {
-  Delete(..delete, table:)
-}
-
 /// Add WHERE conditions to a DELETE query.
-pub fn where(delete: Delete(v), exprs: List(Expr(v))) -> Delete(v) {
-  let values = list.flat_map(exprs, expr.to_values)
+pub fn where(delete: Delete(v), exprs: List(sql.Expr(v))) -> Delete(v) {
+  let values = list.flat_map(exprs, sql.expr_to_values)
 
   Delete(..delete, where: [exprs]) |> prepend_values(values)
 }
 
 /// Add negated WHERE conditions to a DELETE query.
-pub fn where_not(delete: Delete(v), exprs: List(Expr(v))) -> Delete(v) {
-  let negated_exprs = list.map(exprs, expr.not)
+pub fn where_not(delete: Delete(v), exprs: List(sql.Expr(v))) -> Delete(v) {
+  let negated_exprs = list.map(exprs, sql.not)
   where(delete, negated_exprs)
 }
 
@@ -69,10 +61,10 @@ pub fn returning(delete: Delete(v), columns: List(String)) -> Delete(v) {
 }
 
 /// Convert a DELETE query to a database query using the given format.
-pub fn to_query(del: Delete(v), format: Format(v)) -> db.Query(v) {
+pub fn to_query(del: Delete(v), format: sql.Format(v)) -> db.Query(v) {
   let values = del.values |> list.reverse |> list.flatten
 
-  let to_placeholder = format.to_placeholder(format, _)
+  let to_placeholder = sql.to_placeholder(format, _)
 
   build(del, format)
   |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
@@ -82,7 +74,7 @@ pub fn to_query(del: Delete(v), format: Format(v)) -> db.Query(v) {
 }
 
 /// Convert a DELETE query to a string representation using the given format.
-pub fn to_string(delete: Delete(v), format: Format(v)) -> String {
+pub fn to_string(delete: Delete(v), format: sql.Format(v)) -> String {
   let values = delete.values |> list.reverse |> list.flatten
 
   build(delete, format)
@@ -91,8 +83,8 @@ pub fn to_string(delete: Delete(v), format: Format(v)) -> String {
 }
 
 /// Build a DELETE query's SQL string tree using the given format.
-fn build(delete: Delete(v), format: Format(v)) -> StringTree {
-  let from = table.to_string(delete.table, format)
+fn build(delete: Delete(v), format: sql.Format(v)) -> StringTree {
+  let from = sql.table_to_string(delete.table, format)
 
   string_tree.new()
   |> fmt.delete
