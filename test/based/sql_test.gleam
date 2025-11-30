@@ -17,10 +17,10 @@ pub fn column_test() {
 }
 
 pub fn alias_test() {
-  let col = sql.name("user_id") |> sql.alias("id")
+  let col = sql.name("user_id") |> sql.alias("id") |> sql.column
 
   let expected = "user_id AS id"
-  sql.identifier_to_string(col, value.format())
+  sql.node_to_string(col, value.format())
   |> should.equal(expected)
 }
 
@@ -31,10 +31,11 @@ pub fn table_and_alias_test() {
     users
     |> sql.attribute("user_id")
     |> sql.alias("id")
+    |> sql.column
 
   let expected = "users.user_id AS id"
 
-  sql.identifier_to_string(col, value.format())
+  sql.node_to_string(col, value.format())
   |> should.equal(expected)
 }
 
@@ -262,10 +263,10 @@ pub fn complex_sqlession_test() {
 
 pub fn column_with_table_test() {
   let users = sql.name("users") |> sql.table
-  let col = users |> sql.attribute("id")
+  let col = users |> sql.attribute("id") |> sql.column
 
   let expected = "users.id"
-  sql.identifier_to_string(col, value.format())
+  sql.node_to_string(col, value.format())
   |> should.equal(expected)
 }
 

@@ -430,8 +430,11 @@ pub fn column(identifier: Identifier) -> Node(v) {
   ColumnRef(identifier)
 }
 
-/// Convert an identifier to a string representation using the given format.
-pub fn identifier_to_string(identifier: Identifier, fmt: Format(v)) -> String {
+pub fn table(identifier: Identifier) -> Table(v) {
+  Table(identifier:)
+}
+
+fn identifier_to_string(identifier: Identifier, fmt: Format(v)) -> String {
   let ident = case identifier.other {
     Some(other) -> {
       table(other)
@@ -454,10 +457,6 @@ pub fn identifier_to_string(identifier: Identifier, fmt: Format(v)) -> String {
 pub opaque type Table(v) {
   Table(identifier: Identifier)
   Subquery(query: db.Query(v), alias: Option(String))
-}
-
-pub fn table(identifier: Identifier) -> Table(v) {
-  Table(identifier:)
 }
 
 pub fn attribute(table: Table(v), name: String) -> Identifier {
