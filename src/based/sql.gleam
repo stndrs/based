@@ -161,14 +161,21 @@ pub type Order {
 }
 
 pub opaque type Node(v) {
-  TableRef(name: String, alias: Option(String))
+  TableRef(Identifier)
   ColumnRef(Identifier)
   Columns(List(Identifier))
   Value(v)
   Values(List(v))
   Tuples(List(List(v)))
-  Query(query: db.Query(v))
+  Query(query: db.Query(v), alias: Option(String))
   Null
+}
+
+pub fn table_to_node(table: Table(v)) -> Node(v) {
+  case table {
+    Table(identifier:) -> TableRef(identifier)
+    Subquery(query:, alias:) -> Query(query:, alias:)
+  }
 }
 
 pub fn tuples(vals: List(List(Node(v)))) -> Node(v) {
@@ -201,7 +208,7 @@ pub fn nullable(value: Option(a), inner_type: fn(a) -> Node(v)) -> Node(v) {
 }
 
 pub fn subquery(query: db.Query(v)) -> Node(v) {
-  Query(query)
+  Query(query:, alias: None)
 }
 
 pub fn values(values: List(v)) -> Node(v) {
@@ -213,14 +220,14 @@ pub fn unwrap(node: Node(v)) -> List(v) {
     Value(val) -> [val]
     Values(vals) -> vals
     Tuples(vals) -> list.flatten(vals)
-    Query(query) -> query.values
+    Query(query:, alias: _) -> query.values
     _ -> []
   }
 }
 
 pub fn node_to_string(node: Node(v), format: Format(v)) -> String {
   case node {
-    TableRef(name, alias) -> {
+    TableRef(Identifier(name:, alias:, other: _)) -> {
       let escaped_name = to_identifier(format, name)
 
       case alias {
@@ -257,7 +264,7 @@ pub fn node_to_string(node: Node(v), format: Format(v)) -> String {
       |> string.join(", ")
       |> fmt.enclose
     }
-    Query(query) -> fmt.enclose(query.sql)
+    Query(query:, alias: _) -> fmt.enclose(query.sql)
     Null -> fmt.null
   }
 }
@@ -378,22 +385,30 @@ pub type JoinType {
 }
 
 pub type Join(v) {
-  Join(type_: JoinType, table: Table(v), exprs: List(Expr(v)))
+  Join(type_: JoinType, table: Node(v), exprs: List(Expr(v)))
 }
 
 pub fn inner(table: Table(v), exprs: List(Expr(v))) -> Join(v) {
+  let table = table_to_node(table)
+
   Join(InnerJoin, table, exprs)
 }
 
 pub fn left(table: Table(v), exprs: List(Expr(v))) -> Join(v) {
+  let table = table_to_node(table)
+
   Join(LeftJoin, table, exprs)
 }
 
 pub fn right(table: Table(v), exprs: List(Expr(v))) -> Join(v) {
+  let table = table_to_node(table)
+
   Join(RightJoin, table, exprs)
 }
 
 pub fn full(table: Table(v), exprs: List(Expr(v))) -> Join(v) {
+  let table = table_to_node(table)
+
   Join(FullJoin, table, exprs)
 }
 
@@ -420,7 +435,8 @@ pub fn identifier_to_string(identifier: Identifier, fmt: Format(v)) -> String {
   let ident = case identifier.other {
     Some(other) -> {
       table(other)
-      |> table_to_string(fmt)
+      |> table_to_node
+      |> node_to_string(fmt)
       <> "."
       <> identifier.name
     }
@@ -469,25 +485,5 @@ pub fn table_to_values(table: Table(v)) -> List(v) {
   case table {
     Table(..) -> []
     Subquery(query, _) -> query.values
-  }
-}
-
-pub fn table_to_string(table: Table(v), format: Format(v)) -> String {
-  case table {
-    Table(Identifier(name:, alias:, other: _)) -> {
-      to_identifier(format, name)
-      |> maybe_aliased(alias)
-    }
-    Subquery(..) -> {
-      fmt.enclose(table.query.sql)
-      |> maybe_aliased(table.alias)
-    }
-  }
-}
-
-fn maybe_aliased(left: String, alias: Option(String)) -> String {
-  case alias {
-    Some(a) -> left <> " AS " <> a
-    None -> left
   }
 }

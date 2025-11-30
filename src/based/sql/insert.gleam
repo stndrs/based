@@ -7,7 +7,7 @@ import gleam/string_tree.{type StringTree}
 
 pub opaque type Insert(v) {
   Insert(
-    table: sql.Table(v),
+    table: sql.Node(v),
     columns: List(String),
     returning: List(String),
     values: List(v),
@@ -15,6 +15,7 @@ pub opaque type Insert(v) {
 }
 
 pub fn into(table: sql.Table(v)) -> Insert(v) {
+  let table = sql.table_to_node(table)
   Insert(table:, columns: [], returning: [], values: [])
 }
 
@@ -58,7 +59,7 @@ fn build(insert: Insert(v), format: sql.Format(v)) -> StringTree {
       |> fmt.enclose_tree
     })
 
-  let into = sql.table_to_string(insert.table, format)
+  let into = sql.node_to_string(insert.table, format)
 
   string_tree.new()
   |> fmt.insert(insert.columns, into:, values:)

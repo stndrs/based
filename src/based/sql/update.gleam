@@ -28,7 +28,7 @@ import gleam/string_tree.{type StringTree}
 
 pub opaque type Update(v) {
   Update(
-    table: sql.Table(v),
+    table: sql.Node(v),
     sets: List(#(String, sql.Node(v))),
     where: List(List(sql.Expr(v))),
     order_by: List(String),
@@ -42,6 +42,8 @@ pub opaque type Update(v) {
 
 /// Create a new UPDATE query for the specified table
 pub fn table(table: sql.Table(v)) -> Update(v) {
+  let table = sql.table_to_node(table)
+
   Update(
     table:,
     sets: [],
@@ -120,7 +122,7 @@ fn build(update: Update(v), format: sql.Format(v)) -> StringTree {
     })
     |> string_tree.join(", ")
 
-  let table = sql.table_to_string(update.table, format)
+  let table = sql.node_to_string(update.table, format)
 
   string_tree.new()
   |> fmt.update(table)

@@ -110,7 +110,7 @@ pub fn append_joins(
     }
 
     st
-    |> join_tree(sql.table_to_string(join.table, format))
+    |> join_tree(sql.node_to_string(join.table, format))
     |> list.index_fold(over: join.exprs, from: _, with: fn(sql1, expr, idx) {
       let expr_fmt = case idx {
         0 -> fmt.on

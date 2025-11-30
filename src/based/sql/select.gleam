@@ -13,7 +13,7 @@ type For {
 
 pub opaque type Select(v) {
   Select(
-    table: Option(sql.Table(v)),
+    table: Option(sql.Node(v)),
     columns: List(String),
     distinct: Bool,
     join: List(sql.Join(v)),
@@ -60,6 +60,7 @@ pub fn new() -> Select(v) {
 
 pub fn from(table: sql.Table(v)) -> Select(v) {
   let values = sql.table_to_values(table)
+  let table = sql.table_to_node(table)
 
   Select(
     table: Some(table),
@@ -232,7 +233,7 @@ fn build(select: Select(v), format: sql.Format(v)) -> StringTree {
   }
 
   let from_fmt = case select.table {
-    Some(table) -> fmt.from(_, sql.table_to_string(table, format))
+    Some(table) -> fmt.from(_, sql.node_to_string(table, format))
     None -> function.identity
   }
 
