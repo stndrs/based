@@ -1,3 +1,25 @@
+//// A builder for constructing SQL UPDATE statements.
+////
+//// ## Usage
+////
+//// ```gleam
+//// import based/db
+//// import based/format
+//// import based/sql/update
+//// import based/sql/table
+////
+//// let users = table.new("users")
+//// let format = format.new()
+////
+//// let update = update.new(users)
+////   |> update.set("name", node.string("John"))
+////   |> update.where([
+////     column.new("id") |> expr.eq(node.int(123))
+////   ])
+////   |> update.returning(["id", "name"])
+////   |> update.to_query(format)
+//// ```
+
 import based/db
 import based/format.{type Format}
 import based/sql/expr.{type Expr}
@@ -23,6 +45,7 @@ pub opaque type Update(v) {
   )
 }
 
+/// Create a new UPDATE query for the specified table
 pub fn new(table: Table(v)) -> Update(v) {
   Update(
     table:,
@@ -37,6 +60,7 @@ pub fn new(table: Table(v)) -> Update(v) {
   )
 }
 
+/// Add a column assignment to the UPDATE statement
 pub fn set(update: Update(v), column: String, value: Node(v)) {
   let sets = update.sets |> list.prepend(#(column, value))
   let values = node.unwrap(value)
@@ -44,6 +68,7 @@ pub fn set(update: Update(v), column: String, value: Node(v)) {
   Update(..update, sets:) |> prepend_values(values)
 }
 
+/// Add WHERE conditions to the UPDATE statement
 pub fn where(update: Update(v), exprs: List(Expr(v))) -> Update(v) {
   let values = list.flat_map(exprs, expr.to_values)
 
@@ -51,15 +76,19 @@ pub fn where(update: Update(v), exprs: List(Expr(v))) -> Update(v) {
   |> prepend_values(values)
 }
 
+/// Add WHERE NOT conditions to the UPDATE statement
 pub fn where_not(update: Update(v), exprs: List(Expr(v))) -> Update(v) {
   let negated_exprs = list.map(exprs, expr.not)
   where(update, negated_exprs)
 }
 
+/// Specify columns to return after the update. Only applies to adapter
+/// packages that support RETURNING.
 pub fn returning(update: Update(v), columns: List(String)) -> Update(v) {
   Update(..update, returning: columns)
 }
 
+/// Convert the UPDATE query to a database query with parameters
 pub fn to_query(update: Update(v), format: Format(v)) -> db.Query(v) {
   let values = update.values |> list.reverse |> list.flatten
 
@@ -72,6 +101,7 @@ pub fn to_query(update: Update(v), format: Format(v)) -> db.Query(v) {
   |> db.values(values)
 }
 
+/// Convert the UPDATE query to a formatted SQL string
 pub fn to_string(update: Update(v), format: Format(v)) -> String {
   let values = update.values |> list.reverse |> list.flatten
 

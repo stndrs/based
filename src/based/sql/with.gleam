@@ -1,3 +1,5 @@
+//// A builder for constructing Common Table Expressions
+
 import based/db
 import based/format.{type Format}
 import based/sql/internal/builder
@@ -6,36 +8,44 @@ import gleam/list
 import gleam/string
 import gleam/string_tree.{type StringTree}
 
+/// A WITH clause with recursive flag and CTEs.
 pub opaque type With(v) {
   With(recursive: Bool, ctes: List(Cte(v)), query: db.Query(v))
 }
 
+/// A Common Table Expression (CTE) with name, columns, and query.
 pub opaque type Cte(v) {
   Cte(name: String, columns: List(String), query: db.Query(v))
 }
 
+/// Create a new WITH clause with the given CTEs.
 pub fn new(ctes: List(Cte(v))) -> With(v) {
   With(recursive: False, ctes:, query: db.sql(""))
 }
 
+/// Mark the WITH clause as recursive.
 pub fn recursive(with: With(v)) -> With(v) {
   With(..with, recursive: True)
 }
 
+/// Create a CTE with the given name and query.
 pub fn cte(name: String, query: db.Query(v)) {
   Cte(name:, columns: [], query:)
 }
 
+/// Add column names to a CTE.
 pub fn columns(cte: Cte(v), columns: List(String)) -> Cte(v) {
   Cte(..cte, columns:)
 }
 
+/// Set or modify the main query of a WITH clause.
 pub fn query(with: With(v), building: fn() -> db.Query(v)) -> With(v) {
   let query = building()
 
   With(..with, query:)
 }
 
+/// Convert a WITH clause to a database query using the given format.
 pub fn to_query(with: With(v), format: Format(v)) -> db.Query(v) {
   let values = list.flat_map(with.ctes, fn(cte) { cte.query.values })
   let values = list.flatten([values, with.query.values])
@@ -49,6 +59,7 @@ pub fn to_query(with: With(v), format: Format(v)) -> db.Query(v) {
   |> db.values(values)
 }
 
+/// Build a SQL string tree for a WITH clause.
 fn build(with: With(v)) -> StringTree {
   let ctes =
     with.ctes
