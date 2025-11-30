@@ -110,17 +110,18 @@ pub fn to_string(update: Update(v), format: sql.SqlFmt(v)) -> String {
 fn build(update: Update(v), format: sql.SqlFmt(v)) -> StringTree {
   let sets = update.sets |> list.reverse
 
-  let updates =
-    sets
-    |> list.map(with: fn(col_with_val) {
-      let right =
-        sql.node_to_string(col_with_val.1, format) |> string_tree.from_string
+  let updates = {
+    use #(column, value) <- list.map(sets)
 
-      col_with_val.0
+    let right =
+      value
+      |> sql.node_to_string(format)
       |> string_tree.from_string
-      |> fmt.eq(right)
-    })
-    |> string_tree.join(", ")
+
+    column
+    |> string_tree.from_string
+    |> fmt.eq(right)
+  }
 
   let table = sql.node_to_string(update.table, format)
 

@@ -160,16 +160,6 @@ pub fn append_limit(
   |> option.unwrap(st)
 }
 
-pub fn append_optional(
-  st: StringTree,
-  opt: Option(a),
-  inner: fn(a) -> StringTree,
-) -> StringTree {
-  opt
-  |> option.map(inner)
-  |> option.unwrap(st)
-}
-
 pub fn append_returning(st: StringTree, cols: List(String)) -> StringTree {
   case cols {
     [] -> st

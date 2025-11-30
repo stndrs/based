@@ -34,10 +34,10 @@ pub fn update(st: StringTree, table: String) -> StringTree {
   |> string_tree.append(table)
 }
 
-pub fn set(st: StringTree, updates: StringTree) -> StringTree {
+pub fn set(st: StringTree, updates: List(StringTree)) -> StringTree {
   st
   |> string_tree.append(" SET ")
-  |> string_tree.append_tree(updates)
+  |> string_tree.append_tree(string_tree.join(updates, ", "))
 }
 
 pub fn delete(st: StringTree) -> StringTree {

@@ -201,26 +201,6 @@ pub fn append_limit_test() {
   should.equal(result, "SELECT * FROM users LIMIT :param OFFSET :param")
 }
 
-pub fn append_optional_test() {
-  let st = string_tree.from_string("SELECT * FROM users")
-
-  let result =
-    builder.append_optional(st, None, fn(_) {
-      string_tree.append(st, " WHERE id = 1")
-    })
-    |> string_tree.to_string
-
-  should.equal(result, "SELECT * FROM users")
-
-  let result =
-    builder.append_optional(st, Some(1), fn(_) {
-      string_tree.append(st, " WHERE id = 1")
-    })
-    |> string_tree.to_string
-
-  should.equal(result, "SELECT * FROM users WHERE id = 1")
-}
-
 pub fn append_returning_test() {
   let st =
     string_tree.from_string(

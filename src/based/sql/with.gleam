@@ -61,19 +61,19 @@ pub fn to_query(with: With(v), format: sql.SqlFmt(v)) -> db.Query(v) {
 
 /// Build a SQL string tree for a WITH clause.
 fn build(with: With(v)) -> StringTree {
-  let ctes =
-    with.ctes
-    |> list.map(fn(cte) {
-      let name = case cte.columns {
-        [] -> cte.name
-        cols -> {
-          let cols = string.join(cols, ", ") |> fmt.enclose
-          cte.name <> " " <> cols
-        }
-      }
+  let ctes = {
+    use cte <- list.map(with.ctes)
 
-      fmt.alias(name, fmt.enclose(cte.query.sql))
-    })
+    let name = case cte.columns {
+      [] -> cte.name
+      cols -> {
+        let cols = string.join(cols, ", ") |> fmt.enclose
+        cte.name <> " " <> cols
+      }
+    }
+
+    fmt.alias(name, fmt.enclose(cte.query.sql))
+  }
 
   let with_fmt = case with.recursive {
     True -> fmt.with_recursive

@@ -250,9 +250,8 @@ fn build(select: Select(v), format: sql.SqlFmt(v)) -> StringTree {
 }
 
 fn append_for(st: StringTree, for: Option(For)) -> StringTree {
-  builder.append_optional(st, for, fn(f) {
-    case f {
-      Update -> fmt.for_update(st)
-    }
-  })
+  case for {
+    Some(_) -> fmt.for_update(st)
+    None -> st
+  }
 }

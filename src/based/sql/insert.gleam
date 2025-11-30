@@ -55,7 +55,8 @@ fn build(insert: Insert(v), format: sql.SqlFmt(v)) -> StringTree {
     |> list.map(fn(_) { string_tree.from_string(fmt.placeholder) })
     |> list.sized_chunk(into: list.length(insert.columns))
     |> list.map(fn(vals) {
-      string_tree.join(vals, with: ", ")
+      vals
+      |> string_tree.join(with: ", ")
       |> fmt.enclose_tree
     })
 
