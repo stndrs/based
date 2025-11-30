@@ -196,7 +196,7 @@ pub fn for_update(select: Select(v)) -> Select(v) {
 
 // Query String Building
 
-pub fn to_query(select: Select(v), format: sql.Format(v)) -> db.Query(v) {
+pub fn to_query(select: Select(v), format: sql.SqlFmt(v)) -> db.Query(v) {
   let values = select.values |> list.reverse |> list.flatten
 
   let to_placeholder = sql.to_placeholder(format, _)
@@ -208,15 +208,15 @@ pub fn to_query(select: Select(v), format: sql.Format(v)) -> db.Query(v) {
   |> db.values(values)
 }
 
-pub fn to_subquery(select: Select(v), format: sql.Format(v)) -> sql.Node(v) {
+pub fn to_subquery(select: Select(v), format: sql.SqlFmt(v)) -> sql.Node(v) {
   to_query(select, format) |> sql.subquery
 }
 
-pub fn to_table(select: Select(v), format: sql.Format(v)) -> sql.Table(v) {
+pub fn to_table(select: Select(v), format: sql.SqlFmt(v)) -> sql.Table(v) {
   to_query(select, format) |> sql.from_query
 }
 
-pub fn to_string(select: Select(v), format: sql.Format(v)) -> String {
+pub fn to_string(select: Select(v), format: sql.SqlFmt(v)) -> String {
   let values = select.values |> list.reverse |> list.flatten
 
   build(select, format)
@@ -226,7 +226,7 @@ pub fn to_string(select: Select(v), format: sql.Format(v)) -> String {
 
 // Builders
 
-fn build(select: Select(v), format: sql.Format(v)) -> StringTree {
+fn build(select: Select(v), format: sql.SqlFmt(v)) -> StringTree {
   let select_fmt = case select.distinct {
     True -> fmt.select_distinct
     False -> fmt.select

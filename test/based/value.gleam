@@ -168,9 +168,9 @@ pub fn nullable(inner_type: fn(a) -> Value, value: Option(a)) -> Value {
   }
 }
 
-// Format
+// SqlFmt
 
-pub fn format() -> sql.Format(Value) {
+pub fn format() -> sql.SqlFmt(Value) {
   sql.format()
   |> sql.on_identifier(function.identity)
   |> sql.on_placeholder(handle_placeholder)

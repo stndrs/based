@@ -46,7 +46,7 @@ pub fn query(with: With(v), building: fn() -> db.Query(v)) -> With(v) {
 }
 
 /// Convert a WITH clause to a database query using the given format.
-pub fn to_query(with: With(v), format: sql.Format(v)) -> db.Query(v) {
+pub fn to_query(with: With(v), format: sql.SqlFmt(v)) -> db.Query(v) {
   let values = list.flat_map(with.ctes, fn(cte) { cte.query.values })
   let values = list.flatten([values, with.query.values])
 

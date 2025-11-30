@@ -6,7 +6,7 @@ import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string_tree.{type StringTree}
 
-pub fn to_string(sql: String, values: List(v), format: sql.Format(v)) -> String {
+pub fn to_string(sql: String, values: List(v), format: sql.SqlFmt(v)) -> String {
   let values_by_idx =
     values
     |> list.index_map(fn(val, idx) { #(idx + 1, val) })
@@ -50,7 +50,7 @@ pub fn placeholders(
 pub fn append_where(
   st: StringTree,
   where: List(List(sql.Expr(v))),
-  format: sql.Format(v),
+  format: sql.SqlFmt(v),
 ) -> StringTree {
   where
   |> list.reverse
@@ -77,7 +77,7 @@ pub fn append_group_by(st: StringTree, group_by: List(String)) -> StringTree {
 pub fn append_having(
   st: StringTree,
   having: List(List(sql.Expr(v))),
-  format: sql.Format(v),
+  format: sql.SqlFmt(v),
 ) -> StringTree {
   having
   |> list.reverse
@@ -97,7 +97,7 @@ pub fn append_having(
 pub fn append_joins(
   st: StringTree,
   joins: List(sql.Join(v)),
-  format: sql.Format(v),
+  format: sql.SqlFmt(v),
 ) -> StringTree {
   joins
   |> list.reverse

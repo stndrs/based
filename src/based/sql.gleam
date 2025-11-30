@@ -6,11 +6,11 @@ import gleam/option.{type Option, None, Some}
 import gleam/string
 import gleam/string_tree.{type StringTree}
 
-/// Format must be configured by adapter packages.
+/// SqlFmt must be configured by adapter packages.
 ///
 /// Example:
 ///
-/// A PostgreSQL adapter might configure `Format` like this:
+/// A PostgreSQL adapter might configure `SqlFmt` like this:
 ///
 /// ```gleam
 /// let fmt = format.new()
@@ -18,7 +18,7 @@ import gleam/string_tree.{type StringTree}
 ///   |> format.on_identifier(function.identifier)
 ///   |> format.on_value(value.to_string)
 /// ```
-/// A MariaDB adapter might configure `Format` like this:
+/// A MariaDB adapter might configure `SqlFmt` like this:
 ///
 /// ```gleam
 /// let fmt = format.new()
@@ -27,60 +27,60 @@ import gleam/string_tree.{type StringTree}
 ///   |> format.on_value(value.to_string)
 /// ```
 ///
-pub opaque type Format(v) {
-  Format(
+pub opaque type SqlFmt(v) {
+  SqlFmt(
     handle_identifier: fn(String) -> String,
     handle_placeholder: fn(Int) -> String,
     handle_value: fn(v) -> String,
   )
 }
 
-/// Returns a `Format(v)` record with handlers that does not apply any
+/// Returns a `SqlFmt(v)` record with handlers that does not apply any
 /// formatting to identifiers, and returns `?` as placeholders. The value
 /// handler's default behaviour is to panic since it handles a generic type.
-pub fn format() -> Format(v) {
-  Format(
+pub fn format() -> SqlFmt(v) {
+  SqlFmt(
     handle_identifier: function.identity,
     handle_placeholder: fn(_) { "?" },
-    handle_value: fn(_) { panic as "based/format.Format not configured" },
+    handle_value: fn(_) { panic as "based/format.SqlFmt not configured" },
   )
 }
 
 /// Apply the configured identifier format function to the provided identifier.
-pub fn to_identifier(fmt: Format(v), identifier: String) -> String {
+pub fn to_identifier(fmt: SqlFmt(v), identifier: String) -> String {
   fmt.handle_identifier(identifier)
 }
 
 /// Apply the configured value format function to the provided value.
-pub fn to_string(fmt: Format(v), value: v) -> String {
+pub fn to_string(fmt: SqlFmt(v), value: v) -> String {
   fmt.handle_value(value)
 }
 
 /// Apply the configured placeholder format function to the provided
 /// placeholder index.
-pub fn to_placeholder(fmt: Format(v), value: Int) -> String {
+pub fn to_placeholder(fmt: SqlFmt(v), value: Int) -> String {
   fmt.handle_placeholder(value)
 }
 
 /// Sets the placeholder formatting function.
 pub fn on_placeholder(
-  fmt: Format(v),
+  fmt: SqlFmt(v),
   handle_placeholder: fn(Int) -> String,
-) -> Format(v) {
-  Format(..fmt, handle_placeholder:)
+) -> SqlFmt(v) {
+  SqlFmt(..fmt, handle_placeholder:)
 }
 
 /// Set the identifier formatting function.
 pub fn on_identifier(
-  fmt: Format(v),
+  fmt: SqlFmt(v),
   handle_identifier: fn(String) -> String,
-) -> Format(v) {
-  Format(..fmt, handle_identifier:)
+) -> SqlFmt(v) {
+  SqlFmt(..fmt, handle_identifier:)
 }
 
 /// Set the value formatting function.
-pub fn on_value(fmt: Format(v), handle_value: fn(v) -> String) -> Format(v) {
-  Format(..fmt, handle_value:)
+pub fn on_value(fmt: SqlFmt(v), handle_value: fn(v) -> String) -> SqlFmt(v) {
+  SqlFmt(..fmt, handle_value:)
 }
 
 // Exprs
@@ -225,7 +225,7 @@ pub fn unwrap(node: Node(v)) -> List(v) {
   }
 }
 
-pub fn node_to_string(node: Node(v), format: Format(v)) -> String {
+pub fn node_to_string(node: Node(v), format: SqlFmt(v)) -> String {
   case node {
     TableRef(Identifier(name:, alias:, other: _)) -> {
       let escaped_name = to_identifier(format, name)
@@ -318,7 +318,7 @@ type LogicalOperator {
   Or
 }
 
-pub fn expr_to_string_tree(expr: Expr(v), format: Format(v)) -> StringTree {
+pub fn expr_to_string_tree(expr: Expr(v), format: SqlFmt(v)) -> StringTree {
   case expr {
     Compare(left, right, op) -> {
       let left = node_to_string(left, format) |> string_tree.from_string
@@ -434,7 +434,7 @@ pub fn table(identifier: Identifier) -> Table(v) {
   Table(identifier:)
 }
 
-fn identifier_to_string(identifier: Identifier, fmt: Format(v)) -> String {
+fn identifier_to_string(identifier: Identifier, fmt: SqlFmt(v)) -> String {
   let ident = case identifier.other {
     Some(other) -> {
       table(other)

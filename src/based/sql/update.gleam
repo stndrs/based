@@ -86,7 +86,7 @@ pub fn returning(update: Update(v), columns: List(String)) -> Update(v) {
 }
 
 /// Convert the UPDATE query to a database query with parameters
-pub fn to_query(update: Update(v), format: sql.Format(v)) -> db.Query(v) {
+pub fn to_query(update: Update(v), format: sql.SqlFmt(v)) -> db.Query(v) {
   let values = update.values |> list.reverse |> list.flatten
 
   let to_placeholder = sql.to_placeholder(format, _)
@@ -99,7 +99,7 @@ pub fn to_query(update: Update(v), format: sql.Format(v)) -> db.Query(v) {
 }
 
 /// Convert the UPDATE query to a formatted SQL string
-pub fn to_string(update: Update(v), format: sql.Format(v)) -> String {
+pub fn to_string(update: Update(v), format: sql.SqlFmt(v)) -> String {
   let values = update.values |> list.reverse |> list.flatten
 
   build(update, format)
@@ -107,7 +107,7 @@ pub fn to_string(update: Update(v), format: sql.Format(v)) -> String {
   |> builder.to_string(values, format)
 }
 
-fn build(update: Update(v), format: sql.Format(v)) -> StringTree {
+fn build(update: Update(v), format: sql.SqlFmt(v)) -> StringTree {
   let sets = update.sets |> list.reverse
 
   let updates =

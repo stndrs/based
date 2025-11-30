@@ -17,7 +17,7 @@ pub fn all(selects: List(Select(v))) -> Union(v) {
   UnionAll(selects)
 }
 
-pub fn to_query(union: Union(v), format: sql.Format(v)) -> db.Query(v) {
+pub fn to_query(union: Union(v), format: sql.SqlFmt(v)) -> db.Query(v) {
   let operator = case union {
     Union(..) -> " UNION "
     _ -> " UNION ALL "
@@ -28,7 +28,7 @@ pub fn to_query(union: Union(v), format: sql.Format(v)) -> db.Query(v) {
   |> to_union_query(operator)
 }
 
-pub fn to_string(union: Union(v), format: sql.Format(v)) -> String {
+pub fn to_string(union: Union(v), format: sql.SqlFmt(v)) -> String {
   let operator = case union {
     Union(..) -> " UNION "
     _ -> " UNION ALL "

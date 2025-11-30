@@ -33,7 +33,7 @@ pub fn returning(insert: Insert(v), cols: List(String)) -> Insert(v) {
   Insert(..insert, returning: cols)
 }
 
-pub fn to_query(insert: Insert(v), format: sql.Format(v)) -> db.Query(v) {
+pub fn to_query(insert: Insert(v), format: sql.SqlFmt(v)) -> db.Query(v) {
   let to_placeholder = sql.to_placeholder(format, _)
 
   build(insert, format)
@@ -43,13 +43,13 @@ pub fn to_query(insert: Insert(v), format: sql.Format(v)) -> db.Query(v) {
   |> db.values(insert.values)
 }
 
-pub fn to_string(insert: Insert(v), format: sql.Format(v)) -> String {
+pub fn to_string(insert: Insert(v), format: sql.SqlFmt(v)) -> String {
   build(insert, format)
   |> string_tree.to_string
   |> builder.to_string(insert.values, format)
 }
 
-fn build(insert: Insert(v), format: sql.Format(v)) -> StringTree {
+fn build(insert: Insert(v), format: sql.SqlFmt(v)) -> StringTree {
   let values =
     insert.values
     |> list.map(fn(_) { string_tree.from_string(fmt.placeholder) })
