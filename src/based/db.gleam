@@ -4,8 +4,6 @@ import gleam/list
 import gleam/result
 import gleam/string
 
-// Driver
-
 pub type DbError {
   DbError(message: String)
   DecodeError(errors: List(decode.DecodeError))
