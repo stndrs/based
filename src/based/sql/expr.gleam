@@ -80,8 +80,8 @@ pub fn to_values(expr: Expr(v)) -> List(v) {
 
 pub fn unwrap(node: Node(v)) -> List(v) {
   case node {
-    node.Literal(val) -> [val]
-    node.Literals(vals) -> vals
+    node.Value(val) -> [val]
+    node.Values(vals) -> vals
     node.Tuples(vals) -> list.flatten(vals)
     node.Subquery(query) -> query.values
     _ -> []

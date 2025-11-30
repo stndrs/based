@@ -8,12 +8,8 @@ import based/sql/table.{type Table}
 import based/sql/union.{type Union}
 import based/sql/update.{type Update}
 import based/sql/with.{type With}
-import based/value.{type Value}
 import gleam/list
 import gleam/option.{type Option, None, Some}
-import gleam/time/calendar
-import gleam/time/duration
-import gleam/time/timestamp
 
 // Queries
 
@@ -62,7 +58,7 @@ pub fn tuples(vals: List(List(Node(v)))) -> Node(v) {
 pub fn list(vals: List(a), of inner_type: fn(a) -> Node(v)) -> Node(v) {
   list.map(vals, inner_type)
   |> list.flat_map(node.unwrap)
-  |> node.literals
+  |> node.values
 }
 
 pub fn column(name: String) -> Node(v) {
@@ -73,57 +69,20 @@ pub fn columns(names: List(String)) -> Node(v) {
   list.map(names, column.new) |> node.columns
 }
 
-// Value Nodes
-
-pub fn bytea(val: BitArray) -> Node(Value) {
-  value.bytea(val) |> node.literal
-}
-
-pub fn int(val: Int) -> Node(Value) {
-  value.int(val) |> node.literal
-}
-
-pub fn float(val: Float) -> Node(Value) {
-  value.float(val) |> node.literal
-}
-
-pub fn text(val: String) -> Node(Value) {
-  value.text(val) |> node.literal
-}
-
-pub const true = node.Literal(value.Bool(True))
-
-pub const false = node.Literal(value.Bool(False))
-
-pub const null = node.Literal(value.Null)
-
-pub fn timestamp(val: timestamp.Timestamp) -> Node(Value) {
-  value.timestamp(val) |> node.literal
-}
-
-pub fn date(val: calendar.Date) -> Node(Value) {
-  value.date(val) |> node.literal
-}
-
-pub fn time(value: calendar.TimeOfDay) -> Node(Value) {
-  value.time(value) |> node.literal
-}
-
-pub fn datetime(date: calendar.Date, time: calendar.TimeOfDay) -> Node(Value) {
-  value.datetime(date, time) |> node.literal
-}
-
-pub fn interval(dur: duration.Duration) -> Node(Value) {
-  value.interval(dur) |> node.literal
+pub fn value(value: a, of kind: fn(a) -> v) -> Node(v) {
+  value
+  |> kind
+  |> node.value
 }
 
 pub fn nullable(
   value: Option(a),
-  inner_type: fn(a) -> Node(Value),
-) -> Node(Value) {
+  inner_type: fn(a) -> Node(v),
+  or_else null: fn(Nil) -> Node(v),
+) -> Node(v) {
   case value {
     Some(term) -> inner_type(term)
-    None -> null
+    None -> null(Nil)
   }
 }
 

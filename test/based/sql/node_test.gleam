@@ -37,8 +37,8 @@ pub fn columns_test() {
   |> should.equal(expected)
 }
 
-pub fn literal_test() {
-  let lit = node.literal(value.int(42))
+pub fn value_test() {
+  let lit = node.value(value.int(42))
 
   let expected = ":param"
   node.to_string_tree(lit, value.format())
@@ -48,8 +48,8 @@ pub fn literal_test() {
   node.unwrap(lit) |> should.equal([value.int(42)])
 }
 
-pub fn literals_test() {
-  let lits = node.literals([value.int(1), value.int(2), value.int(3)])
+pub fn values_test() {
+  let lits = node.values([value.int(1), value.int(2), value.int(3)])
 
   let expected = "(:param, :param, :param)"
   node.to_string_tree(lits, value.format())
@@ -81,10 +81,10 @@ pub fn tuples_test() {
   ])
 }
 
-pub fn special_literals_test() {
-  let true_node = sql.true
-  let false_node = sql.false
-  let null_node = sql.null
+pub fn special_values_test() {
+  let true_node = sql.value(True, of: value.bool)
+  let false_node = sql.value(False, of: value.bool)
+  let null_node = sql.value(Nil, value.null)
 
   node.to_string_tree(true_node, value.format())
   |> string_tree.to_string
@@ -98,5 +98,5 @@ pub fn special_literals_test() {
 
   node.unwrap(true_node) |> should.equal([value.true])
   node.unwrap(false_node) |> should.equal([value.false])
-  node.unwrap(null_node) |> should.equal([value.null])
+  node.unwrap(null_node) |> should.equal([value.null(Nil)])
 }

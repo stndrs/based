@@ -11,7 +11,12 @@ pub fn basic_insert_test() {
   let query =
     sql.insert(users)
     |> insert.columns(["name", "email"])
-    |> insert.values([[sql.text("John"), sql.text("john@example.com")]])
+    |> insert.values([
+      [
+        sql.value("John", of: value.text),
+        sql.value("john@example.com", of: value.text),
+      ],
+    ])
     |> insert.to_query(value.format())
 
   query.sql |> should.equal(expected)
@@ -28,7 +33,12 @@ pub fn insert_multiple_columns_test() {
     sql.insert(users)
     |> insert.columns(["name", "email", "age", "active"])
     |> insert.values([
-      [sql.text("John"), sql.text("john@example.com"), sql.int(30), sql.true],
+      [
+        sql.value("John", of: value.text),
+        sql.value("john@example.com", of: value.text),
+        sql.value(30, of: value.int),
+        sql.value(True, of: value.bool),
+      ],
     ])
     |> insert.to_query(value.format())
 
@@ -49,7 +59,7 @@ pub fn insert_returning_test() {
   let query =
     sql.insert(users)
     |> insert.columns(["name"])
-    |> insert.values([[sql.text("John")]])
+    |> insert.values([[sql.value("John", of: value.text)]])
     |> insert.returning(["id", "name"])
     |> insert.to_query(value.format())
 
@@ -65,7 +75,12 @@ pub fn insert_to_string_test() {
   let query =
     sql.insert(users)
     |> insert.columns(["name", "email"])
-    |> insert.values([[sql.text("John"), sql.text("john@example.com")]])
+    |> insert.values([
+      [
+        sql.value("John", of: value.text),
+        sql.value("john@example.com", of: value.text),
+      ],
+    ])
 
   insert.to_string(query, value.format()) |> should.equal(expected)
 }
@@ -78,8 +93,14 @@ pub fn insert_multiple_rows_test() {
     sql.insert(users)
     |> insert.columns(["name", "email"])
     |> insert.values([
-      [sql.text("John"), sql.text("john@example.com")],
-      [sql.text("Jane"), sql.text("jane@example.com")],
+      [
+        sql.value("John", of: value.text),
+        sql.value("john@example.com", of: value.text),
+      ],
+      [
+        sql.value("Jane", of: value.text),
+        sql.value("jane@example.com", of: value.text),
+      ],
     ])
     |> insert.to_query(value.format())
 
@@ -100,11 +121,13 @@ pub fn insert_with_null_test() {
   let query =
     sql.insert(users)
     |> insert.columns(["name", "middle_name"])
-    |> insert.values([[sql.text("John"), sql.null]])
+    |> insert.values([
+      [sql.value("John", of: value.text), sql.value(Nil, value.null)],
+    ])
     |> insert.to_query(value.format())
 
   query.sql |> should.equal(expected)
-  query.values |> should.equal([value.text("John"), value.null])
+  query.values |> should.equal([value.text("John"), value.null(Nil)])
 }
 
 pub fn insert_with_different_value_types_test() {
@@ -115,7 +138,14 @@ pub fn insert_with_different_value_types_test() {
   let query =
     sql.insert(products)
     |> insert.columns(["id", "price", "is_active", "description"])
-    |> insert.values([[sql.int(123), sql.float(19.99), sql.true, sql.null]])
+    |> insert.values([
+      [
+        sql.value(123, of: value.int),
+        sql.value(19.99, of: value.float),
+        sql.value(True, value.bool),
+        sql.value(Nil, of: value.null),
+      ],
+    ])
     |> insert.to_query(value.format())
 
   query.sql
@@ -126,6 +156,6 @@ pub fn insert_with_different_value_types_test() {
     value.int(123),
     value.float(19.99),
     value.true,
-    value.null,
+    value.null(Nil),
   ])
 }

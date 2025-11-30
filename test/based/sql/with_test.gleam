@@ -28,7 +28,9 @@ pub fn with_test() {
     |> with.query(fn() {
       sql.select(["*"])
       |> select.from(deps)
-      |> select.where([sql.column("name") |> sql.eq(sql.text("Engineering"))])
+      |> select.where([
+        sql.column("name") |> sql.eq(sql.value("Engineering", of: value.text)),
+      ])
       |> select.to_query(value.format())
     })
     |> with.to_query(value.format())
@@ -94,7 +96,9 @@ pub fn with_column_names_test() {
     |> with.query(fn() {
       sql.select(["dept_name"])
       |> select.from(deps)
-      |> select.where([sql.column("dept_id") |> sql.eq(sql.int(42))])
+      |> select.where([
+        sql.column("dept_id") |> sql.eq(sql.value(42, of: value.int)),
+      ])
       |> select.to_query(value.format())
     })
     |> with.to_query(value.format())
@@ -112,7 +116,7 @@ pub fn recursive_with_test() {
   let recursive_query =
     sql.select(["n + 1"])
     |> select.from(sql.table("numbers"))
-    |> select.where([sql.column("n") |> sql.lt(sql.int(5))])
+    |> select.where([sql.column("n") |> sql.lt(sql.value(5, of: value.int))])
 
   let union_all =
     sql.union_all([base_query, recursive_query])

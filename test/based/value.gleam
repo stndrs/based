@@ -125,11 +125,17 @@ pub fn float(value: Float) -> Value {
   Float(value)
 }
 
+pub fn bool(val: Bool) -> Value {
+  Bool(val)
+}
+
 pub const true = Bool(True)
 
 pub const false = Bool(False)
 
-pub const null = Null
+pub fn null(_: Nil) -> Value {
+  Null
+}
 
 pub fn bytea(value: BitArray) -> Value {
   Bytea(value)

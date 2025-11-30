@@ -65,7 +65,7 @@ pub fn append_where_test() {
 
   let left_col = column.new("id")
   let left_node = node.column(left_col)
-  let right_node = node.literal(value.Int(1))
+  let right_node = node.value(value.Int(1))
   let where_exprs = [[expr.eq(left_node, right_node)]]
 
   let result =
@@ -115,7 +115,7 @@ pub fn append_having_test() {
 
   let count_col = column.new("COUNT(*)")
   let count_node = node.column(count_col)
-  let value_node = node.literal(value.Int(5))
+  let value_node = node.value(value.Int(5))
   let having_exprs = [[expr.gt(count_node, value_node)]]
 
   let result =

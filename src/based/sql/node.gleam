@@ -16,8 +16,8 @@ pub type Node(v) {
   Table(name: String, alias: Option(String))
   ColumnRef(Column(v))
   Columns(List(Column(v)))
-  Literal(v)
-  Literals(List(v))
+  Value(v)
+  Values(List(v))
   Tuples(List(List(v)))
   Subquery(query: db.Query(v))
 }
@@ -34,12 +34,12 @@ pub fn subquery(query: db.Query(v)) -> Node(v) {
   Subquery(query)
 }
 
-pub fn literal(value: v) -> Node(v) {
-  Literal(value)
+pub fn value(value: v) -> Node(v) {
+  Value(value)
 }
 
-pub fn literals(values: List(v)) -> Node(v) {
-  Literals(values)
+pub fn values(values: List(v)) -> Node(v) {
+  Values(values)
 }
 
 pub fn tuples(tups: List(List(v))) -> Node(v) {
@@ -48,8 +48,8 @@ pub fn tuples(tups: List(List(v))) -> Node(v) {
 
 pub fn unwrap(node: Node(v)) -> List(v) {
   case node {
-    Literal(val) -> [val]
-    Literals(vals) -> vals
+    Value(val) -> [val]
+    Values(vals) -> vals
     Tuples(vals) -> list.flatten(vals)
     Subquery(query) -> query.values
     _ -> []
@@ -78,8 +78,8 @@ pub fn to_string(node: Node(v), format: Format(v)) -> String {
       })
       |> string.join(", ")
       |> fmt.enclose
-    Literal(_val) -> fmt.placeholder
-    Literals(values) -> {
+    Value(_val) -> fmt.placeholder
+    Values(values) -> {
       values
       |> list.map(fn(_value) { fmt.placeholder })
       |> string.join(", ")

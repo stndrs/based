@@ -8,7 +8,7 @@ import gleeunit/should
 
 pub fn eq_test() {
   let col = column.new("id")
-  let lit = node.literal(value.int(1))
+  let lit = node.value(value.int(1))
 
   let expr = expr.eq(node.column(col), lit)
 
@@ -22,7 +22,7 @@ pub fn eq_test() {
 
 pub fn greater_than_test() {
   let col = column.new("age")
-  let lit = node.literal(value.int(18))
+  let lit = node.value(value.int(18))
 
   let expr = expr.gt(node.column(col), lit)
 
@@ -36,7 +36,7 @@ pub fn greater_than_test() {
 
 pub fn less_than_test() {
   let col = column.new("age")
-  let lit = node.literal(value.int(65))
+  let lit = node.value(value.int(65))
 
   let expr = expr.lt(node.column(col), lit)
 
@@ -50,7 +50,7 @@ pub fn less_than_test() {
 
 pub fn greater_than_equal_test() {
   let col = column.new("age")
-  let lit = node.literal(value.int(18))
+  let lit = node.value(value.int(18))
 
   let expr = expr.gt_eq(node.column(col), lit)
 
@@ -64,7 +64,7 @@ pub fn greater_than_equal_test() {
 
 pub fn less_than_equal_test() {
   let col = column.new("age")
-  let lit = node.literal(value.int(65))
+  let lit = node.value(value.int(65))
 
   let expr = expr.lt_eq(node.column(col), lit)
 
@@ -78,7 +78,7 @@ pub fn less_than_equal_test() {
 
 pub fn not_equal_test() {
   let col = column.new("status")
-  let lit = node.literal(value.text("inactive"))
+  let lit = node.value(value.text("inactive"))
 
   let expr = expr.not_eq(node.column(col), lit)
 
@@ -92,8 +92,8 @@ pub fn not_equal_test() {
 
 pub fn between_test() {
   let col = column.new("price")
-  let start = node.literal(value.float(10.0))
-  let end = node.literal(value.float(50.0))
+  let start = node.value(value.float(10.0))
+  let end = node.value(value.float(50.0))
 
   let expr = expr.between(node.column(col), start, end)
 
@@ -108,7 +108,7 @@ pub fn between_test() {
 
 pub fn like_test() {
   let col = column.new("name")
-  let lit = node.literal(value.text("%John%"))
+  let lit = node.value(value.text("%John%"))
 
   let expr = expr.like(node.column(col), lit)
 
@@ -122,7 +122,7 @@ pub fn like_test() {
 
 pub fn in_test() {
   let col = column.new("id")
-  let values = node.literals([value.int(1), value.int(2), value.int(3)])
+  let values = node.values([value.int(1), value.int(2), value.int(3)])
 
   let expr = expr.in(node.column(col), values)
 
@@ -138,7 +138,7 @@ pub fn in_test() {
 pub fn is_test() {
   let col = column.new("active")
 
-  let expr = expr.is(node.column(col), sql.true)
+  let expr = expr.is(node.column(col), sql.value(True, of: value.bool))
 
   let expected = "active IS :param"
   expr.to_string_tree(expr, value.format())
@@ -150,7 +150,7 @@ pub fn is_test() {
 
 pub fn not_like_test() {
   let col = column.new("name")
-  let lit = node.literal(value.text("%admin%"))
+  let lit = node.value(value.text("%admin%"))
 
   let expr = expr.not_like(node.column(col), lit)
 
@@ -163,9 +163,9 @@ pub fn not_like_test() {
 }
 
 pub fn and_test() {
-  let expr1 = expr.eq(node.column(column.new("active")), sql.true)
-  let expr2 =
-    expr.gt(node.column(column.new("age")), node.literal(value.int(18)))
+  let expr1 =
+    expr.eq(node.column(column.new("active")), sql.value(True, of: value.bool))
+  let expr2 = expr.gt(node.column(column.new("age")), node.value(value.int(18)))
 
   let and_expr = expr.and(expr1, expr2)
 
@@ -179,11 +179,11 @@ pub fn and_test() {
 
 pub fn or_test() {
   let expr1 =
-    expr.eq(node.column(column.new("name")), node.literal(value.text("John")))
+    expr.eq(node.column(column.new("name")), node.value(value.text("John")))
   let expr2 =
     expr.eq(
       node.column(column.new("email")),
-      node.literal(value.text("john@example.com")),
+      node.value(value.text("john@example.com")),
     )
 
   let or_expr = expr.or(expr1, expr2)
@@ -198,7 +198,8 @@ pub fn or_test() {
 }
 
 pub fn not_test() {
-  let expr1 = expr.eq(node.column(column.new("active")), sql.true)
+  let expr1 =
+    expr.eq(node.column(column.new("active")), sql.value(True, of: value.bool))
 
   let not_expr = expr.not(expr1)
 
@@ -215,9 +216,9 @@ pub fn complex_expression_test() {
   let col2 = column.new("age")
   let col3 = column.new("role")
 
-  let expr1 = expr.eq(node.column(col1), sql.true)
-  let expr2 = expr.gt(node.column(col2), node.literal(value.int(18)))
-  let expr3 = expr.eq(node.column(col3), node.literal(value.text("admin")))
+  let expr1 = expr.eq(node.column(col1), node.value(value.true))
+  let expr2 = expr.gt(node.column(col2), node.value(value.int(18)))
+  let expr3 = expr.eq(node.column(col3), node.value(value.text("admin")))
 
   let and_expr = expr.and(expr1, expr2)
   let or_expr = expr.or(and_expr, expr3)

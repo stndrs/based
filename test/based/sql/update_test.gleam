@@ -11,8 +11,8 @@ pub fn basic_update_test() {
 
   let query =
     sql.update(users)
-    |> update.set("name", sql.text("John"))
-    |> update.where([sql.column("id") |> sql.eq(sql.int(1))])
+    |> update.set("name", sql.value("John", of: value.text))
+    |> update.where([sql.column("id") |> sql.eq(sql.value(1, of: value.int))])
     |> update.to_query(value.format())
 
   query.sql |> should.equal(expected)
@@ -25,9 +25,9 @@ pub fn update_multiple_columns_test() {
 
   let query =
     sql.update(users)
-    |> update.set("name", sql.text("John"))
-    |> update.set("email", sql.text("john@example.com"))
-    |> update.where([sql.column("id") |> sql.eq(sql.int(1))])
+    |> update.set("name", sql.value("John", of: value.text))
+    |> update.set("email", sql.value("john@example.com", of: value.text))
+    |> update.where([sql.column("id") |> sql.eq(sql.value(1, of: value.int))])
     |> update.to_query(value.format())
 
   query.sql |> should.equal(expected)
@@ -45,8 +45,10 @@ pub fn update_with_where_not_test() {
 
   let query =
     sql.update(users)
-    |> update.set("active", sql.true)
-    |> update.where_not([sql.column("id") |> sql.eq(sql.int(1))])
+    |> update.set("active", sql.value(True, value.bool))
+    |> update.where_not([
+      sql.column("id") |> sql.eq(sql.value(1, of: value.int)),
+    ])
     |> update.to_query(value.format())
 
   query.sql |> should.equal(expected)
@@ -59,8 +61,8 @@ pub fn update_returning_test() {
 
   let query =
     sql.update(users)
-    |> update.set("name", sql.text("John"))
-    |> update.where([sql.column("id") |> sql.eq(sql.int(1))])
+    |> update.set("name", sql.value("John", of: value.text))
+    |> update.where([sql.column("id") |> sql.eq(sql.value(1, of: value.int))])
     |> update.returning(["id", "name"])
     |> update.to_query(value.format())
 
@@ -74,8 +76,10 @@ pub fn update_with_is_test() {
 
   let query =
     sql.update(products)
-    |> update.set("price", sql.float(19.99))
-    |> update.where([sql.column("is_deleted") |> sql.is(sql.false)])
+    |> update.set("price", sql.value(19.99, of: value.float))
+    |> update.where([
+      sql.column("is_deleted") |> sql.is(sql.value(False, value.bool)),
+    ])
     |> update.to_query(value.format())
 
   query.sql |> should.equal(expected)
@@ -91,7 +95,7 @@ pub fn update_set_from_subquery_test() {
   let price_id =
     sql.select(["price"])
     |> select.from(prices)
-    |> select.where([sql.column("id") |> sql.eq(sql.int(1))])
+    |> select.where([sql.column("id") |> sql.eq(sql.value(1, of: value.int))])
     |> select.to_subquery(value.format())
 
   let query =
@@ -109,8 +113,10 @@ pub fn update_with_is_to_string_test() {
 
   let query =
     sql.update(products)
-    |> update.set("price", sql.float(19.99))
-    |> update.where([sql.column("is_deleted") |> sql.is(sql.false)])
+    |> update.set("price", sql.value(19.99, of: value.float))
+    |> update.where([
+      sql.column("is_deleted") |> sql.is(sql.value(False, value.bool)),
+    ])
 
   update.to_string(query, value.format())
   |> should.equal(expected)
