@@ -24,7 +24,7 @@ pub fn to_string_test() {
     format.new()
     |> format.on_identifier(fn(s) { "\"" <> s <> "\"" })
     |> format.on_placeholder(fn(i) { "$" <> int.to_string(i) })
-    |> format.on_string(format_value)
+    |> format.on_value(format_value)
 
   let result = builder.to_string("SELECT * FROM users", [], format)
   should.equal(result, "SELECT * FROM users")
@@ -55,7 +55,7 @@ pub fn append_where_test() {
     format.new()
     |> format.on_identifier(fn(s) { s })
     |> format.on_placeholder(fn(i) { "$" <> int.to_string(i) })
-    |> format.on_string(fn(v) {
+    |> format.on_value(fn(v) {
       case v {
         value.Int(i) -> int.to_string(i)
         value.Text(s) -> "'" <> s <> "'"
@@ -106,7 +106,7 @@ pub fn append_having_test() {
     format.new()
     |> format.on_identifier(fn(s) { s })
     |> format.on_placeholder(fn(i) { "$" <> int.to_string(i) })
-    |> format.on_string(fn(v) {
+    |> format.on_value(fn(v) {
       case v {
         value.Int(i) -> int.to_string(i)
         _ -> ""
@@ -134,7 +134,7 @@ pub fn append_joins_test() {
     format.new()
     |> format.on_identifier(fn(s) { s })
     |> format.on_placeholder(fn(i) { "$" <> int.to_string(i) })
-    |> format.on_string(fn(_v) { "" })
+    |> format.on_value(fn(_v) { "" })
 
   let users = table.new("users")
   let posts = table.new("posts")

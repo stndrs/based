@@ -168,7 +168,7 @@ pub fn format() -> Format(Value) {
   format.new()
   |> format.on_identifier(function.identity)
   |> format.on_placeholder(handle_placeholder)
-  |> format.on_string(value_to_string)
+  |> format.on_value(value_to_string)
 }
 
 fn handle_placeholder(_: Int) -> String {
