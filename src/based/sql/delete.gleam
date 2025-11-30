@@ -3,18 +3,16 @@
 //// ## Usage
 ////
 //// ```gleam
-//// import based/db
-//// import based/format
 //// import based/sql/delete
-//// import based/sql/table
+//// import database/value
 ////
-//// let table = table.new("users")
-//// let format = format.new()
+//// let users = sql.table("users")
+//// let format = sql.format()
 ////
-//// let query = delete.new()
-////   |> delete.from(table)
+//// let query =
+////   delete.from(users)
 ////   |> delete.where([
-////     column.new("id") |> expr.eq(node.int(123))
+////     sql.name("id") |> sql.column |> expr.eq(sql.value(value.int(123)))
 ////   ])
 ////   |> delete.returning(["id", "name"])
 ////   |> delete.to_query(format)

@@ -3,18 +3,16 @@
 //// ## Usage
 ////
 //// ```gleam
-//// import based/db
-//// import based/format
 //// import based/sql/update
-//// import based/sql/table
+//// import database/value
 ////
-//// let users = table.new("users")
-//// let format = format.new()
+//// let users = sql.table("users")
+//// let format = sql.format()
 ////
-//// let update = update.new(users)
-////   |> update.set("name", node.string("John"))
+//// let query = update.table(users)
+////   |> update.set("name", sql.value("John", of: value.text))
 ////   |> update.where([
-////     column.new("id") |> expr.eq(node.int(123))
+////     sql.name("id") |> sql.column |> expr.eq(sql.value(value.int(123)))
 ////   ])
 ////   |> update.returning(["id", "name"])
 ////   |> update.to_query(format)
