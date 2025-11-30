@@ -111,7 +111,8 @@ fn build(update: Update(v), format: sql.Format(v)) -> StringTree {
   let updates =
     sets
     |> list.map(with: fn(col_with_val) {
-      let right = sql.node_to_string_tree(col_with_val.1, format)
+      let right =
+        sql.node_to_string(col_with_val.1, format) |> string_tree.from_string
 
       col_with_val.0
       |> string_tree.from_string

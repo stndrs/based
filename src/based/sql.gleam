@@ -262,10 +262,6 @@ pub fn node_to_string(node: Node(v), format: Format(v)) -> String {
   }
 }
 
-pub fn node_to_string_tree(node: Node(v), format: Format(v)) -> StringTree {
-  node_to_string(node, format) |> string_tree.from_string
-}
-
 // Expr
 
 pub opaque type Expr(v) {
@@ -318,8 +314,8 @@ type LogicalOperator {
 pub fn expr_to_string_tree(expr: Expr(v), format: Format(v)) -> StringTree {
   case expr {
     Compare(left, right, op) -> {
-      let left = node_to_string_tree(left, format)
-      let right = node_to_string_tree(right, format)
+      let left = node_to_string(left, format) |> string_tree.from_string
+      let right = node_to_string(right, format) |> string_tree.from_string
 
       let fmt = to_comp_fmt(op)
       fmt(left, right)

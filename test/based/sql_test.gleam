@@ -273,8 +273,7 @@ pub fn columns_test() {
   let cols_node = sql.columns(["id", "name", "email"])
 
   let expected = "(id, name, email)"
-  sql.node_to_string_tree(cols_node, value.format())
-  |> string_tree.to_string
+  sql.node_to_string(cols_node, value.format())
   |> should.equal(expected)
 }
 
@@ -282,8 +281,7 @@ pub fn value_test() {
   let val = sql.value(42, of: value.int)
 
   let expected = ":param"
-  sql.node_to_string_tree(val, value.format())
-  |> string_tree.to_string
+  sql.node_to_string(val, value.format())
   |> should.equal(expected)
 
   sql.unwrap(val) |> should.equal([value.int(42)])
@@ -293,8 +291,7 @@ pub fn values_test() {
   let vals = sql.values([value.int(1), value.int(2), value.int(3)])
 
   let expected = "(:param, :param, :param)"
-  sql.node_to_string_tree(vals, value.format())
-  |> string_tree.to_string
+  sql.node_to_string(vals, value.format())
   |> should.equal(expected)
 
   sql.unwrap(vals)
@@ -309,8 +306,7 @@ pub fn tuples_test() {
     ])
 
   let expected = "((:param, :param), (:param, :param))"
-  sql.node_to_string_tree(tuples, value.format())
-  |> string_tree.to_string
+  sql.node_to_string(tuples, value.format())
   |> should.equal(expected)
 
   sql.unwrap(tuples)
@@ -327,14 +323,11 @@ pub fn special_values_test() {
   let false_node = sql.value(False, of: value.bool)
   let null_node = sql.value(Nil, value.null)
 
-  sql.node_to_string_tree(true_node, value.format())
-  |> string_tree.to_string
+  sql.node_to_string(true_node, value.format())
   |> should.equal(":param")
-  sql.node_to_string_tree(false_node, value.format())
-  |> string_tree.to_string
+  sql.node_to_string(false_node, value.format())
   |> should.equal(":param")
-  sql.node_to_string_tree(null_node, value.format())
-  |> string_tree.to_string
+  sql.node_to_string(null_node, value.format())
   |> should.equal(":param")
 
   sql.unwrap(true_node) |> should.equal([value.true])
