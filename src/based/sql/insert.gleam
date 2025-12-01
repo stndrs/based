@@ -37,7 +37,7 @@ pub fn to_query(insert: Insert(v), format: sql.SqlFmt(v)) -> db.Query(v) {
   let to_placeholder = sql.to_placeholder(format, _)
 
   build(insert, format)
-  |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
+  |> builder.placeholders(on: fmt.placeholder(), with: to_placeholder)
   |> string_tree.to_string
   |> db.sql
   |> db.values(insert.values)
@@ -45,14 +45,13 @@ pub fn to_query(insert: Insert(v), format: sql.SqlFmt(v)) -> db.Query(v) {
 
 pub fn to_string(insert: Insert(v), format: sql.SqlFmt(v)) -> String {
   build(insert, format)
-  |> string_tree.to_string
   |> builder.to_string(insert.values, format)
 }
 
 fn build(insert: Insert(v), format: sql.SqlFmt(v)) -> StringTree {
   let values =
     insert.values
-    |> list.map(fn(_) { string_tree.from_string(fmt.placeholder) })
+    |> list.map(fn(_) { fmt.placeholder() })
     |> list.sized_chunk(into: list.length(insert.columns))
     |> list.map(fn(vals) {
       vals
@@ -60,7 +59,7 @@ fn build(insert: Insert(v), format: sql.SqlFmt(v)) -> StringTree {
       |> fmt.enclose_tree
     })
 
-  let into = sql.node_to_string(insert.table, format)
+  let into = sql.node_to_string_tree(insert.table, format)
 
   string_tree.new()
   |> fmt.insert(insert.columns, into:, values:)

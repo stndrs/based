@@ -12,7 +12,8 @@ pub fn column_test() {
     |> sql.column
 
   let expected = "id"
-  sql.node_to_string(col, value.format())
+  sql.node_to_string_tree(col, value.format())
+  |> string_tree.to_string
   |> should.equal(expected)
 }
 
@@ -20,7 +21,8 @@ pub fn alias_test() {
   let col = sql.name("user_id") |> sql.alias("id") |> sql.column
 
   let expected = "user_id AS id"
-  sql.node_to_string(col, value.format())
+  sql.node_to_string_tree(col, value.format())
+  |> string_tree.to_string
   |> should.equal(expected)
 }
 
@@ -35,7 +37,8 @@ pub fn table_and_alias_test() {
 
   let expected = "users.user_id AS id"
 
-  sql.node_to_string(col, value.format())
+  sql.node_to_string_tree(col, value.format())
+  |> string_tree.to_string
   |> should.equal(expected)
 }
 
@@ -266,7 +269,8 @@ pub fn column_with_table_test() {
   let col = users |> sql.attribute("id") |> sql.column
 
   let expected = "users.id"
-  sql.node_to_string(col, value.format())
+  sql.node_to_string_tree(col, value.format())
+  |> string_tree.to_string
   |> should.equal(expected)
 }
 
@@ -274,7 +278,8 @@ pub fn columns_test() {
   let cols_node = sql.columns(["id", "name", "email"])
 
   let expected = "(id, name, email)"
-  sql.node_to_string(cols_node, value.format())
+  sql.node_to_string_tree(cols_node, value.format())
+  |> string_tree.to_string
   |> should.equal(expected)
 }
 
@@ -282,7 +287,8 @@ pub fn value_test() {
   let val = sql.value(42, of: value.int)
 
   let expected = ":param"
-  sql.node_to_string(val, value.format())
+  sql.node_to_string_tree(val, value.format())
+  |> string_tree.to_string
   |> should.equal(expected)
 
   sql.unwrap(val) |> should.equal([value.int(42)])
@@ -292,7 +298,8 @@ pub fn values_test() {
   let vals = sql.values([value.int(1), value.int(2), value.int(3)])
 
   let expected = "(:param, :param, :param)"
-  sql.node_to_string(vals, value.format())
+  sql.node_to_string_tree(vals, value.format())
+  |> string_tree.to_string
   |> should.equal(expected)
 
   sql.unwrap(vals)
@@ -307,7 +314,8 @@ pub fn tuples_test() {
     ])
 
   let expected = "((:param, :param), (:param, :param))"
-  sql.node_to_string(tuples, value.format())
+  sql.node_to_string_tree(tuples, value.format())
+  |> string_tree.to_string
   |> should.equal(expected)
 
   sql.unwrap(tuples)
@@ -324,11 +332,14 @@ pub fn special_values_test() {
   let false_node = sql.value(False, of: value.bool)
   let null_node = sql.value(Nil, value.null)
 
-  sql.node_to_string(true_node, value.format())
+  sql.node_to_string_tree(true_node, value.format())
+  |> string_tree.to_string
   |> should.equal(":param")
-  sql.node_to_string(false_node, value.format())
+  sql.node_to_string_tree(false_node, value.format())
+  |> string_tree.to_string
   |> should.equal(":param")
-  sql.node_to_string(null_node, value.format())
+  sql.node_to_string_tree(null_node, value.format())
+  |> string_tree.to_string
   |> should.equal(":param")
 
   sql.unwrap(true_node) |> should.equal([value.true])
@@ -341,53 +352,129 @@ pub fn special_values_test() {
 pub fn format_test() {
   let int_fmt =
     sql.format()
-    |> sql.on_identifier(fn(s) { "\"" <> s <> "\"" })
-    |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
-    |> sql.on_value(int.to_string)
+    |> sql.on_identifier(fn(s) {
+      string_tree.from_string("\"")
+      |> string_tree.append_tree(s)
+      |> string_tree.append("\"")
+    })
+    |> sql.on_placeholder(fn(i) {
+      string_tree.from_string("$")
+      |> string_tree.append(int.to_string(i))
+    })
+    |> sql.on_value(fn(val) {
+      int.to_string(val)
+      |> string_tree.from_string
+    })
 
-  sql.to_identifier(int_fmt, "column") |> should.equal("\"column\"")
-  sql.to_placeholder(int_fmt, 1) |> should.equal("$1")
-  sql.to_string(int_fmt, 42) |> should.equal("42")
+  string_tree.from_string("column")
+  |> sql.to_identifier(int_fmt, _)
+  |> string_tree.to_string
+  |> should.equal("\"column\"")
+
+  sql.to_placeholder(int_fmt, 1)
+  |> string_tree.to_string
+  |> should.equal("$1")
+
+  sql.to_string(int_fmt, 42)
+  |> string_tree.to_string
+  |> should.equal("42")
 }
 
 pub fn on_placeholder_test() {
   let int_fmt =
     sql.format()
     |> sql.on_identifier(fn(s) { s })
-    |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
-    |> sql.on_value(int.to_string)
+    |> sql.on_placeholder(fn(i) {
+      string_tree.from_string("$")
+      |> string_tree.append(int.to_string(i))
+    })
+    |> sql.on_value(fn(val) {
+      int.to_string(val)
+      |> string_tree.from_string
+    })
 
-  let int_fmt = sql.on_placeholder(int_fmt, fn(i) { "?" <> int.to_string(i) })
+  let int_fmt =
+    int_fmt
+    |> sql.on_placeholder(fn(_) { string_tree.from_string("?") })
 
-  sql.to_placeholder(int_fmt, 1) |> should.equal("?1")
-  sql.to_identifier(int_fmt, "column") |> should.equal("column")
-  sql.to_string(int_fmt, 42) |> should.equal("42")
+  sql.to_placeholder(int_fmt, 1)
+  |> string_tree.to_string
+  |> should.equal("?")
+
+  string_tree.from_string("column")
+  |> sql.to_identifier(int_fmt, _)
+  |> string_tree.to_string
+  |> should.equal("column")
+
+  sql.to_string(int_fmt, 42)
+  |> string_tree.to_string
+  |> should.equal("42")
 }
 
 pub fn on_identifier_test() {
   let int_fmt =
     sql.format()
     |> sql.on_identifier(fn(s) { s })
-    |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
-    |> sql.on_value(int.to_string)
+    |> sql.on_placeholder(fn(i) {
+      string_tree.from_string("$")
+      |> string_tree.append(int.to_string(i))
+    })
+    |> sql.on_value(fn(val) {
+      int.to_string(val)
+      |> string_tree.from_string
+    })
 
-  let int_fmt = sql.on_identifier(int_fmt, fn(s) { "[" <> s <> "]" })
+  let int_fmt =
+    sql.on_identifier(int_fmt, fn(s) {
+      string_tree.from_string("[")
+      |> string_tree.append_tree(s)
+      |> string_tree.append("]")
+    })
 
-  sql.to_identifier(int_fmt, "column") |> should.equal("[column]")
-  sql.to_placeholder(int_fmt, 1) |> should.equal("$1")
-  sql.to_string(int_fmt, 42) |> should.equal("42")
+  string_tree.from_string("column")
+  |> sql.to_identifier(int_fmt, _)
+  |> string_tree.to_string
+  |> should.equal("[column]")
+
+  sql.to_placeholder(int_fmt, 1)
+  |> string_tree.to_string
+  |> should.equal("$1")
+
+  sql.to_string(int_fmt, 42)
+  |> string_tree.to_string
+  |> should.equal("42")
 }
 
 pub fn on_value_test() {
   let int_fmt =
     sql.format()
     |> sql.on_identifier(fn(s) { s })
-    |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
-    |> sql.on_value(int.to_string)
+    |> sql.on_placeholder(fn(i) {
+      string_tree.from_string("$")
+      |> string_tree.append(int.to_string(i))
+    })
+    |> sql.on_value(fn(val) {
+      int.to_string(val)
+      |> string_tree.from_string
+    })
 
-  let int_fmt = sql.on_value(int_fmt, fn(i) { "num:" <> int.to_string(i) })
+  let int_fmt =
+    int_fmt
+    |> sql.on_value(fn(i) {
+      string_tree.from_string("num:")
+      |> string_tree.append(int.to_string(i))
+    })
 
-  sql.to_string(int_fmt, 42) |> should.equal("num:42")
-  sql.to_identifier(int_fmt, "column") |> should.equal("column")
-  sql.to_placeholder(int_fmt, 1) |> should.equal("$1")
+  sql.to_string(int_fmt, 42)
+  |> string_tree.to_string
+  |> should.equal("num:42")
+
+  string_tree.from_string("column")
+  |> sql.to_identifier(int_fmt, _)
+  |> string_tree.to_string
+  |> should.equal("column")
+
+  sql.to_placeholder(int_fmt, 1)
+  |> string_tree.to_string
+  |> should.equal("$1")
 }

@@ -53,7 +53,7 @@ pub fn to_query(with: With(v), format: sql.SqlFmt(v)) -> db.Query(v) {
   let to_placeholder = sql.to_placeholder(format, _)
 
   build(with)
-  |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
+  |> builder.placeholders(on: fmt.placeholder(), with: to_placeholder)
   |> string_tree.to_string
   |> db.sql
   |> db.values(values)
@@ -65,10 +65,16 @@ fn build(with: With(v)) -> StringTree {
     use cte <- list.map(with.ctes)
 
     let name = case cte.columns {
-      [] -> cte.name
+      [] -> string_tree.from_string(cte.name)
       cols -> {
-        let cols = string.join(cols, ", ") |> fmt.enclose
-        cte.name <> " " <> cols
+        let cols =
+          string.join(cols, ", ")
+          |> fmt.enclose
+
+        cte.name
+        |> string_tree.from_string
+        |> string_tree.append(" ")
+        |> string_tree.append_tree(cols)
       }
     }
 

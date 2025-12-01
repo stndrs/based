@@ -1,5 +1,6 @@
 import based/sql
 import based/sql/internal/builder
+import based/sql/internal/fmt
 import based/value
 import gleam/int
 import gleam/option.{None, Some}
@@ -13,18 +14,32 @@ pub fn to_string_test() {
       value.Int(i) -> ":" <> int.to_string(i)
       _ -> ""
     }
+    |> string_tree.from_string
   }
 
   let format =
     sql.format()
-    |> sql.on_identifier(fn(s) { "\"" <> s <> "\"" })
-    |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
+    |> sql.on_identifier(fn(s) {
+      string_tree.from_string("\\")
+      |> string_tree.append_tree(s)
+      |> string_tree.append("\\")
+    })
+    |> sql.on_placeholder(fn(i) {
+      string_tree.from_string("$")
+      |> string_tree.append(int.to_string(i))
+    })
     |> sql.on_value(format_value)
 
-  let result = builder.to_string("SELECT * FROM users", [], format)
+  let result =
+    "SELECT * FROM users"
+    |> string_tree.from_string
+    |> builder.to_string([], format)
   should.equal(result, "SELECT * FROM users")
 
-  let sql = "SELECT * FROM users WHERE id = :param AND name = :param"
+  let sql =
+    "SELECT * FROM users WHERE id = :param AND name = :param"
+    |> string_tree.from_string
+
   let values = [value.Int(1), value.Text("John")]
   let result = builder.to_string(sql, values, format)
   should.equal(result, "SELECT * FROM users WHERE id = :1 AND name = 'John'")
@@ -35,9 +50,13 @@ pub fn placeholders_test() {
     string_tree.from_string(
       "SELECT * FROM users WHERE id = :param AND age = :param",
     )
-  let mapper = fn(i) { "$" <> int.to_string(i) }
+  let mapper = fn(i) {
+    string_tree.from_string("$")
+    |> string_tree.append(int.to_string(i))
+  }
 
-  let result = builder.placeholders(for: tree, on: ":param", with: mapper)
+  let result =
+    builder.placeholders(for: tree, on: fmt.placeholder(), with: mapper)
   let expected = "SELECT * FROM users WHERE id = $1 AND age = $2"
 
   string_tree.to_string(result) |> should.equal(expected)
@@ -49,13 +68,17 @@ pub fn append_where_test() {
   let format =
     sql.format()
     |> sql.on_identifier(fn(s) { s })
-    |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
+    |> sql.on_placeholder(fn(i) {
+      string_tree.from_string("$")
+      |> string_tree.append(int.to_string(i))
+    })
     |> sql.on_value(fn(v) {
       case v {
         value.Int(i) -> int.to_string(i)
         value.Text(s) -> "'" <> s <> "'"
         _ -> ""
       }
+      |> string_tree.from_string
     })
 
   let left_node = sql.name("id") |> sql.column
@@ -99,12 +122,16 @@ pub fn append_having_test() {
   let format =
     sql.format()
     |> sql.on_identifier(fn(s) { s })
-    |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
+    |> sql.on_placeholder(fn(i) {
+      string_tree.from_string("$")
+      |> string_tree.append(int.to_string(i))
+    })
     |> sql.on_value(fn(v) {
       case v {
         value.Int(i) -> int.to_string(i)
         _ -> ""
       }
+      |> string_tree.from_string
     })
 
   let count_node = sql.name("COUNT(*)") |> sql.column

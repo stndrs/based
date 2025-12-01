@@ -6,7 +6,11 @@ import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string_tree.{type StringTree}
 
-pub fn to_string(sql: String, values: List(v), format: sql.SqlFmt(v)) -> String {
+pub fn to_string(
+  sql: StringTree,
+  values: List(v),
+  format: sql.SqlFmt(v),
+) -> String {
   let values_by_idx =
     values
     |> list.index_map(fn(val, idx) { #(idx + 1, val) })
@@ -16,28 +20,25 @@ pub fn to_string(sql: String, values: List(v), format: sql.SqlFmt(v)) -> String 
     values_by_idx
     |> dict.get(idx)
     |> result.map(sql.to_string(format, _))
-    |> result.unwrap("")
+    |> result.lazy_unwrap(string_tree.new)
   }
 
-  string_tree.from_string(sql)
-  |> placeholders(on: fmt.placeholder, with:)
+  sql
+  |> placeholders(on: fmt.placeholder(), with:)
   |> string_tree.to_string
 }
 
 pub fn placeholders(
   for st: StringTree,
-  on ph: String,
-  with mapper: fn(Int) -> String,
+  on ph: StringTree,
+  with mapper: fn(Int) -> StringTree,
 ) -> StringTree {
-  string_tree.split(st, on: ph)
+  string_tree.split(st, on: string_tree.to_string(ph))
   |> list.index_fold(from: [], with: fn(acc, st1, idx) {
     case idx {
       0 -> [st1, ..acc]
       idx -> {
-        let ph =
-          idx
-          |> mapper
-          |> string_tree.from_string
+        let ph = mapper(idx)
 
         [st1, ph, ..acc]
       }
@@ -110,7 +111,7 @@ pub fn append_joins(
     }
 
     st
-    |> join_tree(sql.node_to_string(join.table, format))
+    |> join_tree(sql.node_to_string_tree(join.table, format))
     |> list.index_fold(over: join.exprs, from: _, with: fn(sql1, expr, idx) {
       let expr_fmt = case idx {
         0 -> fmt.on
@@ -151,10 +152,10 @@ pub fn append_limit(
   offset: Option(Int),
 ) -> StringTree {
   limit
-  |> option.map(fn(_) { fmt.limit(st, fmt.placeholder) })
+  |> option.map(fn(_) { fmt.limit(st, fmt.placeholder()) })
   |> option.map(fn(lim) {
     offset
-    |> option.map(fn(_) { fmt.offset(lim, fmt.placeholder) })
+    |> option.map(fn(_) { fmt.offset(lim, fmt.placeholder()) })
     |> option.unwrap(lim)
   })
   |> option.unwrap(st)

@@ -202,7 +202,7 @@ pub fn to_query(select: Select(v), format: sql.SqlFmt(v)) -> db.Query(v) {
   let to_placeholder = sql.to_placeholder(format, _)
 
   build(select, format)
-  |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
+  |> builder.placeholders(on: fmt.placeholder(), with: to_placeholder)
   |> string_tree.to_string
   |> db.sql
   |> db.values(values)
@@ -220,7 +220,6 @@ pub fn to_string(select: Select(v), format: sql.SqlFmt(v)) -> String {
   let values = select.values |> list.reverse |> list.flatten
 
   build(select, format)
-  |> string_tree.to_string
   |> builder.to_string(values, format)
 }
 
@@ -233,7 +232,7 @@ fn build(select: Select(v), format: sql.SqlFmt(v)) -> StringTree {
   }
 
   let from_fmt = case select.table {
-    Some(table) -> fmt.from(_, sql.node_to_string(table, format))
+    Some(table) -> fmt.from(_, sql.node_to_string_tree(table, format))
     None -> function.identity
   }
 

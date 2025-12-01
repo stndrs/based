@@ -66,7 +66,7 @@ pub fn to_query(del: Delete(v), format: sql.SqlFmt(v)) -> db.Query(v) {
   let to_placeholder = sql.to_placeholder(format, _)
 
   build(del, format)
-  |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
+  |> builder.placeholders(on: fmt.placeholder(), with: to_placeholder)
   |> string_tree.to_string
   |> db.sql
   |> db.values(values)
@@ -77,13 +77,12 @@ pub fn to_string(delete: Delete(v), format: sql.SqlFmt(v)) -> String {
   let values = delete.values |> list.reverse |> list.flatten
 
   build(delete, format)
-  |> string_tree.to_string
   |> builder.to_string(values, format)
 }
 
 /// Build a DELETE query's SQL string tree using the given format.
 fn build(delete: Delete(v), format: sql.SqlFmt(v)) -> StringTree {
-  let from = sql.node_to_string(delete.table, format)
+  let from = sql.node_to_string_tree(delete.table, format)
 
   string_tree.new()
   |> fmt.delete

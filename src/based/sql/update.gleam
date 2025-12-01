@@ -92,7 +92,7 @@ pub fn to_query(update: Update(v), format: sql.SqlFmt(v)) -> db.Query(v) {
   let to_placeholder = sql.to_placeholder(format, _)
 
   build(update, format)
-  |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
+  |> builder.placeholders(on: fmt.placeholder(), with: to_placeholder)
   |> string_tree.to_string
   |> db.sql
   |> db.values(values)
@@ -103,7 +103,6 @@ pub fn to_string(update: Update(v), format: sql.SqlFmt(v)) -> String {
   let values = update.values |> list.reverse |> list.flatten
 
   build(update, format)
-  |> string_tree.to_string
   |> builder.to_string(values, format)
 }
 
@@ -115,15 +114,14 @@ fn build(update: Update(v), format: sql.SqlFmt(v)) -> StringTree {
 
     let right =
       value
-      |> sql.node_to_string(format)
-      |> string_tree.from_string
+      |> sql.node_to_string_tree(format)
 
     column
     |> string_tree.from_string
     |> fmt.eq(right)
   }
 
-  let table = sql.node_to_string(update.table, format)
+  let table = sql.node_to_string_tree(update.table, format)
 
   string_tree.new()
   |> fmt.update(table)

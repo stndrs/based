@@ -2,21 +2,25 @@ import gleam/list
 import gleam/string
 import gleam/string_tree.{type StringTree}
 
-pub const placeholder = ":param"
+pub fn placeholder() -> StringTree {
+  string_tree.from_string(":param")
+}
 
-pub const null = "NULL"
+pub fn null() -> StringTree {
+  string_tree.from_string("NULL")
+}
 
 // Statements
 
 pub fn insert(
   st: StringTree,
   columns: List(String),
-  into table: String,
+  into table: StringTree,
   values values: List(StringTree),
 ) -> StringTree {
   st
   |> string_tree.append("INSERT INTO ")
-  |> string_tree.append(table)
+  |> string_tree.append_tree(table)
   |> string_tree.append(" ")
   |> string_tree.append_tree(
     columns
@@ -28,10 +32,10 @@ pub fn insert(
   |> string_tree.append_tree(values |> string_tree.join(", "))
 }
 
-pub fn update(st: StringTree, table: String) -> StringTree {
+pub fn update(st: StringTree, table: StringTree) -> StringTree {
   st
   |> string_tree.append("UPDATE ")
-  |> string_tree.append(table)
+  |> string_tree.append_tree(table)
 }
 
 pub fn set(st: StringTree, updates: List(StringTree)) -> StringTree {
@@ -66,8 +70,8 @@ pub fn select_distinct(st: StringTree, values: List(String)) -> StringTree {
   |> string_tree.append_tree(values)
 }
 
-pub fn from(st: StringTree, value: String) -> StringTree {
-  append(st, " FROM ", value)
+pub fn from(st: StringTree, value: StringTree) -> StringTree {
+  append_tree(st, " FROM ", value)
 }
 
 // Where Clause
@@ -86,20 +90,20 @@ pub fn or(st: StringTree, value: StringTree) -> StringTree {
 
 // SQL Joins
 
-pub fn inner_join(st: StringTree, value: String) -> StringTree {
-  append(st, " INNER JOIN ", value)
+pub fn inner_join(st: StringTree, value: StringTree) -> StringTree {
+  append_tree(st, " INNER JOIN ", value)
 }
 
-pub fn left_join(st: StringTree, value: String) -> StringTree {
-  append(st, " LEFT JOIN ", value)
+pub fn left_join(st: StringTree, value: StringTree) -> StringTree {
+  append_tree(st, " LEFT JOIN ", value)
 }
 
-pub fn right_join(st: StringTree, value: String) -> StringTree {
-  append(st, " RIGHT JOIN ", value)
+pub fn right_join(st: StringTree, value: StringTree) -> StringTree {
+  append_tree(st, " RIGHT JOIN ", value)
 }
 
-pub fn full_outer_join(st: StringTree, value: String) -> StringTree {
-  append(st, " FULL OUTER JOIN ", value)
+pub fn full_outer_join(st: StringTree, value: StringTree) -> StringTree {
+  append_tree(st, " FULL OUTER JOIN ", value)
 }
 
 pub fn on(st: StringTree, value: StringTree) -> StringTree {
@@ -188,14 +192,13 @@ pub fn some(st: StringTree, subquery: StringTree) -> StringTree {
   |> string_tree.append_tree(subquery)
 }
 
-pub fn exists(subquery: StringTree) -> String {
+pub fn exists(subquery: StringTree) -> StringTree {
   string_tree.from_string("EXISTS ")
   |> string_tree.append_tree(subquery)
-  |> string_tree.to_string
 }
 
-pub fn alias(value: String, alias: String) -> String {
-  value <> " AS " <> alias
+pub fn alias(value: StringTree, alias: StringTree) -> StringTree {
+  append_tree(value, " AS ", alias)
 }
 
 pub fn returning(st: StringTree, columns: List(String)) -> StringTree {
@@ -209,12 +212,12 @@ pub fn returning(st: StringTree, columns: List(String)) -> StringTree {
   |> string_tree.append_tree(columns)
 }
 
-pub fn limit(st: StringTree, placeholder: String) -> StringTree {
-  append(st, " LIMIT ", placeholder)
+pub fn limit(st: StringTree, placeholder: StringTree) -> StringTree {
+  append_tree(st, " LIMIT ", placeholder)
 }
 
-pub fn offset(st: StringTree, placeholder: String) -> StringTree {
-  append(st, " OFFSET ", placeholder)
+pub fn offset(st: StringTree, placeholder: StringTree) -> StringTree {
+  append_tree(st, " OFFSET ", placeholder)
 }
 
 pub fn for_update(st: StringTree) -> StringTree {
@@ -225,8 +228,10 @@ pub fn for_update(st: StringTree) -> StringTree {
 
 // Aggregate functions
 
-pub fn count(value: String) -> String {
-  "COUNT(" <> value <> ")"
+pub fn count(value: String) -> StringTree {
+  string_tree.from_string("COUNT(")
+  |> string_tree.append(value)
+  |> string_tree.append(")")
 }
 
 pub fn group_by(st: StringTree, values: List(String)) -> StringTree {
@@ -237,28 +242,24 @@ pub fn having(st: StringTree, value: StringTree) -> StringTree {
   append_tree(st, " HAVING ", value)
 }
 
-pub fn sum(value: String) -> String {
+pub fn sum(value: String) -> StringTree {
   string_tree.new()
   |> wrap("SUM", value)
-  |> string_tree.to_string
 }
 
-pub fn avg(value: String) -> String {
+pub fn avg(value: String) -> StringTree {
   string_tree.new()
   |> wrap("AVG", value)
-  |> string_tree.to_string
 }
 
-pub fn max(value: String) -> String {
+pub fn max(value: String) -> StringTree {
   string_tree.new()
   |> wrap("MAX", value)
-  |> string_tree.to_string
 }
 
-pub fn min(value: String) -> String {
+pub fn min(value: String) -> StringTree {
   string_tree.new()
   |> wrap("MIN", value)
-  |> string_tree.to_string
 }
 
 // Arithmetic functions
@@ -298,12 +299,12 @@ pub fn union(
 
 // CTEs
 
-pub fn with(st: StringTree, ctes: List(String)) -> StringTree {
-  string.join(ctes, ", ") |> append(st, "WITH ", _)
+pub fn with(st: StringTree, ctes: List(StringTree)) -> StringTree {
+  string_tree.join(ctes, ", ") |> append_tree(st, "WITH ", _)
 }
 
-pub fn with_recursive(st: StringTree, ctes: List(String)) -> StringTree {
-  string.join(ctes, ", ") |> append(st, "WITH RECURSIVE ", _)
+pub fn with_recursive(st: StringTree, ctes: List(StringTree)) -> StringTree {
+  string_tree.join(ctes, ", ") |> append_tree(st, "WITH RECURSIVE ", _)
 }
 
 // Helpers
@@ -312,8 +313,9 @@ pub fn terminate(st: StringTree) -> StringTree {
   string_tree.append(st, ";")
 }
 
-pub fn enclose(str: String) -> String {
-  "(" <> str <> ")"
+pub fn enclose(str: String) -> StringTree {
+  string_tree.from_string(str)
+  |> enclose_tree
 }
 
 pub fn enclose_tree(st: StringTree) -> StringTree {
