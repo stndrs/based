@@ -4,13 +4,9 @@ import gleam/dict
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
-import gleam/string_tree.{type StringTree}
+import gleam/string
 
-pub fn to_string(
-  sql: StringTree,
-  values: List(v),
-  format: sql.SqlFmt(v),
-) -> String {
+pub fn to_string(sql: String, values: List(v), format: sql.SqlFmt(v)) -> String {
   let values_by_idx =
     values
     |> list.index_map(fn(val, idx) { #(idx + 1, val) })
@@ -20,20 +16,19 @@ pub fn to_string(
     values_by_idx
     |> dict.get(idx)
     |> result.map(sql.to_string(format, _))
-    |> result.lazy_unwrap(string_tree.new)
+    |> result.unwrap("")
   }
 
   sql
-  |> placeholders(on: fmt.placeholder(), with:)
-  |> string_tree.to_string
+  |> placeholders(on: fmt.placeholder, with:)
 }
 
 pub fn placeholders(
-  for st: StringTree,
-  on ph: StringTree,
-  with mapper: fn(Int) -> StringTree,
-) -> StringTree {
-  string_tree.split(st, on: string_tree.to_string(ph))
+  for st: String,
+  on ph: String,
+  with mapper: fn(Int) -> String,
+) -> String {
+  string.split(st, on: ph)
   |> list.index_fold(from: [], with: fn(acc, st1, idx) {
     case idx {
       0 -> [st1, ..acc]
@@ -45,14 +40,14 @@ pub fn placeholders(
     }
   })
   |> list.reverse
-  |> string_tree.join(with: "")
+  |> string.join(with: "")
 }
 
 pub fn append_where(
-  st: StringTree,
+  st: String,
   where: List(List(sql.Expr(v))),
   format: sql.SqlFmt(v),
-) -> StringTree {
+) -> String {
   where
   |> list.reverse
   |> list.flatten
@@ -63,12 +58,12 @@ pub fn append_where(
     }
 
     expr
-    |> sql.expr_to_string_tree(format)
+    |> sql.expr_to_string(format)
     |> expr_fmt(sql1, _)
   })
 }
 
-pub fn append_group_by(st: StringTree, group_by: List(String)) -> StringTree {
+pub fn append_group_by(st: String, group_by: List(String)) -> String {
   case group_by {
     [] -> st
     columns -> fmt.group_by(st, columns)
@@ -76,10 +71,10 @@ pub fn append_group_by(st: StringTree, group_by: List(String)) -> StringTree {
 }
 
 pub fn append_having(
-  st: StringTree,
+  st: String,
   having: List(List(sql.Expr(v))),
   format: sql.SqlFmt(v),
-) -> StringTree {
+) -> String {
   having
   |> list.reverse
   |> list.flatten
@@ -90,16 +85,16 @@ pub fn append_having(
     }
 
     expr
-    |> sql.expr_to_string_tree(format)
+    |> sql.expr_to_string(format)
     |> expr_fmt(sql1, _)
   })
 }
 
 pub fn append_joins(
-  st: StringTree,
+  st: String,
   joins: List(sql.Join(v)),
   format: sql.SqlFmt(v),
-) -> StringTree {
+) -> String {
   joins
   |> list.reverse
   |> list.fold(from: st, with: fn(st, join) {
@@ -111,7 +106,7 @@ pub fn append_joins(
     }
 
     st
-    |> join_tree(sql.node_to_string_tree(join.table, format))
+    |> join_tree(sql.node_to_string(join.table, format))
     |> list.index_fold(over: join.exprs, from: _, with: fn(sql1, expr, idx) {
       let expr_fmt = case idx {
         0 -> fmt.on
@@ -119,17 +114,17 @@ pub fn append_joins(
       }
 
       expr
-      |> sql.expr_to_string_tree(format)
+      |> sql.expr_to_string(format)
       |> expr_fmt(sql1, _)
     })
   })
 }
 
 pub fn append_order_by(
-  st: StringTree,
+  st: String,
   order_by: List(String),
   order: Option(sql.Order),
-) -> StringTree {
+) -> String {
   case order_by {
     [] -> st
     columns -> {
@@ -147,21 +142,21 @@ pub fn append_order_by(
 }
 
 pub fn append_limit(
-  st: StringTree,
+  st: String,
   limit: Option(Int),
   offset: Option(Int),
-) -> StringTree {
+) -> String {
   limit
-  |> option.map(fn(_) { fmt.limit(st, fmt.placeholder()) })
+  |> option.map(fn(_) { fmt.limit(st, fmt.placeholder) })
   |> option.map(fn(lim) {
     offset
-    |> option.map(fn(_) { fmt.offset(lim, fmt.placeholder()) })
+    |> option.map(fn(_) { fmt.offset(lim, fmt.placeholder) })
     |> option.unwrap(lim)
   })
   |> option.unwrap(st)
 }
 
-pub fn append_returning(st: StringTree, cols: List(String)) -> StringTree {
+pub fn append_returning(st: String, cols: List(String)) -> String {
   case cols {
     [] -> st
     cols -> fmt.returning(st, cols)

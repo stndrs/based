@@ -24,7 +24,6 @@ import based/sql/internal/builder
 import based/sql/internal/fmt
 import gleam/list
 import gleam/option.{type Option, None}
-import gleam/string_tree.{type StringTree}
 
 pub opaque type Update(v) {
   Update(
@@ -92,8 +91,7 @@ pub fn to_query(update: Update(v), format: sql.SqlFmt(v)) -> db.Query(v) {
   let to_placeholder = sql.to_placeholder(format, _)
 
   build(update, format)
-  |> builder.placeholders(on: fmt.placeholder(), with: to_placeholder)
-  |> string_tree.to_string
+  |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
   |> db.sql
   |> db.values(values)
 }
@@ -106,7 +104,7 @@ pub fn to_string(update: Update(v), format: sql.SqlFmt(v)) -> String {
   |> builder.to_string(values, format)
 }
 
-fn build(update: Update(v), format: sql.SqlFmt(v)) -> StringTree {
+fn build(update: Update(v), format: sql.SqlFmt(v)) -> String {
   let sets = update.sets |> list.reverse
 
   let updates = {
@@ -114,17 +112,15 @@ fn build(update: Update(v), format: sql.SqlFmt(v)) -> StringTree {
 
     let right =
       value
-      |> sql.node_to_string_tree(format)
+      |> sql.node_to_string(format)
 
     column
-    |> string_tree.from_string
     |> fmt.eq(right)
   }
 
-  let table = sql.node_to_string_tree(update.table, format)
+  let table = sql.node_to_string(update.table, format)
 
-  string_tree.new()
-  |> fmt.update(table)
+  fmt.update(table)
   |> fmt.set(updates)
   |> builder.append_where(update.where, format)
   |> builder.append_returning(update.returning)

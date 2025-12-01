@@ -23,7 +23,6 @@ import based/sql
 import based/sql/internal/builder
 import based/sql/internal/fmt
 import gleam/list
-import gleam/string_tree.{type StringTree}
 
 /// A DELETE query with table, WHERE conditions, RETURNING columns, and values.
 pub opaque type Delete(v) {
@@ -66,8 +65,7 @@ pub fn to_query(del: Delete(v), format: sql.SqlFmt(v)) -> db.Query(v) {
   let to_placeholder = sql.to_placeholder(format, _)
 
   build(del, format)
-  |> builder.placeholders(on: fmt.placeholder(), with: to_placeholder)
-  |> string_tree.to_string
+  |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
   |> db.sql
   |> db.values(values)
 }
@@ -81,11 +79,10 @@ pub fn to_string(delete: Delete(v), format: sql.SqlFmt(v)) -> String {
 }
 
 /// Build a DELETE query's SQL string tree using the given format.
-fn build(delete: Delete(v), format: sql.SqlFmt(v)) -> StringTree {
-  let from = sql.node_to_string_tree(delete.table, format)
+fn build(delete: Delete(v), format: sql.SqlFmt(v)) -> String {
+  let from = sql.node_to_string(delete.table, format)
 
-  string_tree.new()
-  |> fmt.delete
+  fmt.delete
   |> fmt.from(from)
   |> builder.append_where(delete.where, format)
   |> builder.append_returning(delete.returning)

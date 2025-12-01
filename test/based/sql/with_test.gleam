@@ -113,7 +113,8 @@ pub fn recursive_with_test() {
   let expected =
     "WITH RECURSIVE numbers (n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM numbers WHERE n < ?) SELECT n FROM numbers;"
 
-  let base_query = select.new()
+  let base_query = select.new() |> select.columns(["1"])
+
   let numbers = sql.name("numbers") |> sql.table
 
   let recursive_query =

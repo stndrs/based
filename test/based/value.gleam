@@ -5,7 +5,6 @@ import gleam/function
 import gleam/int
 import gleam/option.{type Option, None, Some}
 import gleam/string
-import gleam/string_tree.{type StringTree}
 import gleam/time/calendar
 import gleam/time/duration
 import gleam/time/timestamp
@@ -26,7 +25,7 @@ pub type Value {
   Null
 }
 
-fn value_to_string(value: Value) -> StringTree {
+fn value_to_string(value: Value) -> String {
   case value {
     Text(val) -> text_to_string(val)
     Int(val) -> int.to_string(val)
@@ -40,7 +39,6 @@ fn value_to_string(value: Value) -> StringTree {
     Interval(val) -> duration_to_string(val)
     Null -> "NULL"
   }
-  |> string_tree.from_string
 }
 
 fn text_to_string(val: String) -> String {
@@ -179,6 +177,6 @@ pub fn format() -> sql.SqlFmt(Value) {
   |> sql.on_value(value_to_string)
 }
 
-fn handle_placeholder(_: Int) -> StringTree {
-  string_tree.from_string("?")
+fn handle_placeholder(_: Int) -> String {
+  "?"
 }

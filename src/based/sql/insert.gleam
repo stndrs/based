@@ -3,7 +3,7 @@ import based/sql
 import based/sql/internal/builder
 import based/sql/internal/fmt
 import gleam/list
-import gleam/string_tree.{type StringTree}
+import gleam/string
 
 pub opaque type Insert(v) {
   Insert(
@@ -37,8 +37,7 @@ pub fn to_query(insert: Insert(v), format: sql.SqlFmt(v)) -> db.Query(v) {
   let to_placeholder = sql.to_placeholder(format, _)
 
   build(insert, format)
-  |> builder.placeholders(on: fmt.placeholder(), with: to_placeholder)
-  |> string_tree.to_string
+  |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
   |> db.sql
   |> db.values(insert.values)
 }
@@ -48,20 +47,19 @@ pub fn to_string(insert: Insert(v), format: sql.SqlFmt(v)) -> String {
   |> builder.to_string(insert.values, format)
 }
 
-fn build(insert: Insert(v), format: sql.SqlFmt(v)) -> StringTree {
+fn build(insert: Insert(v), format: sql.SqlFmt(v)) -> String {
   let values =
     insert.values
-    |> list.map(fn(_) { fmt.placeholder() })
+    |> list.map(fn(_) { fmt.placeholder })
     |> list.sized_chunk(into: list.length(insert.columns))
     |> list.map(fn(vals) {
       vals
-      |> string_tree.join(with: ", ")
-      |> fmt.enclose_tree
+      |> string.join(with: ", ")
+      |> fmt.enclose
     })
 
-  let into = sql.node_to_string_tree(insert.table, format)
+  let into = sql.node_to_string(insert.table, format)
 
-  string_tree.new()
-  |> fmt.insert(insert.columns, into:, values:)
+  fmt.insert(insert.columns, into:, values:)
   |> builder.append_returning(insert.returning)
 }

@@ -5,7 +5,6 @@ import based/sql/internal/fmt
 import gleam/function
 import gleam/list
 import gleam/option.{type Option, None, Some}
-import gleam/string_tree.{type StringTree}
 
 type For {
   Update
@@ -202,8 +201,7 @@ pub fn to_query(select: Select(v), format: sql.SqlFmt(v)) -> db.Query(v) {
   let to_placeholder = sql.to_placeholder(format, _)
 
   build(select, format)
-  |> builder.placeholders(on: fmt.placeholder(), with: to_placeholder)
-  |> string_tree.to_string
+  |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
   |> db.sql
   |> db.values(values)
 }
@@ -225,19 +223,18 @@ pub fn to_string(select: Select(v), format: sql.SqlFmt(v)) -> String {
 
 // Builders
 
-fn build(select: Select(v), format: sql.SqlFmt(v)) -> StringTree {
+fn build(select: Select(v), format: sql.SqlFmt(v)) -> String {
   let select_fmt = case select.distinct {
     True -> fmt.select_distinct
     False -> fmt.select
   }
 
   let from_fmt = case select.table {
-    Some(table) -> fmt.from(_, sql.node_to_string_tree(table, format))
+    Some(table) -> fmt.from(_, sql.node_to_string(table, format))
     None -> function.identity
   }
 
-  string_tree.new()
-  |> select_fmt(select.columns)
+  select_fmt(select.columns)
   |> from_fmt
   |> builder.append_joins(select.join, format)
   |> builder.append_where(select.where, format)
@@ -248,7 +245,7 @@ fn build(select: Select(v), format: sql.SqlFmt(v)) -> StringTree {
   |> append_for(select.for)
 }
 
-fn append_for(st: StringTree, for: Option(For)) -> StringTree {
+fn append_for(st: String, for: Option(For)) -> String {
   case for {
     Some(_) -> fmt.for_update(st)
     None -> st

@@ -1,7 +1,6 @@
 import based/sql
 import based/value
 import gleam/int
-import gleam/string_tree
 import gleeunit/should
 
 // Column
@@ -12,8 +11,7 @@ pub fn column_test() {
     |> sql.column
 
   let expected = "id"
-  sql.node_to_string_tree(col, value.format())
-  |> string_tree.to_string
+  sql.node_to_string(col, value.format())
   |> should.equal(expected)
 }
 
@@ -21,8 +19,7 @@ pub fn alias_test() {
   let col = sql.name("user_id") |> sql.alias("id") |> sql.column
 
   let expected = "user_id AS id"
-  sql.node_to_string_tree(col, value.format())
-  |> string_tree.to_string
+  sql.node_to_string(col, value.format())
   |> should.equal(expected)
 }
 
@@ -37,8 +34,7 @@ pub fn table_and_alias_test() {
 
   let expected = "users.user_id AS id"
 
-  sql.node_to_string_tree(col, value.format())
-  |> string_tree.to_string
+  sql.node_to_string(col, value.format())
   |> should.equal(expected)
 }
 
@@ -50,8 +46,7 @@ pub fn eq_test() {
   let sql = sql.eq(sql.name("id") |> sql.column, val)
 
   let expected = "id = :param"
-  sql.expr_to_string_tree(sql, sql.format())
-  |> string_tree.to_string
+  sql.expr_to_string(sql, sql.format())
   |> should.equal(expected)
 
   sql.expr_to_values(sql) |> should.equal([value.int(1)])
@@ -63,8 +58,7 @@ pub fn greater_than_test() {
   let sql = sql.gt(sql.name("age") |> sql.column, val)
 
   let expected = "age > :param"
-  sql.expr_to_string_tree(sql, sql.format())
-  |> string_tree.to_string
+  sql.expr_to_string(sql, sql.format())
   |> should.equal(expected)
 
   sql.expr_to_values(sql) |> should.equal([value.int(18)])
@@ -77,8 +71,7 @@ pub fn less_than_test() {
   let sql = sql.lt(col, val)
 
   let expected = "age < :param"
-  sql.expr_to_string_tree(sql, sql.format())
-  |> string_tree.to_string
+  sql.expr_to_string(sql, sql.format())
   |> should.equal(expected)
 
   sql.expr_to_values(sql) |> should.equal([value.int(65)])
@@ -91,8 +84,7 @@ pub fn greater_than_equal_test() {
   let sql = sql.gt_eq(col, val)
 
   let expected = "age >= :param"
-  sql.expr_to_string_tree(sql, sql.format())
-  |> string_tree.to_string
+  sql.expr_to_string(sql, sql.format())
   |> should.equal(expected)
 
   sql.expr_to_values(sql) |> should.equal([value.int(18)])
@@ -105,8 +97,7 @@ pub fn less_than_equal_test() {
   let sql = sql.lt_eq(col, val)
 
   let expected = "age <= :param"
-  sql.expr_to_string_tree(sql, sql.format())
-  |> string_tree.to_string
+  sql.expr_to_string(sql, sql.format())
   |> should.equal(expected)
 
   sql.expr_to_values(sql) |> should.equal([value.int(65)])
@@ -119,8 +110,7 @@ pub fn not_equal_test() {
   let sql = sql.not_eq(col, val)
 
   let expected = "status <> :param"
-  sql.expr_to_string_tree(sql, sql.format())
-  |> string_tree.to_string
+  sql.expr_to_string(sql, sql.format())
   |> should.equal(expected)
 
   sql.expr_to_values(sql) |> should.equal([value.text("inactive")])
@@ -134,8 +124,7 @@ pub fn between_test() {
   let sql = sql.between(col, start, end)
 
   let expected = "price BETWEEN :param AND :param"
-  sql.expr_to_string_tree(sql, sql.format())
-  |> string_tree.to_string
+  sql.expr_to_string(sql, sql.format())
   |> should.equal(expected)
 
   sql.expr_to_values(sql)
@@ -148,8 +137,7 @@ pub fn like_test() {
   let sql = sql.like(col, "%John%", of: sql.value(_, value.text))
 
   let expected = "name LIKE :param"
-  sql.expr_to_string_tree(sql, sql.format())
-  |> string_tree.to_string
+  sql.expr_to_string(sql, sql.format())
   |> should.equal(expected)
 
   sql.expr_to_values(sql) |> should.equal([value.text("%John%")])
@@ -162,8 +150,7 @@ pub fn in_test() {
   let sql = sql.in(col, values)
 
   let expected = "id IN (:param, :param, :param)"
-  sql.expr_to_string_tree(sql, sql.format())
-  |> string_tree.to_string
+  sql.expr_to_string(sql, sql.format())
   |> should.equal(expected)
 
   sql.expr_to_values(sql)
@@ -176,8 +163,7 @@ pub fn is_test() {
   let sql = sql.is(col, sql.value(True, of: value.bool))
 
   let expected = "active IS :param"
-  sql.expr_to_string_tree(sql, sql.format())
-  |> string_tree.to_string
+  sql.expr_to_string(sql, sql.format())
   |> should.equal(expected)
 
   sql.expr_to_values(sql) |> should.equal([value.true])
@@ -189,8 +175,7 @@ pub fn not_like_test() {
   let sql = sql.not_like(col, "%admin%", of: sql.value(_, value.text))
 
   let expected = "name NOT LIKE :param"
-  sql.expr_to_string_tree(sql, sql.format())
-  |> string_tree.to_string
+  sql.expr_to_string(sql, sql.format())
   |> should.equal(expected)
 
   sql.expr_to_values(sql) |> should.equal([value.text("%admin%")])
@@ -204,8 +189,7 @@ pub fn and_test() {
   let and_sql = sql.and(sql1, sql2)
 
   let expected = "active = :param AND age > :param"
-  sql.expr_to_string_tree(and_sql, sql.format())
-  |> string_tree.to_string
+  sql.expr_to_string(and_sql, sql.format())
   |> should.equal(expected)
 
   sql.expr_to_values(and_sql) |> should.equal([value.true, value.int(18)])
@@ -223,8 +207,7 @@ pub fn or_test() {
   let or_sql = sql.or(sql1, sql2)
 
   let expected = "name = :param OR email = :param"
-  sql.expr_to_string_tree(or_sql, sql.format())
-  |> string_tree.to_string
+  sql.expr_to_string(or_sql, sql.format())
   |> should.equal(expected)
 
   sql.expr_to_values(or_sql)
@@ -238,8 +221,7 @@ pub fn not_test() {
   let not_sql = sql.not(sql1)
 
   let expected = "NOT active = :param"
-  sql.expr_to_string_tree(not_sql, sql.format())
-  |> string_tree.to_string
+  sql.expr_to_string(not_sql, sql.format())
   |> should.equal(expected)
 
   sql.expr_to_values(not_sql) |> should.equal([value.true])
@@ -256,8 +238,7 @@ pub fn complex_sqlession_test() {
   let or_sql = sql.or(and_sql, sql3)
 
   let expected = "active = :param AND age > :param OR role = :param"
-  sql.expr_to_string_tree(or_sql, sql.format())
-  |> string_tree.to_string
+  sql.expr_to_string(or_sql, sql.format())
   |> should.equal(expected)
 
   sql.expr_to_values(or_sql)
@@ -269,8 +250,7 @@ pub fn column_with_table_test() {
   let col = users |> sql.attribute("id") |> sql.column
 
   let expected = "users.id"
-  sql.node_to_string_tree(col, value.format())
-  |> string_tree.to_string
+  sql.node_to_string(col, value.format())
   |> should.equal(expected)
 }
 
@@ -278,8 +258,7 @@ pub fn columns_test() {
   let cols_node = sql.columns(["id", "name", "email"])
 
   let expected = "(id, name, email)"
-  sql.node_to_string_tree(cols_node, value.format())
-  |> string_tree.to_string
+  sql.node_to_string(cols_node, value.format())
   |> should.equal(expected)
 }
 
@@ -287,8 +266,7 @@ pub fn value_test() {
   let val = sql.value(42, of: value.int)
 
   let expected = ":param"
-  sql.node_to_string_tree(val, value.format())
-  |> string_tree.to_string
+  sql.node_to_string(val, value.format())
   |> should.equal(expected)
 
   sql.unwrap(val) |> should.equal([value.int(42)])
@@ -298,8 +276,7 @@ pub fn values_test() {
   let vals = sql.values([value.int(1), value.int(2), value.int(3)])
 
   let expected = "(:param, :param, :param)"
-  sql.node_to_string_tree(vals, value.format())
-  |> string_tree.to_string
+  sql.node_to_string(vals, value.format())
   |> should.equal(expected)
 
   sql.unwrap(vals)
@@ -314,8 +291,7 @@ pub fn tuples_test() {
     ])
 
   let expected = "((:param, :param), (:param, :param))"
-  sql.node_to_string_tree(tuples, value.format())
-  |> string_tree.to_string
+  sql.node_to_string(tuples, value.format())
   |> should.equal(expected)
 
   sql.unwrap(tuples)
@@ -332,14 +308,11 @@ pub fn special_values_test() {
   let false_node = sql.value(False, of: value.bool)
   let null_node = sql.value(Nil, value.null)
 
-  sql.node_to_string_tree(true_node, value.format())
-  |> string_tree.to_string
+  sql.node_to_string(true_node, value.format())
   |> should.equal(":param")
-  sql.node_to_string_tree(false_node, value.format())
-  |> string_tree.to_string
+  sql.node_to_string(false_node, value.format())
   |> should.equal(":param")
-  sql.node_to_string_tree(null_node, value.format())
-  |> string_tree.to_string
+  sql.node_to_string(null_node, value.format())
   |> should.equal(":param")
 
   sql.unwrap(true_node) |> should.equal([value.true])
@@ -352,129 +325,53 @@ pub fn special_values_test() {
 pub fn format_test() {
   let int_fmt =
     sql.format()
-    |> sql.on_identifier(fn(s) {
-      string_tree.from_string("\"")
-      |> string_tree.append_tree(s)
-      |> string_tree.append("\"")
-    })
-    |> sql.on_placeholder(fn(i) {
-      string_tree.from_string("$")
-      |> string_tree.append(int.to_string(i))
-    })
-    |> sql.on_value(fn(val) {
-      int.to_string(val)
-      |> string_tree.from_string
-    })
+    |> sql.on_identifier(fn(s) { "\"" <> s <> "\"" })
+    |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
+    |> sql.on_value(int.to_string)
 
-  string_tree.from_string("column")
-  |> sql.to_identifier(int_fmt, _)
-  |> string_tree.to_string
-  |> should.equal("\"column\"")
-
-  sql.to_placeholder(int_fmt, 1)
-  |> string_tree.to_string
-  |> should.equal("$1")
-
-  sql.to_string(int_fmt, 42)
-  |> string_tree.to_string
-  |> should.equal("42")
+  sql.to_identifier(int_fmt, "column") |> should.equal("\"column\"")
+  sql.to_placeholder(int_fmt, 1) |> should.equal("$1")
+  sql.to_string(int_fmt, 42) |> should.equal("42")
 }
 
 pub fn on_placeholder_test() {
   let int_fmt =
     sql.format()
     |> sql.on_identifier(fn(s) { s })
-    |> sql.on_placeholder(fn(i) {
-      string_tree.from_string("$")
-      |> string_tree.append(int.to_string(i))
-    })
-    |> sql.on_value(fn(val) {
-      int.to_string(val)
-      |> string_tree.from_string
-    })
+    |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
+    |> sql.on_value(int.to_string)
 
-  let int_fmt =
-    int_fmt
-    |> sql.on_placeholder(fn(_) { string_tree.from_string("?") })
+  let int_fmt = sql.on_placeholder(int_fmt, fn(i) { "?" <> int.to_string(i) })
 
-  sql.to_placeholder(int_fmt, 1)
-  |> string_tree.to_string
-  |> should.equal("?")
-
-  string_tree.from_string("column")
-  |> sql.to_identifier(int_fmt, _)
-  |> string_tree.to_string
-  |> should.equal("column")
-
-  sql.to_string(int_fmt, 42)
-  |> string_tree.to_string
-  |> should.equal("42")
+  sql.to_placeholder(int_fmt, 1) |> should.equal("?1")
+  sql.to_identifier(int_fmt, "column") |> should.equal("column")
+  sql.to_string(int_fmt, 42) |> should.equal("42")
 }
 
-pub fn on_identifier_test() {
+pub fn on_node_test() {
   let int_fmt =
     sql.format()
     |> sql.on_identifier(fn(s) { s })
-    |> sql.on_placeholder(fn(i) {
-      string_tree.from_string("$")
-      |> string_tree.append(int.to_string(i))
-    })
-    |> sql.on_value(fn(val) {
-      int.to_string(val)
-      |> string_tree.from_string
-    })
+    |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
+    |> sql.on_value(int.to_string)
 
-  let int_fmt =
-    sql.on_identifier(int_fmt, fn(s) {
-      string_tree.from_string("[")
-      |> string_tree.append_tree(s)
-      |> string_tree.append("]")
-    })
+  let int_fmt = sql.on_identifier(int_fmt, fn(s) { "[" <> s <> "]" })
 
-  string_tree.from_string("column")
-  |> sql.to_identifier(int_fmt, _)
-  |> string_tree.to_string
-  |> should.equal("[column]")
-
-  sql.to_placeholder(int_fmt, 1)
-  |> string_tree.to_string
-  |> should.equal("$1")
-
-  sql.to_string(int_fmt, 42)
-  |> string_tree.to_string
-  |> should.equal("42")
+  sql.to_identifier(int_fmt, "column") |> should.equal("[column]")
+  sql.to_placeholder(int_fmt, 1) |> should.equal("$1")
+  sql.to_string(int_fmt, 42) |> should.equal("42")
 }
 
 pub fn on_value_test() {
   let int_fmt =
     sql.format()
     |> sql.on_identifier(fn(s) { s })
-    |> sql.on_placeholder(fn(i) {
-      string_tree.from_string("$")
-      |> string_tree.append(int.to_string(i))
-    })
-    |> sql.on_value(fn(val) {
-      int.to_string(val)
-      |> string_tree.from_string
-    })
+    |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
+    |> sql.on_value(int.to_string)
 
-  let int_fmt =
-    int_fmt
-    |> sql.on_value(fn(i) {
-      string_tree.from_string("num:")
-      |> string_tree.append(int.to_string(i))
-    })
+  let int_fmt = sql.on_value(int_fmt, fn(i) { "num:" <> int.to_string(i) })
 
-  sql.to_string(int_fmt, 42)
-  |> string_tree.to_string
-  |> should.equal("num:42")
-
-  string_tree.from_string("column")
-  |> sql.to_identifier(int_fmt, _)
-  |> string_tree.to_string
-  |> should.equal("column")
-
-  sql.to_placeholder(int_fmt, 1)
-  |> string_tree.to_string
-  |> should.equal("$1")
+  sql.to_string(int_fmt, 42) |> should.equal("num:42")
+  sql.to_identifier(int_fmt, "column") |> should.equal("column")
+  sql.to_placeholder(int_fmt, 1) |> should.equal("$1")
 }

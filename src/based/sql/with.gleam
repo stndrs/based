@@ -6,7 +6,6 @@ import based/sql/internal/builder
 import based/sql/internal/fmt
 import gleam/list
 import gleam/string
-import gleam/string_tree.{type StringTree}
 
 /// A WITH clause with recursive flag and CTEs.
 pub opaque type With(v) {
@@ -53,28 +52,26 @@ pub fn to_query(with: With(v), format: sql.SqlFmt(v)) -> db.Query(v) {
   let to_placeholder = sql.to_placeholder(format, _)
 
   build(with)
-  |> builder.placeholders(on: fmt.placeholder(), with: to_placeholder)
-  |> string_tree.to_string
+  |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
   |> db.sql
   |> db.values(values)
 }
 
 /// Build a SQL string tree for a WITH clause.
-fn build(with: With(v)) -> StringTree {
+fn build(with: With(v)) -> String {
   let ctes = {
     use cte <- list.map(with.ctes)
 
     let name = case cte.columns {
-      [] -> string_tree.from_string(cte.name)
+      [] -> cte.name
       cols -> {
         let cols =
           string.join(cols, ", ")
           |> fmt.enclose
 
         cte.name
-        |> string_tree.from_string
-        |> string_tree.append(" ")
-        |> string_tree.append_tree(cols)
+        |> string.append(" ")
+        |> string.append(cols)
       }
     }
 
@@ -86,9 +83,8 @@ fn build(with: With(v)) -> StringTree {
     False -> fmt.with
   }
 
-  string_tree.new()
-  |> with_fmt(ctes)
-  |> string_tree.append(" ")
-  |> string_tree.append(with.query.sql)
+  with_fmt(ctes)
+  |> string.append(" ")
+  |> string.append(with.query.sql)
   |> fmt.terminate
 }

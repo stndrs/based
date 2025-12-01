@@ -3,7 +3,7 @@ import based/sql/internal/fmt
 import gleam/function
 import gleam/list
 import gleam/option.{type Option, None, Some}
-import gleam/string_tree.{type StringTree}
+import gleam/string
 
 /// SqlFmt must be configured by adapter packages.
 ///
@@ -14,12 +14,12 @@ import gleam/string_tree.{type StringTree}
 /// ```gleam
 /// let fmt = format.new()
 ///   |> format.on_placeholder(fn(index) {
-///     string_tree.from_string("$")
-///     |> string_tree.append(int.to_string(index))
+///     string.from_string("$")
+///     |> string.append(int.to_string(index))
 ///     "$" <> int.to_string(index)
 ///   })
 ///   |> format.on_identifier(function.identifier)
-///   |> format.on_value(value.to_string_tree)
+///   |> format.on_value(value.to_string)
 /// ```
 /// A MariaDB adapter might configure `SqlFmt` like this:
 ///
@@ -27,14 +27,14 @@ import gleam/string_tree.{type StringTree}
 /// let fmt = format.new()
 ///   |> format.on_placeholder(fn(_index) { "?" })
 ///   |> format.on_identifier(fn(ident) { "`" <> ident <> "`" })
-///   |> format.on_value(value.to_string_tree)
+///   |> format.on_value(value.to_string)
 /// ```
 ///
 pub opaque type SqlFmt(v) {
   SqlFmt(
-    handle_identifier: fn(StringTree) -> StringTree,
-    handle_placeholder: fn(Int) -> StringTree,
-    handle_value: fn(v) -> StringTree,
+    handle_identifier: fn(String) -> String,
+    handle_placeholder: fn(Int) -> String,
+    handle_value: fn(v) -> String,
   )
 }
 
@@ -44,31 +44,31 @@ pub opaque type SqlFmt(v) {
 pub fn format() -> SqlFmt(v) {
   SqlFmt(
     handle_identifier: function.identity,
-    handle_placeholder: fn(_) { string_tree.from_string("?") },
+    handle_placeholder: fn(_) { "?" },
     handle_value: fn(_) { panic as "based/format.SqlFmt not configured" },
   )
 }
 
 /// Apply the configured identifier format function to the provided identifier.
-pub fn to_identifier(fmt: SqlFmt(v), identifier: StringTree) -> StringTree {
+pub fn to_identifier(fmt: SqlFmt(v), identifier: String) -> String {
   fmt.handle_identifier(identifier)
 }
 
 /// Apply the configured value format function to the provided value.
-pub fn to_string(fmt: SqlFmt(v), value: v) -> StringTree {
+pub fn to_string(fmt: SqlFmt(v), value: v) -> String {
   fmt.handle_value(value)
 }
 
 /// Apply the configured placeholder format function to the provided
 /// placeholder index.
-pub fn to_placeholder(fmt: SqlFmt(v), value: Int) -> StringTree {
+pub fn to_placeholder(fmt: SqlFmt(v), value: Int) -> String {
   fmt.handle_placeholder(value)
 }
 
 /// Sets the placeholder formatting function.
 pub fn on_placeholder(
   fmt: SqlFmt(v),
-  handle_placeholder: fn(Int) -> StringTree,
+  handle_placeholder: fn(Int) -> String,
 ) -> SqlFmt(v) {
   SqlFmt(..fmt, handle_placeholder:)
 }
@@ -76,13 +76,13 @@ pub fn on_placeholder(
 /// Set the identifier formatting function.
 pub fn on_identifier(
   fmt: SqlFmt(v),
-  handle_identifier: fn(StringTree) -> StringTree,
+  handle_identifier: fn(String) -> String,
 ) -> SqlFmt(v) {
   SqlFmt(..fmt, handle_identifier:)
 }
 
 /// Set the value formatting function.
-pub fn on_value(fmt: SqlFmt(v), handle_value: fn(v) -> StringTree) -> SqlFmt(v) {
+pub fn on_value(fmt: SqlFmt(v), handle_value: fn(v) -> String) -> SqlFmt(v) {
   SqlFmt(..fmt, handle_value:)
 }
 
@@ -197,9 +197,7 @@ pub fn columns(names: List(String)) -> Node(v) {
   {
     use name <- list.map(names)
 
-    name
-    |> string_tree.from_string
-    |> Identifier(None, None)
+    Identifier(name:, alias: None, other: None)
   }
   |> Columns
 }
@@ -233,7 +231,7 @@ pub fn unwrap(node: Node(v)) -> List(v) {
   }
 }
 
-pub fn node_to_string_tree(node: Node(v), format: SqlFmt(v)) -> StringTree {
+pub fn node_to_string(node: Node(v), format: SqlFmt(v)) -> String {
   case node {
     TableRef(identifier) -> {
       let ident =
@@ -246,36 +244,36 @@ pub fn node_to_string_tree(node: Node(v), format: SqlFmt(v)) -> StringTree {
       }
     }
     ColumnRef(identifier) -> {
-      identifier_to_string_tree(identifier, format)
+      identifier_to_string(identifier, format)
       |> to_identifier(format, _)
     }
     Columns(identifiers) ->
       list.map(identifiers, fn(ident) {
         ident
-        |> identifier_to_string_tree(format)
+        |> identifier_to_string(format)
         |> to_identifier(format, _)
       })
-      |> string_tree.join(", ")
-      |> fmt.enclose_tree
-    Value(_val) -> fmt.placeholder()
+      |> string.join(", ")
+      |> fmt.enclose
+    Value(_val) -> fmt.placeholder
     Values(values) -> {
       values
-      |> list.map(fn(_value) { fmt.placeholder() })
-      |> string_tree.join(", ")
-      |> fmt.enclose_tree
+      |> list.map(fn(_value) { fmt.placeholder })
+      |> string.join(", ")
+      |> fmt.enclose
     }
     Tuples(tuples) -> {
       tuples
       |> list.map(fn(vals) {
-        list.map(vals, fn(_) { fmt.placeholder() })
-        |> string_tree.join(", ")
-        |> fmt.enclose_tree
+        list.map(vals, fn(_) { fmt.placeholder })
+        |> string.join(", ")
+        |> fmt.enclose
       })
-      |> string_tree.join(", ")
-      |> fmt.enclose_tree
+      |> string.join(", ")
+      |> fmt.enclose
     }
     Query(query:, alias: _) -> fmt.enclose(query.sql)
-    Null -> fmt.null()
+    Null -> fmt.null
   }
 }
 
@@ -328,32 +326,30 @@ type LogicalOperator {
   Or
 }
 
-pub fn expr_to_string_tree(expr: Expr(v), format: SqlFmt(v)) -> StringTree {
+pub fn expr_to_string(expr: Expr(v), format: SqlFmt(v)) -> String {
   case expr {
     Compare(left, right, op) -> {
-      let left = node_to_string_tree(left, format)
-      let right = node_to_string_tree(right, format)
+      let left = node_to_string(left, format)
+      let right = node_to_string(right, format)
 
       let fmt = to_comp_fmt(op)
       fmt(left, right)
     }
     Logical(left, right, logical) -> {
-      let left = expr_to_string_tree(left, format)
-      let right = expr_to_string_tree(right, format)
+      let left = expr_to_string(left, format)
+      let right = expr_to_string(right, format)
 
       let fmt = to_logical_fmt(logical)
       fmt(left, right)
     }
     Not(expr) -> {
-      string_tree.from_string("NOT ")
-      |> string_tree.append_tree(expr_to_string_tree(expr, format))
+      "NOT "
+      |> string.append(expr_to_string(expr, format))
     }
   }
 }
 
-fn to_comp_fmt(
-  operator: ComparisonOperator(v),
-) -> fn(StringTree, StringTree) -> StringTree {
+fn to_comp_fmt(operator: ComparisonOperator(v)) -> fn(String, String) -> String {
   case operator {
     Eq -> fmt.eq
     Gt -> fmt.gt
@@ -365,7 +361,7 @@ fn to_comp_fmt(
     In -> fmt.in
     Is -> fmt.is
     Between(_start) -> fn(left, _end) {
-      let ph = fmt.placeholder()
+      let ph = fmt.placeholder
 
       fmt.between(left, ph, ph)
     }
@@ -376,9 +372,7 @@ fn to_comp_fmt(
   }
 }
 
-fn to_logical_fmt(
-  operator: LogicalOperator,
-) -> fn(StringTree, StringTree) -> StringTree {
+fn to_logical_fmt(operator: LogicalOperator) -> fn(String, String) -> String {
   case operator {
     And -> fmt.and
     Or -> fmt.or
@@ -425,19 +419,15 @@ pub fn full(table: Table(v), exprs: List(Expr(v))) -> Join(v) {
 // Identifier
 
 pub opaque type Identifier {
-  Identifier(
-    name: StringTree,
-    alias: Option(StringTree),
-    other: Option(Identifier),
-  )
+  Identifier(name: String, alias: Option(String), other: Option(Identifier))
 }
 
 pub fn name(name: String) -> Identifier {
-  Identifier(name: string_tree.from_string(name), alias: None, other: None)
+  Identifier(name:, alias: None, other: None)
 }
 
 pub fn alias(identifier: Identifier, alias: String) -> Identifier {
-  Identifier(..identifier, alias: Some(string_tree.from_string(alias)))
+  Identifier(..identifier, alias: Some(alias))
 }
 
 pub fn column(identifier: Identifier) -> Node(v) {
@@ -448,17 +438,14 @@ pub fn table(identifier: Identifier) -> Table(v) {
   Table(identifier:)
 }
 
-fn identifier_to_string_tree(
-  identifier: Identifier,
-  fmt: SqlFmt(v),
-) -> StringTree {
+fn identifier_to_string(identifier: Identifier, fmt: SqlFmt(v)) -> String {
   let ident = case identifier.other {
     Some(other) -> {
       table(other)
       |> table_to_node
-      |> node_to_string_tree(fmt)
-      |> string_tree.append(".")
-      |> string_tree.append_tree(identifier.name)
+      |> node_to_string(fmt)
+      |> string.append(".")
+      |> string.append(identifier.name)
     }
     None -> identifier.name
   }
@@ -482,13 +469,13 @@ pub fn attribute(table: Table(v), name: String) -> Identifier {
       let table_name = alias |> option.unwrap(table_name)
       let other = Identifier(name: table_name, alias: None, other: None) |> Some
 
-      Identifier(name: string_tree.from_string(name), alias: None, other:)
+      Identifier(name:, alias: None, other:)
     }
     Subquery(_, alias:) -> {
-      let table_name = alias |> option.unwrap("") |> string_tree.from_string
+      let table_name = alias |> option.unwrap("")
       let other = Identifier(name: table_name, alias: None, other: None) |> Some
 
-      Identifier(name: string_tree.from_string(name), alias: None, other:)
+      Identifier(name:, alias: None, other:)
     }
   }
 }

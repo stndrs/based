@@ -2,7 +2,6 @@ import based/sql
 import based/sql/select
 import based/value
 import gleam/int
-import gleam/string_tree
 import gleam/time/calendar
 import gleam/time/duration
 import gleam/time/timestamp
@@ -713,10 +712,7 @@ pub fn complex_for_update_test() {
 pub fn format_placeholders_test() {
   let fmt =
     value.format()
-    |> sql.on_placeholder(fn(i) {
-      string_tree.from_string("$")
-      |> string_tree.append(int.to_string(i))
-    })
+    |> sql.on_placeholder(fn(idx) { "$" <> int.to_string(idx) })
 
   let expected = "SELECT * FROM users WHERE id = $1 AND name = $2"
   let users = sql.name("users") |> sql.table
@@ -742,11 +738,7 @@ pub fn format_placeholders_test() {
 pub fn format_identifier_test() {
   let fmt =
     value.format()
-    |> sql.on_identifier(fn(s) {
-      string_tree.from_string("\"")
-      |> string_tree.append_tree(s)
-      |> string_tree.append("\"")
-    })
+    |> sql.on_identifier({ fn(value) { "\"" <> value <> "\"" } })
 
   let expected = "SELECT * FROM \"users\" WHERE \"id\" = ? AND \"name\" = ?"
   let users = sql.name("users") |> sql.table

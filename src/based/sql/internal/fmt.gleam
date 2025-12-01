@@ -1,265 +1,240 @@
-import gleam/list
 import gleam/string
-import gleam/string_tree.{type StringTree}
 
-pub fn placeholder() -> StringTree {
-  string_tree.from_string(":param")
-}
+pub const placeholder = ":param"
 
-pub fn null() -> StringTree {
-  string_tree.from_string("NULL")
-}
+pub const null = "NULL"
 
 // Statements
 
 pub fn insert(
-  st: StringTree,
   columns: List(String),
-  into table: StringTree,
-  values values: List(StringTree),
-) -> StringTree {
-  st
-  |> string_tree.append("INSERT INTO ")
-  |> string_tree.append_tree(table)
-  |> string_tree.append(" ")
-  |> string_tree.append_tree(
+  into table: String,
+  values values: List(String),
+) -> String {
+  "INSERT INTO "
+  |> string.append(table)
+  |> string.append(" ")
+  |> string.append(
     columns
-    |> list.map(string_tree.from_string)
-    |> string_tree.join(with: ", ")
-    |> enclose_tree,
+    |> string.join(with: ", ")
+    |> enclose,
   )
-  |> string_tree.append(" VALUES ")
-  |> string_tree.append_tree(values |> string_tree.join(", "))
+  |> string.append(" VALUES ")
+  |> string.append(values |> string.join(", "))
 }
 
-pub fn update(st: StringTree, table: StringTree) -> StringTree {
+pub fn update(table: String) -> String {
+  "UPDATE " <> table
+}
+
+pub fn set(st: String, updates: List(String)) -> String {
   st
-  |> string_tree.append("UPDATE ")
-  |> string_tree.append_tree(table)
+  |> string.append(" SET ")
+  |> string.append(string.join(updates, ", "))
 }
 
-pub fn set(st: StringTree, updates: List(StringTree)) -> StringTree {
-  st
-  |> string_tree.append(" SET ")
-  |> string_tree.append_tree(string_tree.join(updates, ", "))
-}
+pub const delete = "DELETE"
 
-pub fn delete(st: StringTree) -> StringTree {
-  string_tree.append(st, "DELETE")
-}
-
-pub fn select(st: StringTree, values: List(String)) -> StringTree {
+pub fn select(values: List(String)) -> String {
   let values =
     values
-    |> list.map(string_tree.from_string)
-    |> string_tree.join(with: ", ")
+    |> string.join(with: ", ")
 
-  st
-  |> string_tree.append("SELECT ")
-  |> string_tree.append_tree(values)
+  "SELECT "
+  |> string.append(values)
 }
 
-pub fn select_distinct(st: StringTree, values: List(String)) -> StringTree {
+pub fn select_distinct(values: List(String)) -> String {
   let values =
     values
-    |> list.map(string_tree.from_string)
-    |> string_tree.join(with: ", ")
+    |> string.join(with: ", ")
 
-  st
-  |> string_tree.append("SELECT DISTINCT ")
-  |> string_tree.append_tree(values)
+  "SELECT DISTINCT "
+  |> string.append(values)
 }
 
-pub fn from(st: StringTree, value: StringTree) -> StringTree {
-  append_tree(st, " FROM ", value)
+pub fn from(st: String, value: String) -> String {
+  append(st, " FROM ", value)
 }
 
 // Where Clause
 
-pub fn where(st: StringTree, value: StringTree) -> StringTree {
-  append_tree(st, " WHERE ", value)
+pub fn where(st: String, value: String) -> String {
+  append(st, " WHERE ", value)
 }
 
-pub fn and(st: StringTree, value: StringTree) -> StringTree {
-  append_tree(st, " AND ", value)
+pub fn and(st: String, value: String) -> String {
+  append(st, " AND ", value)
 }
 
-pub fn or(st: StringTree, value: StringTree) -> StringTree {
-  append_tree(st, " OR ", value)
+pub fn or(st: String, value: String) -> String {
+  append(st, " OR ", value)
 }
 
 // SQL Joins
 
-pub fn inner_join(st: StringTree, value: StringTree) -> StringTree {
-  append_tree(st, " INNER JOIN ", value)
+pub fn inner_join(st: String, value: String) -> String {
+  append(st, " INNER JOIN ", value)
 }
 
-pub fn left_join(st: StringTree, value: StringTree) -> StringTree {
-  append_tree(st, " LEFT JOIN ", value)
+pub fn left_join(st: String, value: String) -> String {
+  append(st, " LEFT JOIN ", value)
 }
 
-pub fn right_join(st: StringTree, value: StringTree) -> StringTree {
-  append_tree(st, " RIGHT JOIN ", value)
+pub fn right_join(st: String, value: String) -> String {
+  append(st, " RIGHT JOIN ", value)
 }
 
-pub fn full_outer_join(st: StringTree, value: StringTree) -> StringTree {
-  append_tree(st, " FULL OUTER JOIN ", value)
+pub fn full_outer_join(st: String, value: String) -> String {
+  append(st, " FULL OUTER JOIN ", value)
 }
 
-pub fn on(st: StringTree, value: StringTree) -> StringTree {
-  append_tree(st, " ON ", value)
+pub fn on(st: String, value: String) -> String {
+  append(st, " ON ", value)
 }
 
 // Operators
 
-pub fn eq(st: StringTree, placeholder: StringTree) -> StringTree {
-  append_tree(st, " = ", placeholder)
+pub fn eq(st: String, placeholder: String) -> String {
+  append(st, " = ", placeholder)
 }
 
-pub fn gt(st: StringTree, placeholder: StringTree) -> StringTree {
-  append_tree(st, " > ", placeholder)
+pub fn gt(st: String, placeholder: String) -> String {
+  append(st, " > ", placeholder)
 }
 
-pub fn lt(st: StringTree, placeholder: StringTree) -> StringTree {
-  append_tree(st, " < ", placeholder)
+pub fn lt(st: String, placeholder: String) -> String {
+  append(st, " < ", placeholder)
 }
 
-pub fn gt_eq(st: StringTree, placeholder: StringTree) -> StringTree {
-  append_tree(st, " >= ", placeholder)
+pub fn gt_eq(st: String, placeholder: String) -> String {
+  append(st, " >= ", placeholder)
 }
 
-pub fn lt_eq(st: StringTree, placeholder: StringTree) -> StringTree {
-  append_tree(st, " <= ", placeholder)
+pub fn lt_eq(st: String, placeholder: String) -> String {
+  append(st, " <= ", placeholder)
 }
 
-pub fn not_eq(st: StringTree, placeholder: StringTree) -> StringTree {
-  append_tree(st, " <> ", placeholder)
+pub fn not_eq(st: String, placeholder: String) -> String {
+  append(st, " <> ", placeholder)
 }
 
-pub fn not(st: StringTree) -> StringTree {
-  string_tree.append(st, " NOT")
+pub fn not(st: String) -> String {
+  string.append(st, " NOT")
 }
 
-pub fn is_not(st: StringTree, placeholder: StringTree) -> StringTree {
-  append_tree(st, " IS NOT ", placeholder)
+pub fn is_not(st: String, placeholder: String) -> String {
+  append(st, " IS NOT ", placeholder)
 }
 
-pub fn is_null(st: StringTree, placeholder: StringTree) -> StringTree {
-  append_tree(st, " IS NULL ", placeholder)
+pub fn is_null(st: String, placeholder: String) -> String {
+  append(st, " IS NULL ", placeholder)
 }
 
-pub fn is_not_null(st: StringTree, placeholder: StringTree) -> StringTree {
-  append_tree(st, " IS NOT NULL ", placeholder)
+pub fn is_not_null(st: String, placeholder: String) -> String {
+  append(st, " IS NOT NULL ", placeholder)
 }
 
-pub fn not_like(st: StringTree, placeholder: StringTree) -> StringTree {
-  append_tree(st, " NOT LIKE ", placeholder)
+pub fn not_like(st: String, placeholder: String) -> String {
+  append(st, " NOT LIKE ", placeholder)
 }
 
-pub fn like(st: StringTree, placeholder: StringTree) -> StringTree {
-  append_tree(st, " LIKE ", placeholder)
+pub fn like(st: String, placeholder: String) -> String {
+  append(st, " LIKE ", placeholder)
 }
 
-pub fn in(st: StringTree, placeholder: StringTree) -> StringTree {
-  append_tree(st, " IN ", placeholder)
+pub fn in(st: String, placeholder: String) -> String {
+  append(st, " IN ", placeholder)
 }
 
-pub fn is(st: StringTree, placeholder: StringTree) -> StringTree {
-  append_tree(st, " IS ", placeholder)
+pub fn is(st: String, placeholder: String) -> String {
+  append(st, " IS ", placeholder)
 }
 
-pub fn between(st: StringTree, val1: StringTree, val2: StringTree) -> StringTree {
+pub fn between(st: String, val1: String, val2: String) -> String {
   st
-  |> append_tree(" BETWEEN ", val1)
-  |> append_tree(" AND ", val2)
+  |> append(" BETWEEN ", val1)
+  |> append(" AND ", val2)
 }
 
-pub fn any(st: StringTree, subquery: StringTree) -> StringTree {
+pub fn any(st: String, subquery: String) -> String {
   st
-  |> string_tree.append(" ANY ")
-  |> string_tree.append_tree(subquery)
+  |> string.append(" ANY ")
+  |> string.append(subquery)
 }
 
-pub fn all(st: StringTree, subquery: StringTree) -> StringTree {
+pub fn all(st: String, subquery: String) -> String {
   st
-  |> string_tree.append(" ALL ")
-  |> string_tree.append_tree(subquery)
+  |> string.append(" ALL ")
+  |> string.append(subquery)
 }
 
-pub fn some(st: StringTree, subquery: StringTree) -> StringTree {
+pub fn some(st: String, subquery: String) -> String {
   st
-  |> string_tree.append(" SOME ")
-  |> string_tree.append_tree(subquery)
+  |> string.append(" SOME ")
+  |> string.append(subquery)
 }
 
-pub fn exists(subquery: StringTree) -> StringTree {
-  string_tree.from_string("EXISTS ")
-  |> string_tree.append_tree(subquery)
+pub fn exists(subquery: String) -> String {
+  "EXISTS " |> string.append(subquery)
 }
 
-pub fn alias(value: StringTree, alias: StringTree) -> StringTree {
-  append_tree(value, " AS ", alias)
+pub fn alias(value: String, alias: String) -> String {
+  append(value, " AS ", alias)
 }
 
-pub fn returning(st: StringTree, columns: List(String)) -> StringTree {
+pub fn returning(st: String, columns: List(String)) -> String {
   let columns =
     columns
-    |> list.map(string_tree.from_string)
-    |> string_tree.join(", ")
+    |> string.join(", ")
 
   st
-  |> string_tree.append(" RETURNING ")
-  |> string_tree.append_tree(columns)
+  |> string.append(" RETURNING ")
+  |> string.append(columns)
 }
 
-pub fn limit(st: StringTree, placeholder: StringTree) -> StringTree {
-  append_tree(st, " LIMIT ", placeholder)
+pub fn limit(st: String, placeholder: String) -> String {
+  append(st, " LIMIT ", placeholder)
 }
 
-pub fn offset(st: StringTree, placeholder: StringTree) -> StringTree {
-  append_tree(st, " OFFSET ", placeholder)
+pub fn offset(st: String, placeholder: String) -> String {
+  append(st, " OFFSET ", placeholder)
 }
 
-pub fn for_update(st: StringTree) -> StringTree {
-  string_tree.append(st, " FOR UPDATE")
+pub fn for_update(st: String) -> String {
+  string.append(st, " FOR UPDATE")
 }
 
 // SQL Functions
 
 // Aggregate functions
 
-pub fn count(value: String) -> StringTree {
-  string_tree.from_string("COUNT(")
-  |> string_tree.append(value)
-  |> string_tree.append(")")
+pub fn count(value: String) -> String {
+  "COUNT(" <> value <> ")"
 }
 
-pub fn group_by(st: StringTree, values: List(String)) -> StringTree {
+pub fn group_by(st: String, values: List(String)) -> String {
   append(st, " GROUP BY ", string.join(values, with: ", "))
 }
 
-pub fn having(st: StringTree, value: StringTree) -> StringTree {
-  append_tree(st, " HAVING ", value)
+pub fn having(st: String, value: String) -> String {
+  append(st, " HAVING ", value)
 }
 
-pub fn sum(value: String) -> StringTree {
-  string_tree.new()
-  |> wrap("SUM", value)
+pub fn sum(value: String) -> String {
+  wrap("SUM", value)
 }
 
-pub fn avg(value: String) -> StringTree {
-  string_tree.new()
-  |> wrap("AVG", value)
+pub fn avg(value: String) -> String {
+  wrap("AVG", value)
 }
 
-pub fn max(value: String) -> StringTree {
-  string_tree.new()
-  |> wrap("MAX", value)
+pub fn max(value: String) -> String {
+  wrap("MAX", value)
 }
 
-pub fn min(value: String) -> StringTree {
-  string_tree.new()
-  |> wrap("MIN", value)
+pub fn min(value: String) -> String {
+  wrap("MIN", value)
 }
 
 // Arithmetic functions
@@ -268,82 +243,60 @@ pub fn min(value: String) -> StringTree {
 
 // Order By
 
-pub fn order_by(st: StringTree, values: List(String)) -> StringTree {
+pub fn order_by(st: String, values: List(String)) -> String {
   append(st, " ORDER BY ", string.join(values, with: ", "))
 }
 
-pub fn asc(st: StringTree) -> StringTree {
-  string_tree.append(st, " ASC")
+pub fn asc(st: String) -> String {
+  string.append(st, " ASC")
 }
 
-pub fn desc(st: StringTree) -> StringTree {
-  string_tree.append(st, " DESC")
+pub fn desc(st: String) -> String {
+  string.append(st, " DESC")
 }
 
 // Union
 
-pub fn union(
-  query_1: StringTree,
-  query_2: StringTree,
-  all all: Bool,
-) -> StringTree {
+pub fn union(query_1: String, query_2: String, all all: Bool) -> String {
   let keyword = case all {
     True -> " UNION ALL "
     False -> " UNION "
   }
 
   query_1
-  |> string_tree.append(keyword)
-  |> string_tree.append_tree(query_2)
+  |> string.append(keyword)
+  |> string.append(query_2)
 }
 
 // CTEs
 
-pub fn with(st: StringTree, ctes: List(StringTree)) -> StringTree {
-  string_tree.join(ctes, ", ") |> append_tree(st, "WITH ", _)
+pub fn with(ctes: List(String)) -> String {
+  string.join(ctes, ", ") |> string.append("WITH ", _)
 }
 
-pub fn with_recursive(st: StringTree, ctes: List(StringTree)) -> StringTree {
-  string_tree.join(ctes, ", ") |> append_tree(st, "WITH RECURSIVE ", _)
+pub fn with_recursive(ctes: List(String)) -> String {
+  string.join(ctes, ", ") |> string.append("WITH RECURSIVE ", _)
 }
 
 // Helpers
 
-pub fn terminate(st: StringTree) -> StringTree {
-  string_tree.append(st, ";")
+pub fn terminate(st: String) -> String {
+  string.append(st, ";")
 }
 
-pub fn enclose(str: String) -> StringTree {
-  string_tree.from_string(str)
-  |> enclose_tree
+pub fn enclose(str: String) -> String {
+  "(" <> str <> ")"
 }
 
-pub fn enclose_tree(st: StringTree) -> StringTree {
+pub fn wrap(st: String, value: String) -> String {
   st
-  |> string_tree.prepend("(")
-  |> string_tree.append(")")
+  |> string.append("(")
+  |> string.append(value)
+  |> string.append(")")
 }
 
-pub fn wrap(st: StringTree, keyword: String, value: String) -> StringTree {
+pub fn append(st: String, keyword: String, value: String) -> String {
   st
-  |> string_tree.append(keyword)
-  |> string_tree.append("(")
-  |> string_tree.append(value)
-  |> string_tree.append(")")
-}
-
-pub fn append(st: StringTree, keyword: String, value: String) -> StringTree {
-  st
-  |> string_tree.append(keyword)
-  |> string_tree.append(value)
-}
-
-pub fn append_tree(
-  st: StringTree,
-  keyword: String,
-  value: StringTree,
-) -> StringTree {
-  st
-  |> string_tree.append(keyword)
-  |> string_tree.append_tree(value)
+  |> string.append(keyword)
+  |> string.append(value)
 }
