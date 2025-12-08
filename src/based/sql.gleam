@@ -13,11 +13,7 @@ import gleam/string
 ///
 /// ```gleam
 /// let fmt = format.new()
-///   |> format.on_placeholder(fn(index) {
-///     string.from_string("$")
-///     |> string.append(int.to_string(index))
-///     "$" <> int.to_string(index)
-///   })
+///   |> format.on_placeholder(fn(index) { "$" <> int.to_string(index) })
 ///   |> format.on_identifier(function.identifier)
 ///   |> format.on_value(value.to_string)
 /// ```
