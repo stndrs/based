@@ -151,6 +151,9 @@ pub type QueryHandler(v, conn) =
 pub type ExecuteHandler(conn) =
   fn(String, conn) -> Result(Int, DbError)
 
+pub type BatchQueryHandler(v, conn) =
+  fn(List(Query(v)), conn) -> Result(List(Queried), DbError)
+
 /// Accepts a `Query`, connection, and query handler function from an adapter
 /// package.
 /// This function currently only passes the `Query` and connection right back
@@ -173,6 +176,14 @@ pub fn execute(
   handler: ExecuteHandler(conn),
 ) -> Result(Int, DbError) {
   handler(sql, conn)
+}
+
+pub fn batch(
+  queries: List(Query(v)),
+  conn: conn,
+  handler: BatchQueryHandler(v, conn),
+) -> Result(List(Queried), DbError) {
+  handler(queries, conn)
 }
 
 /// Accepts a `Query`, connection, decoder, and query handler function from
