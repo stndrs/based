@@ -18,7 +18,7 @@ pub fn sql_with_values_test() {
   let sql = "SELECT * FROM users WHERE id=$1;"
   let query =
     db.sql(sql)
-    |> db.values([value.int(1)])
+    |> db.params([value.int(1)])
 
   let assert True = query.sql == sql
   let assert True = query.values |> list.length == 1
@@ -32,7 +32,7 @@ pub fn query_test() {
 
   let assert Ok(_) =
     db.sql(sql)
-    |> db.values([value.int(1)])
+    |> db.params([value.int(1)])
     |> db.query(Conn, query_handler("Query test", returning:))
 }
 
@@ -43,7 +43,7 @@ pub fn query_error_test() {
 
   let assert Error(_) =
     db.sql(sql)
-    |> db.values([value.int(1)])
+    |> db.params([value.int(1)])
     |> db.query(Conn, query_handler("Query error test", returning:))
 }
 
@@ -71,7 +71,7 @@ pub fn all_test() {
 
   let assert Ok(db.Returning(count: 1, rows: [#(1, "Steve")])) =
     db.sql(sql)
-    |> db.values([value.int(1)])
+    |> db.params([value.int(1)])
     |> db.all(Conn, user_decoder, query_handler("all test", returning:))
 }
 
@@ -82,7 +82,7 @@ pub fn all_error_test() {
 
   let assert Error(_) =
     db.sql(sql)
-    |> db.values([value.int(1)])
+    |> db.params([value.int(1)])
     |> db.all(Conn, user_decoder, query_handler("All error test", returning:))
 }
 
@@ -94,7 +94,7 @@ pub fn one_test() {
 
   let assert Ok(#(1, "Steve")) =
     db.sql(sql)
-    |> db.values([value.int(1)])
+    |> db.params([value.int(1)])
     |> db.one(Conn, user_decoder, query_handler("one test", returning:))
 }
 
@@ -105,7 +105,7 @@ pub fn one_error_test() {
 
   let assert Error(_) =
     db.sql(sql)
-    |> db.values([value.int(1)])
+    |> db.params([value.int(1)])
     |> db.one(Conn, user_decoder, query_handler("one error test", returning:))
 }
 
@@ -130,7 +130,7 @@ pub fn begin_test() {
 }
 
 pub fn begin_error_test() {
-  let assert Error(db.TransactionFailure("begin failure")) =
+  let assert Error(db.TransactionError("begin failure")) =
     db.begin(Conn, fn(_) { Error("begin failure") })
 }
 
@@ -139,7 +139,7 @@ pub fn commit_test() {
 }
 
 pub fn commit_error_test() {
-  let assert Error(db.TransactionFailure("commit failure")) =
+  let assert Error(db.TransactionError("commit failure")) =
     db.commit(Conn, fn(_) { Error("commit failure") })
 }
 
@@ -148,7 +148,7 @@ pub fn rollback_test() {
 }
 
 pub fn rollback_error_test() {
-  let assert Error(db.TransactionFailure("rollback failure")) =
+  let assert Error(db.TransactionError("rollback failure")) =
     db.rollback(Conn, fn(_) { Error("rollback failure") })
 }
 

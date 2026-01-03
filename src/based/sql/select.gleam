@@ -203,7 +203,7 @@ pub fn to_query(select: Select(v), format: sql.SqlFmt(v)) -> db.Query(v) {
   build(select, format)
   |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
   |> db.sql
-  |> db.values(values)
+  |> db.params(values)
 }
 
 pub fn to_subquery(select: Select(v), format: sql.SqlFmt(v)) -> sql.Node(v) {

@@ -54,7 +54,7 @@ pub fn to_query(with: With(v), format: sql.SqlFmt(v)) -> db.Query(v) {
   build(with)
   |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
   |> db.sql
-  |> db.values(values)
+  |> db.params(values)
 }
 
 /// Build a SQL string tree for a WITH clause.

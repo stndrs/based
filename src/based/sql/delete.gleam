@@ -67,7 +67,7 @@ pub fn to_query(del: Delete(v), format: sql.SqlFmt(v)) -> db.Query(v) {
   build(del, format)
   |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
   |> db.sql
-  |> db.values(values)
+  |> db.params(values)
 }
 
 /// Convert a DELETE query to a string representation using the given format.

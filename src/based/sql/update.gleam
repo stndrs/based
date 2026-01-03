@@ -93,7 +93,7 @@ pub fn to_query(update: Update(v), format: sql.SqlFmt(v)) -> db.Query(v) {
   build(update, format)
   |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
   |> db.sql
-  |> db.values(values)
+  |> db.params(values)
 }
 
 /// Convert the UPDATE query to a formatted SQL string

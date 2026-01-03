@@ -39,7 +39,7 @@ pub fn to_query(insert: Insert(v), format: sql.SqlFmt(v)) -> db.Query(v) {
   build(insert, format)
   |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
   |> db.sql
-  |> db.values(insert.values)
+  |> db.params(insert.values)
 }
 
 pub fn to_string(insert: Insert(v), format: sql.SqlFmt(v)) -> String {

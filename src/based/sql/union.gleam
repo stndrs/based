@@ -51,5 +51,5 @@ fn to_union_query(selects: List(db.Query(v)), operator: String) -> db.Query(v) {
   sql
   |> string.join(operator)
   |> db.sql
-  |> db.values(values)
+  |> db.params(values)
 }

@@ -72,8 +72,8 @@ fn format_db_error(
 /// failures.
 pub type TransactionError(error) {
   Rollback(cause: error)
-  TransactionFailure(cause: error)
-  TransactionError(message: String)
+  NotInTransaction
+  TransactionError(cause: error)
 }
 
 /// Holds a SQL query string and its relevant values.
@@ -88,7 +88,7 @@ pub fn sql(sql: String) -> Query(v) {
 }
 
 /// Applies the provided list of values to the given `Query`
-pub fn values(query: Query(v), values: List(v)) -> Query(v) {
+pub fn params(query: Query(v), values: List(v)) -> Query(v) {
   Query(..query, values:)
 }
 
@@ -124,7 +124,7 @@ pub fn begin(
   handler: fn(conn) -> Result(conn, error),
 ) -> Result(conn, TransactionError(error)) {
   handler(conn)
-  |> result.map_error(TransactionFailure)
+  |> result.map_error(TransactionError)
 }
 
 pub fn commit(
@@ -132,7 +132,7 @@ pub fn commit(
   handler: fn(conn) -> Result(conn, error),
 ) -> Result(conn, TransactionError(error)) {
   handler(conn)
-  |> result.map_error(TransactionFailure)
+  |> result.map_error(TransactionError)
 }
 
 pub fn rollback(
@@ -140,7 +140,7 @@ pub fn rollback(
   handler: fn(conn) -> Result(conn, error),
 ) -> Result(conn, TransactionError(error)) {
   handler(conn)
-  |> result.map_error(TransactionFailure)
+  |> result.map_error(TransactionError)
 }
 
 // Querying
