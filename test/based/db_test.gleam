@@ -130,7 +130,7 @@ pub fn begin_test() {
 }
 
 pub fn begin_error_test() {
-  let assert Error(db.TransactionError("begin failure")) =
+  let assert Error(db.TransactionFailure("begin failure")) =
     db.begin(Conn, fn(_) { Error("begin failure") })
 }
 
@@ -139,7 +139,7 @@ pub fn commit_test() {
 }
 
 pub fn commit_error_test() {
-  let assert Error(db.TransactionError("commit failure")) =
+  let assert Error(db.TransactionFailure("commit failure")) =
     db.commit(Conn, fn(_) { Error("commit failure") })
 }
 
@@ -148,7 +148,7 @@ pub fn rollback_test() {
 }
 
 pub fn rollback_error_test() {
-  let assert Error(db.TransactionError("rollback failure")) =
+  let assert Error(db.TransactionFailure("rollback failure")) =
     db.rollback(Conn, fn(_) { Error("rollback failure") })
 }
 

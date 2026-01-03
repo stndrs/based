@@ -73,7 +73,8 @@ fn format_db_error(
 pub type TransactionError(error) {
   Rollback(cause: error)
   NotInTransaction
-  TransactionError(cause: error)
+  TransactionError(message: String)
+  TransactionFailure(cause: error)
 }
 
 /// Holds a SQL query string and its relevant values.
@@ -124,7 +125,7 @@ pub fn begin(
   handler: fn(conn) -> Result(conn, error),
 ) -> Result(conn, TransactionError(error)) {
   handler(conn)
-  |> result.map_error(TransactionError)
+  |> result.map_error(TransactionFailure)
 }
 
 pub fn commit(
@@ -132,7 +133,7 @@ pub fn commit(
   handler: fn(conn) -> Result(conn, error),
 ) -> Result(conn, TransactionError(error)) {
   handler(conn)
-  |> result.map_error(TransactionError)
+  |> result.map_error(TransactionFailure)
 }
 
 pub fn rollback(
@@ -140,7 +141,7 @@ pub fn rollback(
   handler: fn(conn) -> Result(conn, error),
 ) -> Result(conn, TransactionError(error)) {
   handler(conn)
-  |> result.map_error(TransactionError)
+  |> result.map_error(TransactionFailure)
 }
 
 // Querying
