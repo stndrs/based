@@ -7,7 +7,7 @@ import gleeunit/should
 
 pub fn column_test() {
   let col =
-    sql.name("id")
+    sql.identifier("id")
     |> sql.column
 
   let expected = "id"
@@ -16,7 +16,7 @@ pub fn column_test() {
 }
 
 pub fn alias_test() {
-  let col = sql.name("user_id") |> sql.alias("id") |> sql.column
+  let col = sql.identifier("user_id") |> sql.alias("id") |> sql.column
 
   let expected = "user_id AS id"
   sql.node_to_string(col, value.format())
@@ -24,11 +24,9 @@ pub fn alias_test() {
 }
 
 pub fn table_and_alias_test() {
-  let users = sql.name("users") |> sql.table
-
   let col =
-    users
-    |> sql.attribute("user_id")
+    sql.identifier("users")
+    |> sql.attr("user_id")
     |> sql.alias("id")
     |> sql.column
 
@@ -41,9 +39,9 @@ pub fn table_and_alias_test() {
 // Expr
 
 pub fn eq_test() {
-  let val = sql.value(1, of: value.int)
+  let val = sql.value(value.int(1))
 
-  let sql = sql.eq(sql.name("id") |> sql.column, val)
+  let sql = sql.eq(sql.identifier("id") |> sql.column, val)
 
   let expected = "id = :param"
   sql.expr_to_string(sql, sql.format())
@@ -53,9 +51,9 @@ pub fn eq_test() {
 }
 
 pub fn greater_than_test() {
-  let val = sql.value(18, of: value.int)
+  let val = sql.value(value.int(18))
 
-  let sql = sql.gt(sql.name("age") |> sql.column, val)
+  let sql = sql.gt(sql.identifier("age") |> sql.column, val)
 
   let expected = "age > :param"
   sql.expr_to_string(sql, sql.format())
@@ -65,8 +63,8 @@ pub fn greater_than_test() {
 }
 
 pub fn less_than_test() {
-  let col = sql.name("age") |> sql.column
-  let val = sql.value(65, of: value.int)
+  let col = sql.identifier("age") |> sql.column
+  let val = sql.value(value.int(65))
 
   let sql = sql.lt(col, val)
 
@@ -78,8 +76,8 @@ pub fn less_than_test() {
 }
 
 pub fn greater_than_equal_test() {
-  let col = sql.name("age") |> sql.column
-  let val = sql.value(18, of: value.int)
+  let col = sql.identifier("age") |> sql.column
+  let val = sql.value(value.int(18))
 
   let sql = sql.gt_eq(col, val)
 
@@ -91,8 +89,8 @@ pub fn greater_than_equal_test() {
 }
 
 pub fn less_than_equal_test() {
-  let col = sql.name("age") |> sql.column
-  let val = sql.value(65, of: value.int)
+  let col = sql.identifier("age") |> sql.column
+  let val = sql.value(value.int(65))
 
   let sql = sql.lt_eq(col, val)
 
@@ -104,8 +102,8 @@ pub fn less_than_equal_test() {
 }
 
 pub fn not_equal_test() {
-  let col = sql.name("status") |> sql.column
-  let val = sql.value("inactive", of: value.text)
+  let col = sql.identifier("status") |> sql.column
+  let val = sql.value(value.text("inactive"))
 
   let sql = sql.not_eq(col, val)
 
@@ -117,9 +115,9 @@ pub fn not_equal_test() {
 }
 
 pub fn between_test() {
-  let col = sql.name("price") |> sql.column
-  let start = sql.value(10.0, of: value.float)
-  let end = sql.value(50.0, of: value.float)
+  let col = sql.identifier("price") |> sql.column
+  let start = sql.value(value.float(10.0))
+  let end = sql.value(value.float(50.0))
 
   let sql = sql.between(col, start, end)
 
@@ -132,9 +130,9 @@ pub fn between_test() {
 }
 
 pub fn like_test() {
-  let col = sql.name("name") |> sql.column
+  let col = sql.identifier("name") |> sql.column
 
-  let sql = sql.like(col, "%John%", of: sql.value(_, value.text))
+  let sql = sql.like(col, "%John%", value.text)
 
   let expected = "name LIKE :param"
   sql.expr_to_string(sql, sql.format())
@@ -144,7 +142,7 @@ pub fn like_test() {
 }
 
 pub fn in_test() {
-  let col = sql.name("id") |> sql.column
+  let col = sql.identifier("id") |> sql.column
   let values = sql.values([value.int(1), value.int(2), value.int(3)])
 
   let sql = sql.in(col, values)
@@ -158,21 +156,21 @@ pub fn in_test() {
 }
 
 pub fn is_test() {
-  let col = sql.name("active") |> sql.column
+  let col = sql.identifier("active") |> sql.column
 
-  let sql = sql.is(col, sql.value(True, of: value.bool))
+  let sql = sql.is(col, True)
 
-  let expected = "active IS :param"
+  let expected = "active IS TRUE"
   sql.expr_to_string(sql, sql.format())
   |> should.equal(expected)
 
-  sql.expr_to_values(sql) |> should.equal([value.true])
+  sql.expr_to_values(sql) |> should.equal([])
 }
 
 pub fn not_like_test() {
-  let col = sql.name("name") |> sql.column
+  let col = sql.identifier("name") |> sql.column
 
-  let sql = sql.not_like(col, "%admin%", of: sql.value(_, value.text))
+  let sql = sql.not_like(col, "%admin%", of: value.text)
 
   let expected = "name NOT LIKE :param"
   sql.expr_to_string(sql, sql.format())
@@ -183,8 +181,9 @@ pub fn not_like_test() {
 
 pub fn and_test() {
   let sql1 =
-    sql.eq(sql.name("active") |> sql.column, sql.value(True, of: value.bool))
-  let sql2 = sql.gt(sql.name("age") |> sql.column, sql.value(18, of: value.int))
+    sql.eq(sql.identifier("active") |> sql.column, sql.value(value.true))
+  let sql2 =
+    sql.gt(sql.identifier("age") |> sql.column, sql.value(value.int(18)))
 
   let and_sql = sql.and(sql1, sql2)
 
@@ -197,11 +196,11 @@ pub fn and_test() {
 
 pub fn or_test() {
   let sql1 =
-    sql.eq(sql.name("name") |> sql.column, sql.value("John", of: value.text))
+    sql.eq(sql.identifier("name") |> sql.column, sql.value(value.text("John")))
   let sql2 =
     sql.eq(
-      sql.name("email") |> sql.column,
-      sql.value("john@example.com", of: value.text),
+      sql.identifier("email") |> sql.column,
+      sql.value(value.text("john@example.com")),
     )
 
   let or_sql = sql.or(sql1, sql2)
@@ -216,7 +215,7 @@ pub fn or_test() {
 
 pub fn not_test() {
   let sql1 =
-    sql.eq(sql.name("active") |> sql.column, sql.value(True, of: value.bool))
+    sql.eq(sql.identifier("active") |> sql.column, sql.value(value.true))
 
   let not_sql = sql.not(sql1)
 
@@ -229,10 +228,11 @@ pub fn not_test() {
 
 pub fn complex_sqlession_test() {
   let sql1 =
-    sql.eq(sql.name("active") |> sql.column, sql.value(True, of: value.bool))
-  let sql2 = sql.gt(sql.name("age") |> sql.column, sql.value(18, of: value.int))
+    sql.eq(sql.identifier("active") |> sql.column, sql.value(value.true))
+  let sql2 =
+    sql.gt(sql.identifier("age") |> sql.column, sql.value(value.int(18)))
   let sql3 =
-    sql.eq(sql.name("role") |> sql.column, sql.value("admin", of: value.text))
+    sql.eq(sql.identifier("role") |> sql.column, sql.value(value.text("admin")))
 
   let and_sql = sql.and(sql1, sql2)
   let or_sql = sql.or(and_sql, sql3)
@@ -246,8 +246,8 @@ pub fn complex_sqlession_test() {
 }
 
 pub fn column_with_table_test() {
-  let users = sql.name("users") |> sql.table
-  let col = users |> sql.attribute("id") |> sql.column
+  let users = sql.identifier("users")
+  let col = users |> sql.attr("id") |> sql.column
 
   let expected = "users.id"
   sql.node_to_string(col, value.format())
@@ -263,7 +263,7 @@ pub fn columns_test() {
 }
 
 pub fn value_test() {
-  let val = sql.value(42, of: value.int)
+  let val = sql.value(value.int(42))
 
   let expected = ":param"
   sql.node_to_string(val, value.format())
@@ -286,8 +286,8 @@ pub fn values_test() {
 pub fn tuples_test() {
   let tuples =
     sql.tuples([
-      [sql.value(1, of: value.int), sql.value("John", of: value.text)],
-      [sql.value(2, of: value.int), sql.value("Jane", of: value.text)],
+      [sql.value(value.int(1)), sql.value(value.text("John"))],
+      [sql.value(value.int(2)), sql.value(value.text("Jane"))],
     ])
 
   let expected = "((:param, :param), (:param, :param))"
@@ -304,9 +304,9 @@ pub fn tuples_test() {
 }
 
 pub fn special_values_test() {
-  let true_node = sql.value(True, of: value.bool)
-  let false_node = sql.value(False, of: value.bool)
-  let null_node = sql.value(Nil, value.null)
+  let true_node = sql.value(value.true)
+  let false_node = sql.value(value.false)
+  let null_node = sql.value(value.null)
 
   sql.node_to_string(true_node, value.format())
   |> should.equal(":param")
@@ -317,7 +317,7 @@ pub fn special_values_test() {
 
   sql.unwrap(true_node) |> should.equal([value.true])
   sql.unwrap(false_node) |> should.equal([value.false])
-  sql.unwrap(null_node) |> should.equal([value.null(Nil)])
+  sql.unwrap(null_node) |> should.equal([value.null])
 }
 
 // Format

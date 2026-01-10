@@ -4,6 +4,10 @@ pub const placeholder = ":param"
 
 pub const null = "NULL"
 
+pub const true = "TRUE"
+
+pub const false = "FALSE"
+
 // Statements
 
 pub fn insert(
@@ -119,20 +123,12 @@ pub fn not_eq(st: String, placeholder: String) -> String {
   append(st, " <> ", placeholder)
 }
 
-pub fn not(st: String) -> String {
-  string.append(st, " NOT")
+pub fn not(right: String) -> String {
+  string.append("NOT ", right)
 }
 
 pub fn is_not(st: String, placeholder: String) -> String {
   append(st, " IS NOT ", placeholder)
-}
-
-pub fn is_null(st: String, placeholder: String) -> String {
-  append(st, " IS NULL ", placeholder)
-}
-
-pub fn is_not_null(st: String, placeholder: String) -> String {
-  append(st, " IS NOT NULL ", placeholder)
 }
 
 pub fn not_like(st: String, placeholder: String) -> String {

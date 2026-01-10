@@ -112,12 +112,8 @@ pub fn between(left: Node(v), start: Node(v), end: Node(v)) -> Expr(v) {
   Compare(left:, right: end, operator: Between(start))
 }
 
-pub fn like(
-  left: Node(v),
-  value: String,
-  of outer: fn(String) -> Node(v),
-) -> Expr(v) {
-  let right = outer(value)
+pub fn like(left: Node(v), val: String, of outer: fn(String) -> v) -> Expr(v) {
+  let right = outer(val) |> value
 
   Compare(left:, right:, operator: Like)
 }
@@ -126,8 +122,16 @@ pub fn in(left: Node(v), right: Node(v)) -> Expr(v) {
   Compare(left:, right:, operator: In)
 }
 
-pub fn is(left: Node(v), right: Node(v)) -> Expr(v) {
-  Compare(left:, right:, operator: Is)
+pub fn is(left: Node(v), right: Bool) -> Expr(v) {
+  Is(left:, right:)
+}
+
+pub fn is_null(left: Node(v)) -> Expr(v) {
+  IsNull(left:, right: True)
+}
+
+pub fn is_not_null(left: Node(v)) -> Expr(v) {
+  IsNull(left:, right: False)
 }
 
 pub fn or(left: Expr(v), right: Expr(v)) -> Expr(v) {
@@ -144,10 +148,10 @@ pub fn not(expr: Expr(v)) -> Expr(v) {
 
 pub fn not_like(
   left: Node(v),
-  value: String,
-  of outer: fn(String) -> Node(v),
+  val: String,
+  of outer: fn(String) -> v,
 ) -> Expr(v) {
-  let right = outer(value)
+  let right = outer(val) |> value
 
   Compare(left:, right:, operator: NotLike)
 }
@@ -167,7 +171,7 @@ pub opaque type Node(v) {
   Values(List(v))
   Tuples(List(List(v)))
   Query(query: db.Query(v), alias: Option(String))
-  Null
+  Null(Bool)
 }
 
 pub fn table_to_node(table: Table(v)) -> Node(v) {
@@ -183,9 +187,8 @@ pub fn tuples(vals: List(List(Node(v)))) -> Node(v) {
   |> Tuples
 }
 
-pub fn list(vals: List(a), of inner_type: fn(a) -> Node(v)) -> Node(v) {
+pub fn list(vals: List(a), of inner_type: fn(a) -> v) -> Node(v) {
   list.map(vals, inner_type)
-  |> list.flat_map(unwrap)
   |> Values
 }
 
@@ -193,22 +196,23 @@ pub fn columns(names: List(String)) -> Node(v) {
   {
     use name <- list.map(names)
 
-    Identifier(name:, alias: None, other: None)
+    Identifier(name:, alias: None, attr: None)
   }
   |> Columns
 }
 
-pub fn value(value: a, of kind: fn(a) -> v) -> Node(v) {
-  Value(kind(value))
+pub fn value(value: v) -> Node(v) {
+  Value(value)
 }
 
 pub fn nullable(value: Option(a), inner_type: fn(a) -> Node(v)) -> Node(v) {
   case value {
     Some(term) -> inner_type(term)
-    None -> Null
+    None -> Null(True)
   }
 }
 
+@internal
 pub fn subquery(query: db.Query(v)) -> Node(v) {
   Query(query:, alias: None)
 }
@@ -217,6 +221,7 @@ pub fn values(values: List(v)) -> Node(v) {
   Values(values)
 }
 
+@internal
 pub fn unwrap(node: Node(v)) -> List(v) {
   case node {
     Value(val) -> [val]
@@ -227,6 +232,7 @@ pub fn unwrap(node: Node(v)) -> List(v) {
   }
 }
 
+@internal
 pub fn node_to_string(node: Node(v), format: SqlFmt(v)) -> String {
   case node {
     TableRef(identifier) -> {
@@ -269,7 +275,12 @@ pub fn node_to_string(node: Node(v), format: SqlFmt(v)) -> String {
       |> fmt.enclose
     }
     Query(query:, alias: _) -> fmt.enclose(query.sql)
-    Null -> fmt.null
+    Null(val) -> {
+      case val {
+        True -> fmt.null
+        False -> "NOT NULL"
+      }
+    }
   }
 }
 
@@ -279,8 +290,11 @@ pub opaque type Expr(v) {
   Compare(left: Node(v), right: Node(v), operator: ComparisonOperator(v))
   Logical(left: Expr(v), right: Expr(v), operator: LogicalOperator)
   Not(expr: Expr(v))
+  Is(left: Node(v), right: Bool)
+  IsNull(left: Node(v), right: Bool)
 }
 
+@internal
 pub fn expr_to_values(expr: Expr(v)) -> List(v) {
   case expr {
     Compare(left, right, op) -> {
@@ -290,6 +304,8 @@ pub fn expr_to_values(expr: Expr(v)) -> List(v) {
       list.flatten([expr_to_values(left), expr_to_values(right)])
     }
     Not(expr) -> expr_to_values(expr)
+    Is(..) -> []
+    IsNull(..) -> []
   }
 }
 
@@ -309,10 +325,6 @@ type ComparisonOperator(v) {
   NotEq
   Between(Node(v))
   In
-  Is
-  IsNot
-  IsNull
-  IsNotNull
   Like
   NotLike
 }
@@ -322,6 +334,7 @@ type LogicalOperator {
   Or
 }
 
+@internal
 pub fn expr_to_string(expr: Expr(v), format: SqlFmt(v)) -> String {
   case expr {
     Compare(left, right, op) -> {
@@ -339,8 +352,29 @@ pub fn expr_to_string(expr: Expr(v), format: SqlFmt(v)) -> String {
       fmt(left, right)
     }
     Not(expr) -> {
-      "NOT "
-      |> string.append(expr_to_string(expr, format))
+      expr
+      |> expr_to_string(format)
+      |> fmt.not
+    }
+    Is(left:, right:) -> {
+      let left = node_to_string(left, format)
+
+      let fmt = case right {
+        True -> fmt.is(_, fmt.true)
+        False -> fmt.is(_, fmt.false)
+      }
+
+      fmt(left)
+    }
+    IsNull(left:, right:) -> {
+      let left = node_to_string(left, format)
+
+      let fmt = case right {
+        True -> fmt.is
+        False -> fmt.is_not
+      }
+
+      fmt(left, fmt.null)
     }
   }
 }
@@ -355,15 +389,11 @@ fn to_comp_fmt(operator: ComparisonOperator(v)) -> fn(String, String) -> String 
     NotEq -> fmt.not_eq
     Like -> fmt.like
     In -> fmt.in
-    Is -> fmt.is
     Between(_start) -> fn(left, _end) {
       let ph = fmt.placeholder
 
       fmt.between(left, ph, ph)
     }
-    IsNot -> fmt.is_not
-    IsNull -> fmt.is_null
-    IsNotNull -> fmt.is_not_null
     NotLike -> fmt.not_like
   }
 }
@@ -377,6 +407,7 @@ fn to_logical_fmt(operator: LogicalOperator) -> fn(String, String) -> String {
 
 // Join
 
+@internal
 pub type JoinType {
   InnerJoin
   LeftJoin
@@ -384,46 +415,47 @@ pub type JoinType {
   FullJoin
 }
 
+@internal
 pub type Join(v) {
-  Join(type_: JoinType, table: Node(v), exprs: List(Expr(v)))
+  Join(type_: JoinType, table: Table(v), exprs: List(Expr(v)))
 }
 
+@internal
 pub fn inner(table: Table(v), exprs: List(Expr(v))) -> Join(v) {
-  let table = table_to_node(table)
-
   Join(InnerJoin, table, exprs)
 }
 
+@internal
 pub fn left(table: Table(v), exprs: List(Expr(v))) -> Join(v) {
-  let table = table_to_node(table)
-
   Join(LeftJoin, table, exprs)
 }
 
+@internal
 pub fn right(table: Table(v), exprs: List(Expr(v))) -> Join(v) {
-  let table = table_to_node(table)
-
   Join(RightJoin, table, exprs)
 }
 
+@internal
 pub fn full(table: Table(v), exprs: List(Expr(v))) -> Join(v) {
-  let table = table_to_node(table)
-
   Join(FullJoin, table, exprs)
 }
 
 // Identifier
 
 pub opaque type Identifier {
-  Identifier(name: String, alias: Option(String), other: Option(Identifier))
+  Identifier(name: String, alias: Option(String), attr: Option(String))
 }
 
-pub fn name(name: String) -> Identifier {
-  Identifier(name:, alias: None, other: None)
+pub fn identifier(name: String) -> Identifier {
+  Identifier(name:, alias: None, attr: None)
 }
 
 pub fn alias(identifier: Identifier, alias: String) -> Identifier {
   Identifier(..identifier, alias: Some(alias))
+}
+
+pub fn attr(identifier: Identifier, attr: String) -> Identifier {
+  Identifier(..identifier, attr: Some(attr))
 }
 
 pub fn column(identifier: Identifier) -> Node(v) {
@@ -435,13 +467,17 @@ pub fn table(identifier: Identifier) -> Table(v) {
 }
 
 fn identifier_to_string(identifier: Identifier, fmt: SqlFmt(v)) -> String {
-  let ident = case identifier.other {
+  let ident = case identifier.attr {
     Some(other) -> {
-      table(other)
-      |> table_to_node
-      |> node_to_string(fmt)
+      let attr =
+        Identifier(name: other, alias: None, attr: None)
+        |> table
+        |> table_to_node
+        |> node_to_string(fmt)
+
+      identifier.name
       |> string.append(".")
-      |> string.append(identifier.name)
+      |> string.append(attr)
     }
     None -> identifier.name
   }
@@ -459,27 +495,12 @@ pub opaque type Table(v) {
   Subquery(query: db.Query(v), alias: Option(String))
 }
 
-pub fn attribute(table: Table(v), name: String) -> Identifier {
-  case table {
-    Table(Identifier(table_name, alias, _other)) -> {
-      let table_name = alias |> option.unwrap(table_name)
-      let other = Identifier(name: table_name, alias: None, other: None) |> Some
-
-      Identifier(name:, alias: None, other:)
-    }
-    Subquery(_, alias:) -> {
-      let table_name = alias |> option.unwrap("")
-      let other = Identifier(name: table_name, alias: None, other: None) |> Some
-
-      Identifier(name:, alias: None, other:)
-    }
-  }
-}
-
+@internal
 pub fn from_query(query: db.Query(v)) -> Table(v) {
   Subquery(query, alias: None)
 }
 
+@internal
 pub fn table_to_values(table: Table(v)) -> List(v) {
   case table {
     Table(..) -> []

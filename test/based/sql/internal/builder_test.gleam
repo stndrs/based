@@ -56,8 +56,8 @@ pub fn append_where_test() {
       }
     })
 
-  let left_node = sql.name("id") |> sql.column
-  let right_node = sql.value(1, of: value.int)
+  let left_node = sql.identifier("id") |> sql.column
+  let right_node = sql.value(value.int(1))
   let where_exprs = [[sql.eq(left_node, right_node)]]
 
   let result = builder.append_where(st, where_exprs, format)
@@ -95,8 +95,8 @@ pub fn append_having_test() {
       }
     })
 
-  let count_node = sql.name("COUNT(*)") |> sql.column
-  let value_node = sql.value(5, of: value.Int)
+  let count_node = sql.identifier("COUNT(*)") |> sql.column
+  let value_node = sql.value(value.int(5))
   let having_exprs = [[sql.gt(count_node, value_node)]]
 
   let result = builder.append_having(st, having_exprs, format)
@@ -107,35 +107,36 @@ pub fn append_having_test() {
   )
 }
 
-// pub fn append_joins_test() {
-//   let st = string.from_string("SELECT * FROM users")
-//   let format =
-//     sql.format()
-//     |> sql.on_identifier(fn(s) { s })
-//     |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
-//     |> sql.on_value(fn(_v) { "" })
-// 
-//   let users = sql.table("users")
-//   let posts = sql.table("posts")
-// 
-//   let users_id = column.new("id") |> column.for(users)
-//   let posts_user_id = column.new("user_id") |> column.for(posts)
-// 
-//   let joins = [
-//     sql.Join(type_: sql.InnerJoin, table: sql.table("posts"), exprs: [
-//       sql.eq(sql.name(users_id), node.column(posts_user_id)),
-//     ]),
-//   ]
-// 
-//   let result =
-//     builder.append_joins(st, joins, format)
-//     |> string.to_string
-// 
-//   should.equal(
-//     result,
-//     "SELECT * FROM users INNER JOIN posts ON users.id = posts.user_id",
-//   )
-// }
+pub fn append_joins_test() {
+  let st = "SELECT * FROM users"
+
+  let format =
+    sql.format()
+    |> sql.on_identifier(fn(s) { s })
+    |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
+    |> sql.on_value(fn(_v) { "" })
+
+  let users = sql.identifier("users")
+  let posts = sql.identifier("posts")
+
+  let users_id = users |> sql.attr("id")
+  let posts_user_id = posts |> sql.attr("user_id")
+
+  let joins = [
+    sql.Join(type_: sql.InnerJoin, table: sql.table(posts), exprs: [
+      users_id
+      |> sql.column
+      |> sql.eq(sql.column(posts_user_id)),
+    ]),
+  ]
+
+  let result = builder.append_joins(st, joins, format)
+
+  should.equal(
+    result,
+    "SELECT * FROM users INNER JOIN posts ON users.id = posts.user_id",
+  )
+}
 
 pub fn append_order_by_test() {
   let st = "SELECT * FROM users"

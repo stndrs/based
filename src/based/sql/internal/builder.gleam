@@ -105,8 +105,10 @@ pub fn append_joins(
       sql.FullJoin -> fmt.full_outer_join
     }
 
+    let table_node = sql.table_to_node(join.table)
+
     st
-    |> join_tree(sql.node_to_string(join.table, format))
+    |> join_tree(sql.node_to_string(table_node, format))
     |> list.index_fold(over: join.exprs, from: _, with: fn(sql1, expr, idx) {
       let expr_fmt = case idx {
         0 -> fmt.on

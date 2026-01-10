@@ -23,8 +23,9 @@ pub fn columns(insert: Insert(v), cols: List(String)) -> Insert(v) {
   Insert(..insert, columns: cols)
 }
 
-pub fn values(insert: Insert(v), vals: List(List(sql.Node(v)))) -> Insert(v) {
-  let values = list.flat_map(vals, list.flat_map(_, sql.unwrap))
+pub fn values(insert: Insert(v), vals: List(List(v))) -> Insert(v) {
+  // let values = list.flat_map(vals, list.flat_map(_, list.flatten))
+  let values = list.flatten(vals)
 
   Insert(..insert, values:)
 }

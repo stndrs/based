@@ -133,9 +133,7 @@ pub const true = Bool(True)
 
 pub const false = Bool(False)
 
-pub fn null(_: Nil) -> Value {
-  Null
-}
+pub const null = Null
 
 pub fn bytea(value: BitArray) -> Value {
   Bytea(value)

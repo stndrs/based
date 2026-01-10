@@ -57,7 +57,9 @@ pub fn new() -> Select(v) {
 
 // From
 
-pub fn from(table: sql.Table(v)) -> Select(v) {
+pub fn from(source: a, of kind: fn(a) -> sql.Table(v)) -> Select(v) {
+  let table = kind(source)
+
   let values = sql.table_to_values(table)
   let table = sql.table_to_node(table)
 
@@ -96,37 +98,49 @@ pub fn where_not(select: Select(v), exprs: List(sql.Expr(v))) -> Select(v) {
   list.map(exprs, sql.not) |> where(select, _)
 }
 
-// sql.Joins
+// Joins
 
 pub fn join(
   select: Select(v),
-  table: sql.Table(v),
-  exprs: List(sql.Expr(v)),
+  source: a,
+  of kind: fn(a) -> sql.Table(v),
+  on exprs: List(sql.Expr(v)),
 ) -> Select(v) {
+  let table = kind(source)
+
   do_join(select, table, exprs, sql.inner)
 }
 
 pub fn left_join(
   select: Select(v),
-  table: sql.Table(v),
-  exprs: List(sql.Expr(v)),
+  source: a,
+  of kind: fn(a) -> sql.Table(v),
+  on exprs: List(sql.Expr(v)),
 ) -> Select(v) {
+  let table = kind(source)
+
   do_join(select, table, exprs, sql.left)
 }
 
 pub fn right_join(
   select: Select(v),
-  table: sql.Table(v),
-  exprs: List(sql.Expr(v)),
+  source: a,
+  of kind: fn(a) -> sql.Table(v),
+  on exprs: List(sql.Expr(v)),
 ) -> Select(v) {
+  let table = kind(source)
+
   do_join(select, table, exprs, sql.right)
 }
 
 pub fn full_join(
   select: Select(v),
-  table: sql.Table(v),
-  exprs: List(sql.Expr(v)),
+  source: a,
+  of kind: fn(a) -> sql.Table(v),
+  on exprs: List(sql.Expr(v)),
 ) -> Select(v) {
+  let table = kind(source)
+
   do_join(select, table, exprs, sql.full)
 }
 
@@ -204,6 +218,14 @@ pub fn to_query(select: Select(v), format: sql.SqlFmt(v)) -> db.Query(v) {
   |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
   |> db.sql
   |> db.params(values)
+}
+
+pub fn subquery(format: sql.SqlFmt(v)) -> fn(Select(v)) -> sql.Table(v) {
+  fn(select: Select(v)) {
+    select
+    |> to_query(format)
+    |> sql.from_query
+  }
 }
 
 pub fn to_subquery(select: Select(v), format: sql.SqlFmt(v)) -> sql.Node(v) {
