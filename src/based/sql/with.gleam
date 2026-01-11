@@ -9,7 +9,7 @@ import gleam/string
 
 /// A WITH clause with recursive flag and CTEs.
 pub opaque type With(v) {
-  With(recursive: Bool, ctes: List(Cte(v)), query: db.Query(v))
+  With(sql: sql.Sql(v), recursive: Bool, ctes: List(Cte(v)), query: db.Query(v))
 }
 
 /// A Common Table Expression (CTE) with name, columns, and query.
@@ -18,8 +18,8 @@ pub opaque type Cte(v) {
 }
 
 /// Create a new WITH clause with the given CTEs.
-pub fn new(ctes: List(Cte(v))) -> With(v) {
-  With(recursive: False, ctes:, query: db.sql(""))
+pub fn new(sql: sql.Sql(v), ctes: List(Cte(v))) -> With(v) {
+  With(sql:, recursive: False, ctes:, query: db.sql(""))
 }
 
 /// Mark the WITH clause as recursive.
@@ -38,18 +38,18 @@ pub fn columns(cte: Cte(v), columns: List(String)) -> Cte(v) {
 }
 
 /// Set or modify the main query of a WITH clause.
-pub fn query(with: With(v), building: fn() -> db.Query(v)) -> With(v) {
-  let query = building()
+pub fn query(with: With(v), building: fn(sql.Sql(v)) -> db.Query(v)) -> With(v) {
+  let query = building(with.sql)
 
   With(..with, query:)
 }
 
 /// Convert a WITH clause to a database query using the given format.
-pub fn to_query(with: With(v), format: sql.SqlFmt(v)) -> db.Query(v) {
+pub fn to_query(with: With(v)) -> db.Query(v) {
   let values = list.flat_map(with.ctes, fn(cte) { cte.query.values })
   let values = list.flatten([values, with.query.values])
 
-  let to_placeholder = sql.to_placeholder(format, _)
+  let to_placeholder = sql.to_placeholder(with.sql, _)
 
   build(with)
   |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)

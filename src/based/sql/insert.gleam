@@ -8,6 +8,7 @@ import gleam/string
 
 pub opaque type Insert(v) {
   Insert(
+    sql: sql.Sql(v),
     table: sql.Table(v),
     columns: List(String),
     returning: List(String),
@@ -15,8 +16,8 @@ pub opaque type Insert(v) {
   )
 }
 
-pub fn into(table: sql.Table(v)) -> Insert(v) {
-  Insert(table:, columns: [], returning: [], values: [])
+pub fn into(sql: sql.Sql(v), table: sql.Table(v)) -> Insert(v) {
+  Insert(sql:, table:, columns: [], returning: [], values: [])
 }
 
 pub fn columns(insert: Insert(v), cols: List(String)) -> Insert(v) {
@@ -33,21 +34,21 @@ pub fn returning(insert: Insert(v), cols: List(String)) -> Insert(v) {
   Insert(..insert, returning: cols)
 }
 
-pub fn to_query(insert: Insert(v), format: sql.SqlFmt(v)) -> db.Query(v) {
-  let to_placeholder = sql.to_placeholder(format, _)
+pub fn to_query(insert: Insert(v)) -> db.Query(v) {
+  let to_placeholder = sql.to_placeholder(insert.sql, _)
 
-  build(insert, format)
+  build(insert)
   |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
   |> db.sql
   |> db.params(insert.values)
 }
 
-pub fn to_string(insert: Insert(v), format: sql.SqlFmt(v)) -> String {
-  build(insert, format)
-  |> builder.to_string(insert.values, format)
+pub fn to_string(insert: Insert(v)) -> String {
+  build(insert)
+  |> builder.to_string(insert.values, insert.sql)
 }
 
-fn build(insert: Insert(v), format: sql.SqlFmt(v)) -> String {
+fn build(insert: Insert(v)) -> String {
   let values =
     insert.values
     |> list.map(fn(_) { fmt.placeholder })
@@ -61,7 +62,7 @@ fn build(insert: Insert(v), format: sql.SqlFmt(v)) -> String {
   let into =
     insert.table
     |> sql.table_to_node
-    |> node.to_string(sql.to_identifier(format, _))
+    |> node.to_string(sql.to_identifier(insert.sql, _))
 
   fmt.insert(insert.columns, into:, values:)
   |> builder.append_returning(insert.returning)

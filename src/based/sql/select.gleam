@@ -14,6 +14,7 @@ type For {
 
 pub opaque type Select(v) {
   Select(
+    sql: sql.Sql(v),
     table: Option(sql.Table(v)),
     columns: List(String),
     distinct: Bool,
@@ -39,8 +40,9 @@ pub fn distinct(select: Select(v)) -> Select(v) {
   Select(..select, distinct: True)
 }
 
-pub fn new() -> Select(v) {
+pub fn new(sql: sql.Sql(v)) -> Select(v) {
   Select(
+    sql:,
     table: None,
     columns: [],
     distinct: False,
@@ -59,12 +61,17 @@ pub fn new() -> Select(v) {
 
 // From
 
-pub fn from(source: a, of kind: fn(a) -> sql.Table(v)) -> Select(v) {
+pub fn from(
+  sql: sql.Sql(v),
+  source: a,
+  of kind: fn(a) -> sql.Table(v),
+) -> Select(v) {
   let table = kind(source)
 
   let values = sql.table_to_values(table)
 
   Select(
+    sql:,
     table: Some(table),
     columns: ["*"],
     distinct: False,
@@ -210,66 +217,64 @@ pub fn for_update(select: Select(v)) -> Select(v) {
 
 // Query String Building
 
-pub fn to_query(select: Select(v), format: sql.SqlFmt(v)) -> db.Query(v) {
+pub fn to_query(select: Select(v)) -> db.Query(v) {
   let values = select.values |> list.reverse |> list.flatten
 
-  let to_placeholder = sql.to_placeholder(format, _)
+  let to_placeholder = sql.to_placeholder(select.sql, _)
 
-  build(select, format)
+  build(select)
   |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
   |> db.sql
   |> db.params(values)
 }
 
-pub fn subquery(format: sql.SqlFmt(v)) -> fn(Select(v)) -> sql.Table(v) {
-  fn(select: Select(v)) {
-    select
-    |> to_query(format)
-    |> sql.from_query
-  }
+pub fn subquery(select: Select(v)) -> sql.Table(v) {
+  select
+  |> to_query
+  |> sql.from_query
 }
 
-pub fn to_subquery(select: Select(v), format: sql.SqlFmt(v)) -> Node(v) {
-  to_query(select, format) |> sql.subquery
+pub fn to_subquery(select: Select(v)) -> Node(v) {
+  to_query(select) |> sql.subquery
 }
 
-pub fn to_table(select: Select(v), format: sql.SqlFmt(v)) -> sql.Table(v) {
-  to_query(select, format) |> sql.from_query
+pub fn to_table(select: Select(v)) -> sql.Table(v) {
+  to_query(select) |> sql.from_query
 }
 
-pub fn to_string(select: Select(v), format: sql.SqlFmt(v)) -> String {
+pub fn to_string(select: Select(v)) -> String {
   let values = select.values |> list.reverse |> list.flatten
 
-  build(select, format)
-  |> builder.to_string(values, format)
+  build(select)
+  |> builder.to_string(values, select.sql)
 }
 
 // Builders
 
-fn build(select: Select(v), format: sql.SqlFmt(v)) -> String {
-  let select_fmt = case select.distinct {
+fn build(select: Select(v)) -> String {
+  let select_sql = case select.distinct {
     True -> fmt.select_distinct
     False -> fmt.select
   }
 
-  let from_fmt = case select.table {
+  let from_sql = case select.table {
     Some(table) -> {
       let to_string =
         table
         |> sql.table_to_node
-        |> node.to_string(sql.to_identifier(format, _))
+        |> node.to_string(sql.to_identifier(select.sql, _))
 
       fmt.from(_, to_string)
     }
     None -> function.identity
   }
 
-  select_fmt(select.columns)
-  |> from_fmt
-  |> builder.append_joins(select.join, format)
-  |> builder.append_where(select.where, format)
+  select_sql(select.columns)
+  |> from_sql
+  |> builder.append_joins(select.join, select.sql)
+  |> builder.append_where(select.where, select.sql)
   |> builder.append_group_by(select.group_by)
-  |> builder.append_having(select.having, format)
+  |> builder.append_having(select.having, select.sql)
   |> builder.append_order_by(select.order_by, select.order)
   |> builder.append_limit(select.limit, select.offset)
   |> append_for(select.for)

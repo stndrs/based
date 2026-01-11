@@ -8,12 +8,13 @@ pub fn basic_insert_test() {
   let users = sql.identifier("users") |> sql.table
 
   let query =
-    insert.into(users)
+    value.sql()
+    |> insert.into(users)
     |> insert.columns(["name", "email"])
     |> insert.values([
       [value.text("John"), value.text("john@example.com")],
     ])
-    |> insert.to_query(value.format())
+    |> insert.to_query
 
   query.sql |> should.equal(expected)
   query.values
@@ -26,7 +27,8 @@ pub fn insert_multiple_columns_test() {
   let users = sql.identifier("users") |> sql.table
 
   let query =
-    insert.into(users)
+    value.sql()
+    |> insert.into(users)
     |> insert.columns(["name", "email", "age", "active"])
     |> insert.values([
       [
@@ -36,7 +38,7 @@ pub fn insert_multiple_columns_test() {
         value.bool(True),
       ],
     ])
-    |> insert.to_query(value.format())
+    |> insert.to_query
 
   query.sql |> should.equal(expected)
   query.values
@@ -53,11 +55,12 @@ pub fn insert_returning_test() {
   let users = sql.identifier("users") |> sql.table
 
   let query =
-    insert.into(users)
+    value.sql()
+    |> insert.into(users)
     |> insert.columns(["name"])
     |> insert.values([[value.text("John")]])
     |> insert.returning(["id", "name"])
-    |> insert.to_query(value.format())
+    |> insert.to_query
 
   query.sql |> should.equal(expected)
   query.values |> should.equal([value.text("John")])
@@ -69,7 +72,8 @@ pub fn insert_to_string_test() {
   let users = sql.identifier("users") |> sql.table
 
   let query =
-    insert.into(users)
+    value.sql()
+    |> insert.into(users)
     |> insert.columns(["name", "email"])
     |> insert.values([
       [
@@ -78,7 +82,7 @@ pub fn insert_to_string_test() {
       ],
     ])
 
-  insert.to_string(query, value.format()) |> should.equal(expected)
+  insert.to_string(query) |> should.equal(expected)
 }
 
 pub fn insert_multiple_rows_test() {
@@ -86,7 +90,8 @@ pub fn insert_multiple_rows_test() {
   let users = sql.identifier("users") |> sql.table
 
   let query =
-    insert.into(users)
+    value.sql()
+    |> insert.into(users)
     |> insert.columns(["name", "email"])
     |> insert.values([
       [
@@ -98,7 +103,7 @@ pub fn insert_multiple_rows_test() {
         value.text("jane@example.com"),
       ],
     ])
-    |> insert.to_query(value.format())
+    |> insert.to_query
 
   query.sql |> should.equal(expected)
   query.values
@@ -115,12 +120,13 @@ pub fn insert_with_null_test() {
   let users = sql.identifier("users") |> sql.table
 
   let query =
-    insert.into(users)
+    value.sql()
+    |> insert.into(users)
     |> insert.columns(["name", "middle_name"])
     |> insert.values([
       [value.text("John"), value.null],
     ])
-    |> insert.to_query(value.format())
+    |> insert.to_query
 
   query.sql |> should.equal(expected)
   query.values |> should.equal([value.text("John"), value.null])
@@ -132,7 +138,8 @@ pub fn insert_with_different_value_types_test() {
   let products = sql.identifier("products") |> sql.table
 
   let query =
-    insert.into(products)
+    value.sql()
+    |> insert.into(products)
     |> insert.columns(["id", "price", "is_active", "description"])
     |> insert.values([
       [
@@ -142,7 +149,7 @@ pub fn insert_with_different_value_types_test() {
         value.null,
       ],
     ])
-    |> insert.to_query(value.format())
+    |> insert.to_query
 
   query.sql
   |> should.equal(expected)

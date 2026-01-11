@@ -44,7 +44,7 @@ pub fn eq_test() {
   let sql = sql.eq(sql.identifier("id") |> sql.column, val)
 
   let expected = "id = :param"
-  sql.expr_to_string(sql, sql.format())
+  sql.expr_to_string(sql, sql.new())
   |> should.equal(expected)
 
   sql.expr_to_values(sql) |> should.equal([value.int(1)])
@@ -56,7 +56,7 @@ pub fn greater_than_test() {
   let sql = sql.gt(sql.identifier("age") |> sql.column, val)
 
   let expected = "age > :param"
-  sql.expr_to_string(sql, sql.format())
+  sql.expr_to_string(sql, sql.new())
   |> should.equal(expected)
 
   sql.expr_to_values(sql) |> should.equal([value.int(18)])
@@ -69,7 +69,7 @@ pub fn less_than_test() {
   let sql = sql.lt(col, val)
 
   let expected = "age < :param"
-  sql.expr_to_string(sql, sql.format())
+  sql.expr_to_string(sql, sql.new())
   |> should.equal(expected)
 
   sql.expr_to_values(sql) |> should.equal([value.int(65)])
@@ -82,7 +82,7 @@ pub fn greater_than_equal_test() {
   let sql = sql.gt_eq(col, val)
 
   let expected = "age >= :param"
-  sql.expr_to_string(sql, sql.format())
+  sql.expr_to_string(sql, sql.new())
   |> should.equal(expected)
 
   sql.expr_to_values(sql) |> should.equal([value.int(18)])
@@ -95,7 +95,7 @@ pub fn less_than_equal_test() {
   let sql = sql.lt_eq(col, val)
 
   let expected = "age <= :param"
-  sql.expr_to_string(sql, sql.format())
+  sql.expr_to_string(sql, sql.new())
   |> should.equal(expected)
 
   sql.expr_to_values(sql) |> should.equal([value.int(65)])
@@ -108,7 +108,7 @@ pub fn not_equal_test() {
   let sql = sql.not_eq(col, val)
 
   let expected = "status <> :param"
-  sql.expr_to_string(sql, sql.format())
+  sql.expr_to_string(sql, sql.new())
   |> should.equal(expected)
 
   sql.expr_to_values(sql) |> should.equal([value.text("inactive")])
@@ -122,7 +122,7 @@ pub fn between_test() {
   let sql = sql.between(col, start, end)
 
   let expected = "price BETWEEN :param AND :param"
-  sql.expr_to_string(sql, sql.format())
+  sql.expr_to_string(sql, sql.new())
   |> should.equal(expected)
 
   sql.expr_to_values(sql)
@@ -135,7 +135,7 @@ pub fn like_test() {
   let sql = sql.like(col, "%John%", value.text)
 
   let expected = "name LIKE :param"
-  sql.expr_to_string(sql, sql.format())
+  sql.expr_to_string(sql, sql.new())
   |> should.equal(expected)
 
   sql.expr_to_values(sql) |> should.equal([value.text("%John%")])
@@ -148,7 +148,7 @@ pub fn in_test() {
   let sql = sql.in(col, values)
 
   let expected = "id IN (:param, :param, :param)"
-  sql.expr_to_string(sql, sql.format())
+  sql.expr_to_string(sql, sql.new())
   |> should.equal(expected)
 
   sql.expr_to_values(sql)
@@ -161,7 +161,7 @@ pub fn is_test() {
   let sql = sql.is(col, True)
 
   let expected = "active IS TRUE"
-  sql.expr_to_string(sql, sql.format())
+  sql.expr_to_string(sql, sql.new())
   |> should.equal(expected)
 
   sql.expr_to_values(sql) |> should.equal([])
@@ -173,7 +173,7 @@ pub fn not_like_test() {
   let sql = sql.not_like(col, "%admin%", of: value.text)
 
   let expected = "name NOT LIKE :param"
-  sql.expr_to_string(sql, sql.format())
+  sql.expr_to_string(sql, sql.new())
   |> should.equal(expected)
 
   sql.expr_to_values(sql) |> should.equal([value.text("%admin%")])
@@ -188,7 +188,7 @@ pub fn and_test() {
   let and_sql = sql.and(sql1, sql2)
 
   let expected = "active = :param AND age > :param"
-  sql.expr_to_string(and_sql, sql.format())
+  sql.expr_to_string(and_sql, sql.new())
   |> should.equal(expected)
 
   sql.expr_to_values(and_sql) |> should.equal([value.true, value.int(18)])
@@ -206,7 +206,7 @@ pub fn or_test() {
   let or_sql = sql.or(sql1, sql2)
 
   let expected = "name = :param OR email = :param"
-  sql.expr_to_string(or_sql, sql.format())
+  sql.expr_to_string(or_sql, sql.new())
   |> should.equal(expected)
 
   sql.expr_to_values(or_sql)
@@ -220,7 +220,7 @@ pub fn not_test() {
   let not_sql = sql.not(sql1)
 
   let expected = "NOT active = :param"
-  sql.expr_to_string(not_sql, sql.format())
+  sql.expr_to_string(not_sql, sql.new())
   |> should.equal(expected)
 
   sql.expr_to_values(not_sql) |> should.equal([value.true])
@@ -238,7 +238,7 @@ pub fn complex_sqlession_test() {
   let or_sql = sql.or(and_sql, sql3)
 
   let expected = "active = :param AND age > :param OR role = :param"
-  sql.expr_to_string(or_sql, sql.format())
+  sql.expr_to_string(or_sql, sql.new())
   |> should.equal(expected)
 
   sql.expr_to_values(or_sql)
@@ -324,7 +324,7 @@ pub fn complex_sqlession_test() {
 
 pub fn format_test() {
   let int_fmt =
-    sql.format()
+    sql.new()
     |> sql.on_identifier(fn(s) { "\"" <> s <> "\"" })
     |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
     |> sql.on_value(int.to_string)
@@ -336,7 +336,7 @@ pub fn format_test() {
 
 pub fn on_placeholder_test() {
   let int_fmt =
-    sql.format()
+    sql.new()
     |> sql.on_identifier(fn(s) { s })
     |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
     |> sql.on_value(int.to_string)
@@ -350,7 +350,7 @@ pub fn on_placeholder_test() {
 
 pub fn on_node_test() {
   let int_fmt =
-    sql.format()
+    sql.new()
     |> sql.on_identifier(fn(s) { s })
     |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
     |> sql.on_value(int.to_string)
@@ -364,7 +364,7 @@ pub fn on_node_test() {
 
 pub fn on_value_test() {
   let int_fmt =
-    sql.format()
+    sql.new()
     |> sql.on_identifier(fn(s) { s })
     |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
     |> sql.on_value(int.to_string)

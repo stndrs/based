@@ -10,7 +10,8 @@ pub fn union_test() {
   let users = sql.identifier("users")
   let employees = sql.identifier("employees")
   let users_query =
-    select.from(users, of: sql.table)
+    value.sql()
+    |> select.from(users, of: sql.table)
     |> select.columns(["id", "name"])
     |> select.where([
       sql.identifier("active")
@@ -19,7 +20,8 @@ pub fn union_test() {
     ])
 
   let employees_query =
-    select.from(employees, of: sql.table)
+    value.sql()
+    |> select.from(employees, of: sql.table)
     |> select.columns(["id", "name"])
     |> select.where([
       sql.identifier("department")
@@ -29,7 +31,7 @@ pub fn union_test() {
 
   let query =
     union.new([users_query, employees_query])
-    |> union.to_query(value.format())
+    |> union.to_query
 
   query.sql |> should.equal(expected)
   query.values |> should.equal([value.text("Engineering")])
@@ -41,7 +43,8 @@ pub fn union_all_test() {
   let users = sql.identifier("users")
   let employees = sql.identifier("employees")
   let users_query =
-    select.from(users, of: sql.table)
+    value.sql()
+    |> select.from(users, of: sql.table)
     |> select.columns(["id", "name"])
     |> select.where([
       sql.identifier("active")
@@ -50,7 +53,8 @@ pub fn union_all_test() {
     ])
 
   let employees_query =
-    select.from(employees, of: sql.table)
+    value.sql()
+    |> select.from(employees, of: sql.table)
     |> select.columns(["id", "name"])
     |> select.where([
       sql.identifier("department")
@@ -60,7 +64,7 @@ pub fn union_all_test() {
 
   let query =
     union.all([users_query, employees_query])
-    |> union.to_query(value.format())
+    |> union.to_query
 
   query.sql |> should.equal(expected)
   query.values |> should.equal([value.text("Engineering")])
@@ -72,7 +76,8 @@ pub fn union_to_string_test() {
   let users = sql.identifier("users")
   let employees = sql.identifier("employees")
   let users_query =
-    select.from(users, of: sql.table)
+    value.sql()
+    |> select.from(users, of: sql.table)
     |> select.columns(["id", "name"])
     |> select.where([
       sql.identifier("active")
@@ -81,7 +86,8 @@ pub fn union_to_string_test() {
     ])
 
   let employees_query =
-    select.from(employees, of: sql.table)
+    value.sql()
+    |> select.from(employees, of: sql.table)
     |> select.columns(["id", "name"])
     |> select.where([
       sql.identifier("department")
@@ -91,7 +97,7 @@ pub fn union_to_string_test() {
 
   let result =
     union.new([users_query, employees_query])
-    |> union.to_string(value.format())
+    |> union.to_string
 
   result |> should.equal(expected)
 }
@@ -102,7 +108,8 @@ pub fn union_all_to_string_test() {
   let users = sql.identifier("users")
   let employees = sql.identifier("employees")
   let users_query =
-    select.from(users, of: sql.table)
+    value.sql()
+    |> select.from(users, of: sql.table)
     |> select.columns(["id", "name"])
     |> select.where([
       sql.identifier("active")
@@ -111,7 +118,8 @@ pub fn union_all_to_string_test() {
     ])
 
   let employees_query =
-    select.from(employees, of: sql.table)
+    value.sql()
+    |> select.from(employees, of: sql.table)
     |> select.columns(["id", "name"])
     |> select.where([
       sql.identifier("department")
@@ -121,7 +129,7 @@ pub fn union_all_to_string_test() {
 
   let result =
     union.all([users_query, employees_query])
-    |> union.to_string(value.format())
+    |> union.to_string
 
   result |> should.equal(expected)
 }
@@ -133,7 +141,8 @@ pub fn multi_union_to_string_test() {
   let employees = sql.identifier("employees")
   let contractors = sql.identifier("contractors")
   let users_query =
-    select.from(users, of: sql.table)
+    value.sql()
+    |> select.from(users, of: sql.table)
     |> select.columns(["id", "name"])
     |> select.where([
       sql.identifier("active")
@@ -142,7 +151,8 @@ pub fn multi_union_to_string_test() {
     ])
 
   let employees_query =
-    select.from(employees, of: sql.table)
+    value.sql()
+    |> select.from(employees, of: sql.table)
     |> select.columns(["id", "name"])
     |> select.where([
       sql.identifier("department")
@@ -151,7 +161,8 @@ pub fn multi_union_to_string_test() {
     ])
 
   let contractors_query =
-    select.from(contractors, of: sql.table)
+    value.sql()
+    |> select.from(contractors, of: sql.table)
     |> select.columns(["id", "name"])
     |> select.where([
       sql.identifier("status")
@@ -161,7 +172,7 @@ pub fn multi_union_to_string_test() {
 
   let result =
     union.new([users_query, employees_query, contractors_query])
-    |> union.to_string(value.format())
+    |> union.to_string
 
   result |> should.equal(expected)
 }

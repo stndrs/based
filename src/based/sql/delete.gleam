@@ -7,15 +7,15 @@
 //// import database/value
 ////
 //// let users = sql.table("users")
-//// let format = sql.format()
+//// let sql = sql.new()
 ////
 //// let query =
-////   delete.from(users)
+////   delete.from(sql, users)
 ////   |> delete.where([
 ////     sql.name("id") |> sql.column |> expr.eq(sql.value(value.int(123)))
 ////   ])
 ////   |> delete.returning(["id", "name"])
-////   |> delete.to_query(format)
+////   |> delete.to_query
 //// ```
 
 import based/db
@@ -28,6 +28,7 @@ import gleam/list
 /// A DELETE query with table, WHERE conditions, RETURNING columns, and values.
 pub opaque type Delete(v) {
   Delete(
+    sql: sql.Sql(v),
     table: sql.Table(v),
     where: List(List(sql.Expr(v))),
     returning: List(String),
@@ -36,8 +37,8 @@ pub opaque type Delete(v) {
 }
 
 /// Set the table for a DELETE query.
-pub fn from(table: sql.Table(v)) -> Delete(v) {
-  Delete(table:, where: [], returning: [], values: [])
+pub fn from(sql: sql.Sql(v), table: sql.Table(v)) -> Delete(v) {
+  Delete(sql:, table:, where: [], returning: [], values: [])
 }
 
 /// Add WHERE conditions to a DELETE query.
@@ -59,35 +60,35 @@ pub fn returning(delete: Delete(v), columns: List(String)) -> Delete(v) {
 }
 
 /// Convert a DELETE query to a database query using the given format.
-pub fn to_query(del: Delete(v), format: sql.SqlFmt(v)) -> db.Query(v) {
+pub fn to_query(del: Delete(v)) -> db.Query(v) {
   let values = del.values |> list.reverse |> list.flatten
 
-  let to_placeholder = sql.to_placeholder(format, _)
+  let to_placeholder = sql.to_placeholder(del.sql, _)
 
-  build(del, format)
+  build(del)
   |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
   |> db.sql
   |> db.params(values)
 }
 
 /// Convert a DELETE query to a string representation using the given format.
-pub fn to_string(delete: Delete(v), format: sql.SqlFmt(v)) -> String {
+pub fn to_string(delete: Delete(v)) -> String {
   let values = delete.values |> list.reverse |> list.flatten
 
-  build(delete, format)
-  |> builder.to_string(values, format)
+  build(delete)
+  |> builder.to_string(values, delete.sql)
 }
 
 /// Build a DELETE query's SQL string tree using the given format.
-fn build(delete: Delete(v), format: sql.SqlFmt(v)) -> String {
+fn build(delete: Delete(v)) -> String {
   let from =
     delete.table
     |> sql.table_to_node
-    |> node.to_string(sql.to_identifier(format, _))
+    |> node.to_string(sql.to_identifier(delete.sql, _))
 
   fmt.delete
   |> fmt.from(from)
-  |> builder.append_where(delete.where, format)
+  |> builder.append_where(delete.where, delete.sql)
   |> builder.append_returning(delete.returning)
 }
 

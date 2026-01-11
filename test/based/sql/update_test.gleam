@@ -9,14 +9,15 @@ pub fn basic_update_test() {
   let users = sql.identifier("users")
 
   let query =
-    update.table(sql.table(users))
+    value.sql()
+    |> update.table(sql.table(users))
     |> update.set("name", sql.value(value.text("John")))
     |> update.where([
       sql.identifier("id")
       |> sql.column
       |> sql.eq(sql.value(value.int(1))),
     ])
-    |> update.to_query(value.format())
+    |> update.to_query
 
   query.sql |> should.equal(expected)
   query.values |> should.equal([value.text("John"), value.int(1)])
@@ -27,7 +28,8 @@ pub fn update_multiple_columns_test() {
   let users = sql.identifier("users")
 
   let query =
-    update.table(sql.table(users))
+    value.sql()
+    |> update.table(sql.table(users))
     |> update.set("name", sql.value(value.text("John")))
     |> update.set("email", sql.value(value.text("john@example.com")))
     |> update.where([
@@ -35,7 +37,7 @@ pub fn update_multiple_columns_test() {
       |> sql.column
       |> sql.eq(sql.value(value.int(1))),
     ])
-    |> update.to_query(value.format())
+    |> update.to_query
 
   query.sql |> should.equal(expected)
   query.values
@@ -51,14 +53,15 @@ pub fn update_with_where_not_test() {
   let users = sql.identifier("users")
 
   let query =
-    update.table(sql.table(users))
+    value.sql()
+    |> update.table(sql.table(users))
     |> update.set("active", sql.value(value.true))
     |> update.where_not([
       sql.identifier("id")
       |> sql.column
       |> sql.eq(sql.value(value.int(1))),
     ])
-    |> update.to_query(value.format())
+    |> update.to_query
 
   query.sql |> should.equal(expected)
   query.values |> should.equal([value.true, value.int(1)])
@@ -69,7 +72,8 @@ pub fn update_returning_test() {
   let users = sql.identifier("users")
 
   let query =
-    update.table(sql.table(users))
+    value.sql()
+    |> update.table(sql.table(users))
     |> update.set("name", sql.value(value.text("John")))
     |> update.where([
       sql.identifier("id")
@@ -77,7 +81,7 @@ pub fn update_returning_test() {
       |> sql.eq(sql.value(value.int(1))),
     ])
     |> update.returning(["id", "name"])
-    |> update.to_query(value.format())
+    |> update.to_query
 
   query.sql |> should.equal(expected)
   query.values |> should.equal([value.text("John"), value.int(1)])
@@ -88,14 +92,15 @@ pub fn update_with_is_test() {
   let products = sql.identifier("products")
 
   let query =
-    update.table(sql.table(products))
+    value.sql()
+    |> update.table(sql.table(products))
     |> update.set("price", sql.value(value.float(19.99)))
     |> update.where([
       sql.identifier("is_deleted")
       |> sql.column
       |> sql.is(False),
     ])
-    |> update.to_query(value.format())
+    |> update.to_query
 
   query.sql |> should.equal(expected)
   query.values |> should.equal([value.float(19.99)])
@@ -108,19 +113,21 @@ pub fn update_set_from_subquery_test() {
   let prices = sql.identifier("prices")
 
   let price_id =
-    select.from(prices, of: sql.table)
+    value.sql()
+    |> select.from(prices, of: sql.table)
     |> select.columns(["price"])
     |> select.where([
       sql.identifier("id")
       |> sql.column
       |> sql.eq(sql.value(value.int(1))),
     ])
-    |> select.to_subquery(value.format())
+    |> select.to_subquery
 
   let query =
-    update.table(sql.table(products))
+    value.sql()
+    |> update.table(sql.table(products))
     |> update.set("price", price_id)
-    |> update.to_query(value.format())
+    |> update.to_query
 
   query.sql |> should.equal(expected)
   query.values |> should.equal([value.int(1)])
@@ -131,7 +138,8 @@ pub fn update_with_is_to_string_test() {
   let products = sql.identifier("products")
 
   let query =
-    update.table(sql.table(products))
+    value.sql()
+    |> update.table(sql.table(products))
     |> update.set("price", sql.value(value.float(19.99)))
     |> update.where([
       sql.identifier("is_deleted")
@@ -139,6 +147,6 @@ pub fn update_with_is_to_string_test() {
       |> sql.is(False),
     ])
 
-  update.to_string(query, value.format())
+  update.to_string(query)
   |> should.equal(expected)
 }

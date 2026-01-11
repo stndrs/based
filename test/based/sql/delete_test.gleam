@@ -8,13 +8,14 @@ pub fn basic_delete_test() {
   let users = sql.identifier("users") |> sql.table
 
   let query =
-    delete.from(users)
+    value.sql()
+    |> delete.from(users)
     |> delete.where([
       sql.identifier("id")
       |> sql.column
       |> sql.eq(sql.value(value.int(1))),
     ])
-    |> delete.to_query(value.format())
+    |> delete.to_query
 
   query.sql |> should.equal(expected)
   query.values |> should.equal([value.int(1)])
@@ -25,13 +26,14 @@ pub fn delete_with_where_not_test() {
   let users = sql.identifier("users") |> sql.table
 
   let query =
-    delete.from(users)
+    value.sql()
+    |> delete.from(users)
     |> delete.where_not([
       sql.identifier("id")
       |> sql.column
       |> sql.eq(sql.value(value.int(1))),
     ])
-    |> delete.to_query(value.format())
+    |> delete.to_query
 
   query.sql |> should.equal(expected)
   query.values |> should.equal([value.int(1)])
@@ -42,7 +44,8 @@ pub fn delete_with_multiple_conditions_test() {
   let users = sql.identifier("users") |> sql.table
 
   let query =
-    delete.from(users)
+    value.sql()
+    |> delete.from(users)
     |> delete.where([
       sql.identifier("id")
         |> sql.column
@@ -51,7 +54,7 @@ pub fn delete_with_multiple_conditions_test() {
         |> sql.column
         |> sql.lt(sql.value(value.text("2024-01-01"))),
     ])
-    |> delete.to_query(value.format())
+    |> delete.to_query
 
   query.sql |> should.equal(expected)
   query.values
@@ -63,14 +66,15 @@ pub fn delete_returning_test() {
   let users = sql.identifier("users") |> sql.table
 
   let query =
-    delete.from(users)
+    value.sql()
+    |> delete.from(users)
     |> delete.where([
       sql.identifier("id")
       |> sql.column
       |> sql.eq(sql.value(value.int(1))),
     ])
     |> delete.returning(["id", "name"])
-    |> delete.to_query(value.format())
+    |> delete.to_query
 
   query.sql |> should.equal(expected)
   query.values |> should.equal([value.int(1)])
@@ -81,7 +85,8 @@ pub fn delete_to_string_test() {
   let users = sql.identifier("users") |> sql.table
 
   let query =
-    delete.from(users)
+    value.sql()
+    |> delete.from(users)
     |> delete.where([
       sql.identifier("id")
         |> sql.column
@@ -91,5 +96,5 @@ pub fn delete_to_string_test() {
         |> sql.lt(sql.value(value.text("2024-01-01"))),
     ])
 
-  delete.to_string(query, value.format()) |> should.equal(expected)
+  delete.to_string(query) |> should.equal(expected)
 }

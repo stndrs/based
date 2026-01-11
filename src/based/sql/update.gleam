@@ -7,15 +7,15 @@
 //// import database/value
 ////
 //// let users = sql.table("users")
-//// let format = sql.format()
+//// let sql = sql.new()
 ////
-//// let query = update.table(users)
+//// let query = update.table(sql, users)
 ////   |> update.set("name", sql.value("John", of: value.text))
 ////   |> update.where([
 ////     sql.name("id") |> sql.column |> expr.eq(sql.value(value.int(123)))
 ////   ])
 ////   |> update.returning(["id", "name"])
-////   |> update.to_query(format)
+////   |> update.to_query
 //// ```
 
 import based/db
@@ -28,6 +28,7 @@ import gleam/option.{type Option, None}
 
 pub opaque type Update(v) {
   Update(
+    sql: sql.Sql(v),
     table: sql.Table(v),
     sets: List(#(String, Node(v))),
     where: List(List(sql.Expr(v))),
@@ -41,8 +42,9 @@ pub opaque type Update(v) {
 }
 
 /// Create a new UPDATE query for the specified table
-pub fn table(table: sql.Table(v)) -> Update(v) {
+pub fn table(sql: sql.Sql(v), table: sql.Table(v)) -> Update(v) {
   Update(
+    sql:,
     table:,
     sets: [],
     where: [],
@@ -84,26 +86,26 @@ pub fn returning(update: Update(v), columns: List(String)) -> Update(v) {
 }
 
 /// Convert the UPDATE query to a database query with parameters
-pub fn to_query(update: Update(v), format: sql.SqlFmt(v)) -> db.Query(v) {
+pub fn to_query(update: Update(v)) -> db.Query(v) {
   let values = update.values |> list.reverse |> list.flatten
 
-  let to_placeholder = sql.to_placeholder(format, _)
+  let to_placeholder = sql.to_placeholder(update.sql, _)
 
-  build(update, format)
+  build(update)
   |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
   |> db.sql
   |> db.params(values)
 }
 
 /// Convert the UPDATE query to a formatted SQL string
-pub fn to_string(update: Update(v), format: sql.SqlFmt(v)) -> String {
+pub fn to_string(update: Update(v)) -> String {
   let values = update.values |> list.reverse |> list.flatten
 
-  build(update, format)
-  |> builder.to_string(values, format)
+  build(update)
+  |> builder.to_string(values, update.sql)
 }
 
-fn build(update: Update(v), format: sql.SqlFmt(v)) -> String {
+fn build(update: Update(v)) -> String {
   let sets = update.sets |> list.reverse
 
   let updates = {
@@ -111,7 +113,7 @@ fn build(update: Update(v), format: sql.SqlFmt(v)) -> String {
 
     let right =
       value
-      |> node.to_string(sql.to_identifier(format, _))
+      |> node.to_string(sql.to_identifier(update.sql, _))
 
     column
     |> fmt.eq(right)
@@ -120,11 +122,11 @@ fn build(update: Update(v), format: sql.SqlFmt(v)) -> String {
   let table =
     update.table
     |> sql.table_to_node
-    |> node.to_string(sql.to_identifier(format, _))
+    |> node.to_string(sql.to_identifier(update.sql, _))
 
   fmt.update(table)
   |> fmt.set(updates)
-  |> builder.append_where(update.where, format)
+  |> builder.append_where(update.where, update.sql)
   |> builder.append_returning(update.returning)
   |> builder.append_order_by(update.order_by, update.order)
   |> builder.append_limit(update.limit, update.offset)

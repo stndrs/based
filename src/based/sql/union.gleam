@@ -1,5 +1,4 @@
 import based/db
-import based/sql
 import based/sql/select.{type Select}
 import gleam/list
 import gleam/string
@@ -17,25 +16,25 @@ pub fn all(selects: List(Select(v))) -> Union(v) {
   UnionAll(selects)
 }
 
-pub fn to_query(union: Union(v), format: sql.SqlFmt(v)) -> db.Query(v) {
+pub fn to_query(union: Union(v)) -> db.Query(v) {
   let operator = case union {
     Union(..) -> " UNION "
     _ -> " UNION ALL "
   }
 
   union.selects
-  |> list.map(select.to_query(_, format))
+  |> list.map(select.to_query)
   |> to_union_query(operator)
 }
 
-pub fn to_string(union: Union(v), format: sql.SqlFmt(v)) -> String {
+pub fn to_string(union: Union(v)) -> String {
   let operator = case union {
     Union(..) -> " UNION "
     _ -> " UNION ALL "
   }
 
   union.selects
-  |> list.map(select.to_string(_, format))
+  |> list.map(select.to_string)
   |> string.join(operator)
 }
 

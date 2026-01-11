@@ -8,7 +8,7 @@ import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string
 
-pub fn to_string(sql: String, values: List(v), format: sql.SqlFmt(v)) -> String {
+pub fn to_string(sql: String, values: List(v), format: sql.Sql(v)) -> String {
   let values_by_idx =
     values
     |> list.index_map(fn(val, idx) { #(idx + 1, val) })
@@ -48,7 +48,7 @@ pub fn placeholders(
 pub fn append_where(
   st: String,
   where: List(List(sql.Expr(v))),
-  format: sql.SqlFmt(v),
+  format: sql.Sql(v),
 ) -> String {
   where
   |> list.reverse
@@ -75,7 +75,7 @@ pub fn append_group_by(st: String, group_by: List(String)) -> String {
 pub fn append_having(
   st: String,
   having: List(List(sql.Expr(v))),
-  format: sql.SqlFmt(v),
+  format: sql.Sql(v),
 ) -> String {
   having
   |> list.reverse
@@ -95,7 +95,7 @@ pub fn append_having(
 pub fn append_joins(
   st: String,
   joins: List(Join(v)),
-  format: sql.SqlFmt(v),
+  format: sql.Sql(v),
 ) -> String {
   joins
   |> list.reverse

@@ -13,28 +13,30 @@ pub fn with_test() {
   let employees = sql.identifier("employees") |> sql.alias("e")
 
   let employees_select =
-    select.from(employees, of: sql.table)
+    value.sql()
+    |> select.from(employees, of: sql.table)
     |> select.columns(["e.name", "d.name"])
     |> select.join(sql.alias(departments, "d"), of: sql.table, on: [
       sql.identifier("e.dept_id")
       |> sql.column
       |> sql.eq(sql.identifier("d.id") |> sql.column),
     ])
-    |> select.to_query(value.format())
+    |> select.to_query
 
   let query =
-    with.new([with.cte("departments", employees_select)])
-    |> with.query(fn() {
-      select.from(departments, of: sql.table)
+    value.sql()
+    |> with.new([with.cte("departments", employees_select)])
+    |> with.query(fn(sql) {
+      select.from(sql, departments, of: sql.table)
       |> select.columns(["*"])
       |> select.where([
         sql.identifier("name")
         |> sql.column
         |> sql.eq(sql.value(value.text("Engineering"))),
       ])
-      |> select.to_query(value.format())
+      |> select.to_query
     })
-    |> with.to_query(sql.format())
+    |> with.to_query
 
   query.sql |> should.equal(expected)
   query.values |> should.equal([value.text("Engineering")])
@@ -48,31 +50,34 @@ pub fn with_multiple_ctes_test() {
   let employees = sql.identifier("employees")
 
   let deps_select =
-    select.from(departments, of: sql.table)
+    value.sql()
+    |> select.from(departments, of: sql.table)
     |> select.columns(["id", "name"])
-    |> select.to_query(value.format())
+    |> select.to_query
 
   let employees_select =
-    select.from(employees, of: sql.table)
+    value.sql()
+    |> select.from(employees, of: sql.table)
     |> select.columns(["id", "name", "dept_id"])
-    |> select.to_query(value.format())
+    |> select.to_query
 
   let query =
-    with.new([
+    value.sql()
+    |> with.new([
       with.cte("departments", deps_select),
       with.cte("employees", employees_select),
     ])
-    |> with.query(fn() {
-      select.from(sql.alias(employees, "e"), of: sql.table)
+    |> with.query(fn(sql) {
+      select.from(sql, sql.alias(employees, "e"), of: sql.table)
       |> select.columns(["e.name", "d.name"])
       |> select.join(sql.alias(departments, "d"), of: sql.table, on: [
         sql.identifier("e.dept_id")
         |> sql.column
         |> sql.eq(sql.identifier("d.id") |> sql.column),
       ])
-      |> select.to_query(value.format())
+      |> select.to_query
     })
-    |> with.to_query(value.format())
+    |> with.to_query
 
   query.sql |> should.equal(expected)
   query.values |> should.equal([])
@@ -84,26 +89,28 @@ pub fn with_column_names_test() {
   let departments = sql.identifier("departments")
 
   let deps_select =
-    select.from(departments, of: sql.table)
+    value.sql()
+    |> select.from(departments, of: sql.table)
     |> select.columns(["id", "name"])
-    |> select.to_query(value.format())
+    |> select.to_query
 
   let query =
-    with.new([
+    value.sql()
+    |> with.new([
       with.cte("departments", deps_select)
       |> with.columns(["dept_id", "dept_name"]),
     ])
-    |> with.query(fn() {
-      select.from(departments, of: sql.table)
+    |> with.query(fn(sql) {
+      select.from(sql, departments, of: sql.table)
       |> select.columns(["dept_name"])
       |> select.where([
         sql.identifier("dept_id")
         |> sql.column
         |> sql.eq(sql.value(value.int(42))),
       ])
-      |> select.to_query(value.format())
+      |> select.to_query
     })
-    |> with.to_query(value.format())
+    |> with.to_query
 
   query.sql |> should.equal(expected)
   query.values |> should.equal([value.int(42)])
@@ -113,12 +120,13 @@ pub fn recursive_with_test() {
   let expected =
     "WITH RECURSIVE numbers (n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM numbers WHERE n < ?) SELECT n FROM numbers;"
 
-  let base_query = select.new() |> select.columns(["1"])
+  let base_query = select.new(value.sql()) |> select.columns(["1"])
 
   let numbers = sql.identifier("numbers")
 
   let recursive_query =
-    select.from(numbers, of: sql.table)
+    value.sql()
+    |> select.from(numbers, of: sql.table)
     |> select.columns(["n + 1"])
     |> select.where([
       sql.identifier("n")
@@ -128,17 +136,18 @@ pub fn recursive_with_test() {
 
   let union_all =
     union.all([base_query, recursive_query])
-    |> union.to_query(value.format())
+    |> union.to_query
 
   let query =
-    with.new([with.cte("numbers", union_all) |> with.columns(["n"])])
+    value.sql()
+    |> with.new([with.cte("numbers", union_all) |> with.columns(["n"])])
     |> with.recursive
-    |> with.query(fn() {
-      select.from(numbers, of: sql.table)
+    |> with.query(fn(sql) {
+      select.from(sql, numbers, of: sql.table)
       |> select.columns(["n"])
-      |> select.to_query(value.format())
+      |> select.to_query
     })
-    |> with.to_query(value.format())
+    |> with.to_query
 
   query.sql |> should.equal(expected)
   query.values |> should.equal([value.int(5)])
@@ -152,26 +161,29 @@ pub fn with_union_test() {
   let combined_data = sql.identifier("combined_data")
 
   let users_select =
-    select.from(users, of: sql.table)
+    value.sql()
+    |> select.from(users, of: sql.table)
     |> select.columns(["id", "name"])
 
   let accounts_select =
-    select.from(accounts, of: sql.table)
+    value.sql()
+    |> select.from(accounts, of: sql.table)
     |> select.columns(["id", "username"])
 
   let union_query =
     union.new([users_select, accounts_select])
-    |> union.to_query(value.format())
+    |> union.to_query
 
   let query =
-    with.new([with.cte("combined_data", union_query)])
-    |> with.query(fn() {
-      select.from(combined_data, of: sql.table)
+    value.sql()
+    |> with.new([with.cte("combined_data", union_query)])
+    |> with.query(fn(sql) {
+      select.from(sql, combined_data, of: sql.table)
       |> select.columns(["*"])
       |> select.order_by(["id"])
-      |> select.to_query(value.format())
+      |> select.to_query
     })
-    |> with.to_query(value.format())
+    |> with.to_query
 
   query.sql |> should.equal(expected)
   query.values |> should.equal([])

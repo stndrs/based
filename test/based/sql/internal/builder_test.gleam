@@ -17,7 +17,7 @@ pub fn to_string_test() {
   }
 
   let format =
-    sql.format()
+    sql.new()
     |> sql.on_identifier(fn(s) { "\"" <> s <> "\"" })
     |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
     |> sql.on_value(format_value)
@@ -46,7 +46,7 @@ pub fn append_where_test() {
   let st = "SELECT * FROM users"
 
   let format =
-    sql.format()
+    sql.new()
     |> sql.on_identifier(fn(s) { s })
     |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
     |> sql.on_value(fn(v) {
@@ -86,7 +86,7 @@ pub fn append_having_test() {
   let st = "SELECT department, COUNT(*) FROM users GROUP BY department"
 
   let format =
-    sql.format()
+    sql.new()
     |> sql.on_identifier(fn(s) { s })
     |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
     |> sql.on_value(fn(v) {
@@ -112,7 +112,7 @@ pub fn append_joins_test() {
   let st = "SELECT * FROM users"
 
   let format =
-    sql.format()
+    sql.new()
     |> sql.on_identifier(fn(s) { s })
     |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
     |> sql.on_value(fn(_v) { "" })
