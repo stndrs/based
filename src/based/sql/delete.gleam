@@ -39,7 +39,9 @@ pub opaque type Delete(v) {
 }
 
 /// Set the table for a DELETE query.
-pub fn from(sql: sql.Sql(v), table: sql.Table(v)) -> Delete(v) {
+pub fn from(sql: sql.Sql(v), identifier: sql.Identifier) -> Delete(v) {
+  let table = sql.table(identifier)
+
   Delete(sql:, table:, where: [], returning: [], values: [])
 }
 

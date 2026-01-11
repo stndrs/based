@@ -5,7 +5,7 @@ import gleeunit/should
 
 pub fn basic_delete_test() {
   let expected = "DELETE FROM users WHERE id = ?"
-  let users = sql.identifier("users") |> sql.table
+  let users = sql.identifier("users")
 
   let query =
     value.sql()
@@ -23,7 +23,7 @@ pub fn basic_delete_test() {
 
 pub fn delete_with_where_not_test() {
   let expected = "DELETE FROM users WHERE NOT id = ?"
-  let users = sql.identifier("users") |> sql.table
+  let users = sql.identifier("users")
 
   let query =
     value.sql()
@@ -41,7 +41,7 @@ pub fn delete_with_where_not_test() {
 
 pub fn delete_with_multiple_conditions_test() {
   let expected = "DELETE FROM users WHERE id = ? AND created_at < ?"
-  let users = sql.identifier("users") |> sql.table
+  let users = sql.identifier("users")
 
   let query =
     value.sql()
@@ -63,7 +63,7 @@ pub fn delete_with_multiple_conditions_test() {
 
 pub fn delete_returning_test() {
   let expected = "DELETE FROM users WHERE id = ? RETURNING id, name"
-  let users = sql.identifier("users") |> sql.table
+  let users = sql.identifier("users")
 
   let query =
     value.sql()
@@ -82,7 +82,7 @@ pub fn delete_returning_test() {
 
 pub fn delete_to_string_test() {
   let expected = "DELETE FROM users WHERE id = 1 AND created_at < '2024-01-01'"
-  let users = sql.identifier("users") |> sql.table
+  let users = sql.identifier("users")
 
   let query =
     value.sql()

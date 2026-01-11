@@ -17,7 +17,9 @@ pub opaque type Insert(v) {
   )
 }
 
-pub fn into(sql: sql.Sql(v), table: sql.Table(v)) -> Insert(v) {
+pub fn into(sql: sql.Sql(v), identifier: sql.Identifier) -> Insert(v) {
+  let table = sql.table(identifier)
+
   Insert(sql:, table:, columns: [], returning: [], values: [])
 }
 

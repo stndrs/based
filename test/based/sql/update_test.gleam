@@ -10,8 +10,8 @@ pub fn basic_update_test() {
 
   let query =
     value.sql()
-    |> update.table(sql.table(users))
-    |> update.set("name", sql.value(value.text("John")))
+    |> update.table(users)
+    |> update.set("name", value.text("John"), of: sql.value)
     |> update.where([
       sql.identifier("id")
       |> sql.column
@@ -29,9 +29,9 @@ pub fn update_multiple_columns_test() {
 
   let query =
     value.sql()
-    |> update.table(sql.table(users))
-    |> update.set("name", sql.value(value.text("John")))
-    |> update.set("email", sql.value(value.text("john@example.com")))
+    |> update.table(users)
+    |> update.set("name", value.text("John"), of: sql.value)
+    |> update.set("email", value.text("john@example.com"), of: sql.value)
     |> update.where([
       sql.identifier("id")
       |> sql.column
@@ -54,8 +54,8 @@ pub fn update_with_where_not_test() {
 
   let query =
     value.sql()
-    |> update.table(sql.table(users))
-    |> update.set("active", sql.value(value.true))
+    |> update.table(users)
+    |> update.set("active", value.true, of: sql.value)
     |> update.where_not([
       sql.identifier("id")
       |> sql.column
@@ -73,8 +73,8 @@ pub fn update_returning_test() {
 
   let query =
     value.sql()
-    |> update.table(sql.table(users))
-    |> update.set("name", sql.value(value.text("John")))
+    |> update.table(users)
+    |> update.set("name", value.text("John"), of: sql.value)
     |> update.where([
       sql.identifier("id")
       |> sql.column
@@ -93,8 +93,8 @@ pub fn update_with_is_test() {
 
   let query =
     value.sql()
-    |> update.table(sql.table(products))
-    |> update.set("price", sql.value(value.float(19.99)))
+    |> update.table(products)
+    |> update.set("price", value.float(19.99), of: sql.value)
     |> update.where([
       sql.identifier("is_deleted")
       |> sql.column
@@ -121,12 +121,11 @@ pub fn update_set_from_subquery_test() {
       |> sql.column
       |> sql.eq(sql.value(value.int(1))),
     ])
-    |> select.to_subquery
 
   let query =
     value.sql()
-    |> update.table(sql.table(products))
-    |> update.set("price", price_id)
+    |> update.table(products)
+    |> update.set("price", price_id, of: select.to_subquery)
     |> update.to_query
 
   query.sql |> should.equal(expected)
@@ -139,8 +138,8 @@ pub fn update_with_is_to_string_test() {
 
   let query =
     value.sql()
-    |> update.table(sql.table(products))
-    |> update.set("price", sql.value(value.float(19.99)))
+    |> update.table(products)
+    |> update.set("price", value.float(19.99), of: sql.value)
     |> update.where([
       sql.identifier("is_deleted")
       |> sql.column

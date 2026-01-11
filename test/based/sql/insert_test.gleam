@@ -5,7 +5,7 @@ import gleeunit/should
 
 pub fn basic_insert_test() {
   let expected = "INSERT INTO users (name, email) VALUES (?, ?)"
-  let users = sql.identifier("users") |> sql.table
+  let users = sql.identifier("users")
 
   let query =
     value.sql()
@@ -24,7 +24,7 @@ pub fn basic_insert_test() {
 pub fn insert_multiple_columns_test() {
   let expected =
     "INSERT INTO users (name, email, age, active) VALUES (?, ?, ?, ?)"
-  let users = sql.identifier("users") |> sql.table
+  let users = sql.identifier("users")
 
   let query =
     value.sql()
@@ -52,7 +52,7 @@ pub fn insert_multiple_columns_test() {
 
 pub fn insert_returning_test() {
   let expected = "INSERT INTO users (name) VALUES (?) RETURNING id, name"
-  let users = sql.identifier("users") |> sql.table
+  let users = sql.identifier("users")
 
   let query =
     value.sql()
@@ -69,7 +69,7 @@ pub fn insert_returning_test() {
 pub fn insert_to_string_test() {
   let expected =
     "INSERT INTO users (name, email) VALUES ('John', 'john@example.com')"
-  let users = sql.identifier("users") |> sql.table
+  let users = sql.identifier("users")
 
   let query =
     value.sql()
@@ -87,7 +87,7 @@ pub fn insert_to_string_test() {
 
 pub fn insert_multiple_rows_test() {
   let expected = "INSERT INTO users (name, email) VALUES (?, ?), (?, ?)"
-  let users = sql.identifier("users") |> sql.table
+  let users = sql.identifier("users")
 
   let query =
     value.sql()
@@ -117,7 +117,7 @@ pub fn insert_multiple_rows_test() {
 
 pub fn insert_with_null_test() {
   let expected = "INSERT INTO users (name, middle_name) VALUES (?, ?)"
-  let users = sql.identifier("users") |> sql.table
+  let users = sql.identifier("users")
 
   let query =
     value.sql()
@@ -135,7 +135,7 @@ pub fn insert_with_null_test() {
 pub fn insert_with_different_value_types_test() {
   let expected =
     "INSERT INTO products (id, price, is_active, description) VALUES (?, ?, ?, ?)"
-  let products = sql.identifier("products") |> sql.table
+  let products = sql.identifier("products")
 
   let query =
     value.sql()

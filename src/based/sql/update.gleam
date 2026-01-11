@@ -44,7 +44,9 @@ pub opaque type Update(v) {
 }
 
 /// Create a new UPDATE query for the specified table
-pub fn table(sql: sql.Sql(v), table: sql.Table(v)) -> Update(v) {
+pub fn table(sql: sql.Sql(v), identifier: sql.Identifier) -> Update(v) {
+  let table = table.new(identifier)
+
   Update(
     sql:,
     table:,
@@ -60,9 +62,14 @@ pub fn table(sql: sql.Sql(v), table: sql.Table(v)) -> Update(v) {
 }
 
 /// Add a column assignment to the UPDATE statement
-pub fn set(update: Update(v), column: String, value: Node(v)) {
-  let sets = update.sets |> list.prepend(#(column, value))
-  let values = node.unwrap(value)
+pub fn set(
+  update: Update(v),
+  column: String,
+  value: a,
+  of kind: fn(a) -> Node(v),
+) {
+  let sets = update.sets |> list.prepend(#(column, kind(value)))
+  let values = node.unwrap(kind(value))
 
   Update(..update, sets:) |> prepend_values(values)
 }

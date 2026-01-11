@@ -230,12 +230,6 @@ pub fn to_query(select: Select(v)) -> db.Query(v) {
   |> db.params(values)
 }
 
-// pub fn subquery(select: Select(v)) -> sql.Table(v) {
-//   select
-//   |> to_query
-//   |> sql.from_query
-// }
-
 pub fn to_subquery(select: Select(v)) -> Node(v) {
   to_query(select)
   |> node.Query(alias: None)
