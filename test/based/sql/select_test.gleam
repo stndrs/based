@@ -669,10 +669,11 @@ pub fn from_subquery_test() {
       |> sql.column
       |> sql.eq(sql.value(value.bool(True))),
     ])
+    |> select.to_query
 
   let query =
     value.sql()
-    |> select.from(employees_query, of: select.subquery)
+    |> select.from(employees_query, of: sql.subquery)
     |> select.columns(["name", "department"])
     |> select.where([
       sql.identifier("name")
@@ -700,10 +701,11 @@ pub fn complex_queried_with_aggregation_test() {
       |> sql.column
       |> sql.gt(sql.value(value.int(10))),
     ])
+    |> select.to_query
 
   let query =
     value.sql()
-    |> select.from(department_stats_query, of: select.subquery)
+    |> select.from(department_stats_query, of: sql.subquery)
     |> select.columns(["department", "total_salary"])
     |> select.where([
       sql.identifier("total_salary")

@@ -205,11 +205,6 @@ pub fn nullable(value: Option(a), inner_type: fn(a) -> Node(v)) -> Node(v) {
   }
 }
 
-@internal
-pub fn subquery(query: db.Query(v)) -> Node(v) {
-  node.Query(query:, alias: None)
-}
-
 pub fn values(values: List(v)) -> Node(v) {
   node.Values(values)
 }
@@ -444,8 +439,7 @@ pub opaque type Table(v) {
   Subquery(query: db.Query(v), alias: Option(String))
 }
 
-@internal
-pub fn from_query(query: db.Query(v)) -> Table(v) {
+pub fn subquery(query: db.Query(v)) -> Table(v) {
   Subquery(query, alias: None)
 }
 

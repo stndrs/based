@@ -228,18 +228,15 @@ pub fn to_query(select: Select(v)) -> db.Query(v) {
   |> db.params(values)
 }
 
-pub fn subquery(select: Select(v)) -> sql.Table(v) {
-  select
-  |> to_query
-  |> sql.from_query
-}
+// pub fn subquery(select: Select(v)) -> sql.Table(v) {
+//   select
+//   |> to_query
+//   |> sql.from_query
+// }
 
 pub fn to_subquery(select: Select(v)) -> Node(v) {
-  to_query(select) |> sql.subquery
-}
-
-pub fn to_table(select: Select(v)) -> sql.Table(v) {
-  to_query(select) |> sql.from_query
+  to_query(select)
+  |> node.Query(alias: None)
 }
 
 pub fn to_string(select: Select(v)) -> String {
