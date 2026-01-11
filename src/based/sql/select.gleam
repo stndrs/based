@@ -1,9 +1,11 @@
 import based/db
 import based/sql
 import based/sql/internal/builder
+import based/sql/internal/expr
 import based/sql/internal/fmt
 import based/sql/internal/join.{type Join}
 import based/sql/internal/node.{type Node}
+import based/sql/internal/table
 import gleam/function
 import gleam/list
 import gleam/option.{type Option, None, Some}
@@ -68,7 +70,7 @@ pub fn from(
 ) -> Select(v) {
   let table = kind(source)
 
-  let values = sql.table_to_values(table)
+  let values = table.to_values(table)
 
   Select(
     sql:,
@@ -95,7 +97,7 @@ pub fn columns(select: Select(v), columns: List(String)) -> Select(v) {
 // Where
 
 pub fn where(select: Select(v), exprs: List(sql.Expr(v))) -> Select(v) {
-  let values = list.flat_map(exprs, sql.expr_to_values)
+  let values = list.flat_map(exprs, expr.to_values)
   let where = list.prepend(select.where, exprs)
 
   Select(..select, where:)
@@ -158,7 +160,7 @@ fn do_join(
   exprs: List(sql.Expr(v)),
   joiner: fn(sql.Table(v), List(sql.Expr(v))) -> join.Join(v),
 ) -> Select(v) {
-  let values = list.flat_map(exprs, sql.expr_to_values)
+  let values = list.flat_map(exprs, expr.to_values)
   let join_clause = joiner(table, exprs)
   let join = list.prepend(select.join, join_clause)
 
@@ -172,7 +174,7 @@ pub fn group_by(qb: Select(v), group_by: List(String)) -> Select(v) {
 }
 
 pub fn having(select: Select(v), having: List(sql.Expr(v))) -> Select(v) {
-  let values = list.flat_map(having, sql.expr_to_values)
+  let values = list.flat_map(having, expr.to_values)
   let having = list.prepend(select.having, having)
 
   Select(..select, having:)
@@ -258,7 +260,7 @@ fn build(select: Select(v)) -> String {
     Some(table) -> {
       let to_string =
         table
-        |> sql.table_to_node
+        |> table.to_node
         |> node.to_string(sql.to_identifier(select.sql, _))
 
       fmt.from(_, to_string)

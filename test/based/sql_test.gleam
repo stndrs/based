@@ -1,4 +1,5 @@
 import based/sql
+import based/sql/internal/expr
 import based/value
 import gleam/int
 import gleeunit/should
@@ -44,10 +45,10 @@ pub fn eq_test() {
   let sql = sql.eq(sql.identifier("id") |> sql.column, val)
 
   let expected = "id = :param"
-  sql.expr_to_string(sql, sql.new())
+  expr.to_string(sql, sql.to_identifier(sql.new(), _))
   |> should.equal(expected)
 
-  sql.expr_to_values(sql) |> should.equal([value.int(1)])
+  expr.to_values(sql) |> should.equal([value.int(1)])
 }
 
 pub fn greater_than_test() {
@@ -56,10 +57,10 @@ pub fn greater_than_test() {
   let sql = sql.gt(sql.identifier("age") |> sql.column, val)
 
   let expected = "age > :param"
-  sql.expr_to_string(sql, sql.new())
+  expr.to_string(sql, sql.to_identifier(sql.new(), _))
   |> should.equal(expected)
 
-  sql.expr_to_values(sql) |> should.equal([value.int(18)])
+  expr.to_values(sql) |> should.equal([value.int(18)])
 }
 
 pub fn less_than_test() {
@@ -69,10 +70,10 @@ pub fn less_than_test() {
   let sql = sql.lt(col, val)
 
   let expected = "age < :param"
-  sql.expr_to_string(sql, sql.new())
+  expr.to_string(sql, sql.to_identifier(sql.new(), _))
   |> should.equal(expected)
 
-  sql.expr_to_values(sql) |> should.equal([value.int(65)])
+  expr.to_values(sql) |> should.equal([value.int(65)])
 }
 
 pub fn greater_than_equal_test() {
@@ -82,10 +83,10 @@ pub fn greater_than_equal_test() {
   let sql = sql.gt_eq(col, val)
 
   let expected = "age >= :param"
-  sql.expr_to_string(sql, sql.new())
+  expr.to_string(sql, sql.to_identifier(sql.new(), _))
   |> should.equal(expected)
 
-  sql.expr_to_values(sql) |> should.equal([value.int(18)])
+  expr.to_values(sql) |> should.equal([value.int(18)])
 }
 
 pub fn less_than_equal_test() {
@@ -95,10 +96,10 @@ pub fn less_than_equal_test() {
   let sql = sql.lt_eq(col, val)
 
   let expected = "age <= :param"
-  sql.expr_to_string(sql, sql.new())
+  expr.to_string(sql, sql.to_identifier(sql.new(), _))
   |> should.equal(expected)
 
-  sql.expr_to_values(sql) |> should.equal([value.int(65)])
+  expr.to_values(sql) |> should.equal([value.int(65)])
 }
 
 pub fn not_equal_test() {
@@ -108,10 +109,10 @@ pub fn not_equal_test() {
   let sql = sql.not_eq(col, val)
 
   let expected = "status <> :param"
-  sql.expr_to_string(sql, sql.new())
+  expr.to_string(sql, sql.to_identifier(sql.new(), _))
   |> should.equal(expected)
 
-  sql.expr_to_values(sql) |> should.equal([value.text("inactive")])
+  expr.to_values(sql) |> should.equal([value.text("inactive")])
 }
 
 pub fn between_test() {
@@ -122,10 +123,10 @@ pub fn between_test() {
   let sql = sql.between(col, start, end)
 
   let expected = "price BETWEEN :param AND :param"
-  sql.expr_to_string(sql, sql.new())
+  expr.to_string(sql, sql.to_identifier(sql.new(), _))
   |> should.equal(expected)
 
-  sql.expr_to_values(sql)
+  expr.to_values(sql)
   |> should.equal([value.float(10.0), value.float(50.0)])
 }
 
@@ -135,10 +136,10 @@ pub fn like_test() {
   let sql = sql.like(col, "%John%", value.text)
 
   let expected = "name LIKE :param"
-  sql.expr_to_string(sql, sql.new())
+  expr.to_string(sql, sql.to_identifier(sql.new(), _))
   |> should.equal(expected)
 
-  sql.expr_to_values(sql) |> should.equal([value.text("%John%")])
+  expr.to_values(sql) |> should.equal([value.text("%John%")])
 }
 
 pub fn in_test() {
@@ -148,10 +149,10 @@ pub fn in_test() {
   let sql = sql.in(col, values)
 
   let expected = "id IN (:param, :param, :param)"
-  sql.expr_to_string(sql, sql.new())
+  expr.to_string(sql, sql.to_identifier(sql.new(), _))
   |> should.equal(expected)
 
-  sql.expr_to_values(sql)
+  expr.to_values(sql)
   |> should.equal([value.int(1), value.int(2), value.int(3)])
 }
 
@@ -161,10 +162,10 @@ pub fn is_test() {
   let sql = sql.is(col, True)
 
   let expected = "active IS TRUE"
-  sql.expr_to_string(sql, sql.new())
+  expr.to_string(sql, sql.to_identifier(sql.new(), _))
   |> should.equal(expected)
 
-  sql.expr_to_values(sql) |> should.equal([])
+  expr.to_values(sql) |> should.equal([])
 }
 
 pub fn not_like_test() {
@@ -173,10 +174,10 @@ pub fn not_like_test() {
   let sql = sql.not_like(col, "%admin%", of: value.text)
 
   let expected = "name NOT LIKE :param"
-  sql.expr_to_string(sql, sql.new())
+  expr.to_string(sql, sql.to_identifier(sql.new(), _))
   |> should.equal(expected)
 
-  sql.expr_to_values(sql) |> should.equal([value.text("%admin%")])
+  expr.to_values(sql) |> should.equal([value.text("%admin%")])
 }
 
 pub fn and_test() {
@@ -188,10 +189,10 @@ pub fn and_test() {
   let and_sql = sql.and(sql1, sql2)
 
   let expected = "active = :param AND age > :param"
-  sql.expr_to_string(and_sql, sql.new())
+  expr.to_string(and_sql, sql.to_identifier(sql.new(), _))
   |> should.equal(expected)
 
-  sql.expr_to_values(and_sql) |> should.equal([value.true, value.int(18)])
+  expr.to_values(and_sql) |> should.equal([value.true, value.int(18)])
 }
 
 pub fn or_test() {
@@ -206,10 +207,10 @@ pub fn or_test() {
   let or_sql = sql.or(sql1, sql2)
 
   let expected = "name = :param OR email = :param"
-  sql.expr_to_string(or_sql, sql.new())
+  expr.to_string(or_sql, sql.to_identifier(sql.new(), _))
   |> should.equal(expected)
 
-  sql.expr_to_values(or_sql)
+  expr.to_values(or_sql)
   |> should.equal([value.text("John"), value.text("john@example.com")])
 }
 
@@ -220,10 +221,10 @@ pub fn not_test() {
   let not_sql = sql.not(sql1)
 
   let expected = "NOT active = :param"
-  sql.expr_to_string(not_sql, sql.new())
+  expr.to_string(not_sql, sql.to_identifier(sql.new(), _))
   |> should.equal(expected)
 
-  sql.expr_to_values(not_sql) |> should.equal([value.true])
+  expr.to_values(not_sql) |> should.equal([value.true])
 }
 
 pub fn complex_sqlession_test() {
@@ -238,10 +239,10 @@ pub fn complex_sqlession_test() {
   let or_sql = sql.or(and_sql, sql3)
 
   let expected = "active = :param AND age > :param OR role = :param"
-  sql.expr_to_string(or_sql, sql.new())
+  expr.to_string(or_sql, sql.to_identifier(sql.new(), _))
   |> should.equal(expected)
 
-  sql.expr_to_values(or_sql)
+  expr.to_values(or_sql)
   |> should.equal([value.true, value.int(18), value.text("admin")])
 }
 

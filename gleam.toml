@@ -3,6 +3,9 @@ version = "4.0.0"
 description = "gleam types and functions for database backends"
 
 repository = { type = "github", user = "stndrs", repo = "based" }
+internal_modules = [
+  "based/sql/internal/*"
+]
 
 [dependencies]
 gleam_stdlib = ">= 0.38.0 and < 2.0.0"

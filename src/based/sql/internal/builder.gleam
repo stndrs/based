@@ -1,7 +1,9 @@
 import based/sql
+import based/sql/internal/expr
 import based/sql/internal/fmt
 import based/sql/internal/join.{type Join}
 import based/sql/internal/node
+import based/sql/internal/table
 import gleam/dict
 import gleam/list
 import gleam/option.{type Option, None, Some}
@@ -60,7 +62,7 @@ pub fn append_where(
     }
 
     expr
-    |> sql.expr_to_string(format)
+    |> expr.to_string(sql.to_identifier(format, _))
     |> expr_fmt(sql1, _)
   })
 }
@@ -87,7 +89,7 @@ pub fn append_having(
     }
 
     expr
-    |> sql.expr_to_string(format)
+    |> expr.to_string(sql.to_identifier(format, _))
     |> expr_fmt(sql1, _)
   })
 }
@@ -107,7 +109,7 @@ pub fn append_joins(
       join.FullJoin -> fmt.full_outer_join
     }
 
-    let table_node = sql.table_to_node(join.table)
+    let table_node = table.to_node(join.table)
 
     st
     |> join_tree(node.to_string(table_node, with: sql.to_identifier(format, _)))
@@ -118,7 +120,7 @@ pub fn append_joins(
       }
 
       expr
-      |> sql.expr_to_string(format)
+      |> expr.to_string(sql.to_identifier(format, _))
       |> expr_fmt(sql1, _)
     })
   })

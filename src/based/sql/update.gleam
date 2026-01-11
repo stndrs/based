@@ -21,8 +21,10 @@
 import based/db
 import based/sql
 import based/sql/internal/builder
+import based/sql/internal/expr
 import based/sql/internal/fmt
 import based/sql/internal/node.{type Node}
+import based/sql/internal/table
 import gleam/list
 import gleam/option.{type Option, None}
 
@@ -67,7 +69,7 @@ pub fn set(update: Update(v), column: String, value: Node(v)) {
 
 /// Add WHERE conditions to the UPDATE statement
 pub fn where(update: Update(v), exprs: List(sql.Expr(v))) -> Update(v) {
-  let values = list.flat_map(exprs, sql.expr_to_values)
+  let values = list.flat_map(exprs, expr.to_values)
 
   Update(..update, where: [exprs])
   |> prepend_values(values)
@@ -121,7 +123,7 @@ fn build(update: Update(v)) -> String {
 
   let table =
     update.table
-    |> sql.table_to_node
+    |> table.to_node
     |> node.to_string(sql.to_identifier(update.sql, _))
 
   fmt.update(table)

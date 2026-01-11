@@ -21,8 +21,10 @@
 import based/db
 import based/sql
 import based/sql/internal/builder
+import based/sql/internal/expr
 import based/sql/internal/fmt
 import based/sql/internal/node
+import based/sql/internal/table
 import gleam/list
 
 /// A DELETE query with table, WHERE conditions, RETURNING columns, and values.
@@ -43,7 +45,7 @@ pub fn from(sql: sql.Sql(v), table: sql.Table(v)) -> Delete(v) {
 
 /// Add WHERE conditions to a DELETE query.
 pub fn where(delete: Delete(v), exprs: List(sql.Expr(v))) -> Delete(v) {
-  let values = list.flat_map(exprs, sql.expr_to_values)
+  let values = list.flat_map(exprs, expr.to_values)
 
   Delete(..delete, where: [exprs]) |> prepend_values(values)
 }
@@ -83,7 +85,7 @@ pub fn to_string(delete: Delete(v)) -> String {
 fn build(delete: Delete(v)) -> String {
   let from =
     delete.table
-    |> sql.table_to_node
+    |> table.to_node
     |> node.to_string(sql.to_identifier(delete.sql, _))
 
   fmt.delete
