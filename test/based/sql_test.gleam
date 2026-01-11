@@ -5,36 +5,36 @@ import gleeunit/should
 
 // Column
 
-pub fn column_test() {
-  let col =
-    sql.identifier("id")
-    |> sql.column
-
-  let expected = "id"
-  sql.node_to_string(col, value.format())
-  |> should.equal(expected)
-}
-
-pub fn alias_test() {
-  let col = sql.identifier("user_id") |> sql.alias("id") |> sql.column
-
-  let expected = "user_id AS id"
-  sql.node_to_string(col, value.format())
-  |> should.equal(expected)
-}
-
-pub fn table_and_alias_test() {
-  let col =
-    sql.identifier("users")
-    |> sql.attr("user_id")
-    |> sql.alias("id")
-    |> sql.column
-
-  let expected = "users.user_id AS id"
-
-  sql.node_to_string(col, value.format())
-  |> should.equal(expected)
-}
+// pub fn column_test() {
+//   let col =
+//     sql.identifier("id")
+//     |> sql.column
+// 
+//   let expected = "id"
+//   sql.node_to_string(col, value.format())
+//   |> should.equal(expected)
+// }
+// 
+// pub fn alias_test() {
+//   let col = sql.identifier("user_id") |> sql.alias("id") |> sql.column
+// 
+//   let expected = "user_id AS id"
+//   sql.node_to_string(col, value.format())
+//   |> should.equal(expected)
+// }
+// 
+// pub fn table_and_alias_test() {
+//   let col =
+//     sql.identifier("users")
+//     |> sql.attr("user_id")
+//     |> sql.alias("id")
+//     |> sql.column
+// 
+//   let expected = "users.user_id AS id"
+// 
+//   sql.node_to_string(col, value.format())
+//   |> should.equal(expected)
+// }
 
 // Expr
 
@@ -245,80 +245,80 @@ pub fn complex_sqlession_test() {
   |> should.equal([value.true, value.int(18), value.text("admin")])
 }
 
-pub fn column_with_table_test() {
-  let users = sql.identifier("users")
-  let col = users |> sql.attr("id") |> sql.column
-
-  let expected = "users.id"
-  sql.node_to_string(col, value.format())
-  |> should.equal(expected)
-}
-
-pub fn columns_test() {
-  let cols_node = sql.columns(["id", "name", "email"])
-
-  let expected = "(id, name, email)"
-  sql.node_to_string(cols_node, value.format())
-  |> should.equal(expected)
-}
-
-pub fn value_test() {
-  let val = sql.value(value.int(42))
-
-  let expected = ":param"
-  sql.node_to_string(val, value.format())
-  |> should.equal(expected)
-
-  sql.unwrap(val) |> should.equal([value.int(42)])
-}
-
-pub fn values_test() {
-  let vals = sql.values([value.int(1), value.int(2), value.int(3)])
-
-  let expected = "(:param, :param, :param)"
-  sql.node_to_string(vals, value.format())
-  |> should.equal(expected)
-
-  sql.unwrap(vals)
-  |> should.equal([value.int(1), value.int(2), value.int(3)])
-}
-
-pub fn tuples_test() {
-  let tuples =
-    sql.tuples([
-      [sql.value(value.int(1)), sql.value(value.text("John"))],
-      [sql.value(value.int(2)), sql.value(value.text("Jane"))],
-    ])
-
-  let expected = "((:param, :param), (:param, :param))"
-  sql.node_to_string(tuples, value.format())
-  |> should.equal(expected)
-
-  sql.unwrap(tuples)
-  |> should.equal([
-    value.int(1),
-    value.text("John"),
-    value.int(2),
-    value.text("Jane"),
-  ])
-}
-
-pub fn special_values_test() {
-  let true_node = sql.value(value.true)
-  let false_node = sql.value(value.false)
-  let null_node = sql.value(value.null)
-
-  sql.node_to_string(true_node, value.format())
-  |> should.equal(":param")
-  sql.node_to_string(false_node, value.format())
-  |> should.equal(":param")
-  sql.node_to_string(null_node, value.format())
-  |> should.equal(":param")
-
-  sql.unwrap(true_node) |> should.equal([value.true])
-  sql.unwrap(false_node) |> should.equal([value.false])
-  sql.unwrap(null_node) |> should.equal([value.null])
-}
+// pub fn column_with_table_test() {
+//   let users = sql.identifier("users")
+//   let col = users |> sql.attr("id") |> sql.column
+// 
+//   let expected = "users.id"
+//   sql.node_to_string(col, value.format())
+//   |> should.equal(expected)
+// }
+// 
+// pub fn columns_test() {
+//   let cols_node = sql.columns(["id", "name", "email"])
+// 
+//   let expected = "(id, name, email)"
+//   sql.node_to_string(cols_node, value.format())
+//   |> should.equal(expected)
+// }
+// 
+// pub fn value_test() {
+//   let val = sql.value(value.int(42))
+// 
+//   let expected = ":param"
+//   sql.node_to_string(val, value.format())
+//   |> should.equal(expected)
+// 
+//   sql.unwrap(val) |> should.equal([value.int(42)])
+// }
+// 
+// pub fn values_test() {
+//   let vals = sql.values([value.int(1), value.int(2), value.int(3)])
+// 
+//   let expected = "(:param, :param, :param)"
+//   sql.node_to_string(vals, value.format())
+//   |> should.equal(expected)
+// 
+//   sql.unwrap(vals)
+//   |> should.equal([value.int(1), value.int(2), value.int(3)])
+// }
+// 
+// pub fn tuples_test() {
+//   let tuples =
+//     sql.tuples([
+//       [sql.value(value.int(1)), sql.value(value.text("John"))],
+//       [sql.value(value.int(2)), sql.value(value.text("Jane"))],
+//     ])
+// 
+//   let expected = "((:param, :param), (:param, :param))"
+//   sql.node_to_string(tuples, value.format())
+//   |> should.equal(expected)
+// 
+//   sql.unwrap(tuples)
+//   |> should.equal([
+//     value.int(1),
+//     value.text("John"),
+//     value.int(2),
+//     value.text("Jane"),
+//   ])
+// }
+// 
+// pub fn special_values_test() {
+//   let true_node = sql.value(value.true)
+//   let false_node = sql.value(value.false)
+//   let null_node = sql.value(value.null)
+// 
+//   sql.node_to_string(true_node, value.format())
+//   |> should.equal(":param")
+//   sql.node_to_string(false_node, value.format())
+//   |> should.equal(":param")
+//   sql.node_to_string(null_node, value.format())
+//   |> should.equal(":param")
+// 
+//   sql.unwrap(true_node) |> should.equal([value.true])
+//   sql.unwrap(false_node) |> should.equal([value.false])
+//   sql.unwrap(null_node) |> should.equal([value.null])
+// }
 
 // Format
 

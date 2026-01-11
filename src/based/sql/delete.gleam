@@ -22,12 +22,13 @@ import based/db
 import based/sql
 import based/sql/internal/builder
 import based/sql/internal/fmt
+import based/sql/internal/node
 import gleam/list
 
 /// A DELETE query with table, WHERE conditions, RETURNING columns, and values.
 pub opaque type Delete(v) {
   Delete(
-    table: sql.Node(v),
+    table: sql.Table(v),
     where: List(List(sql.Expr(v))),
     returning: List(String),
     values: List(List(v)),
@@ -36,7 +37,6 @@ pub opaque type Delete(v) {
 
 /// Set the table for a DELETE query.
 pub fn from(table: sql.Table(v)) -> Delete(v) {
-  let table = sql.table_to_node(table)
   Delete(table:, where: [], returning: [], values: [])
 }
 
@@ -80,7 +80,10 @@ pub fn to_string(delete: Delete(v), format: sql.SqlFmt(v)) -> String {
 
 /// Build a DELETE query's SQL string tree using the given format.
 fn build(delete: Delete(v), format: sql.SqlFmt(v)) -> String {
-  let from = sql.node_to_string(delete.table, format)
+  let from =
+    delete.table
+    |> sql.table_to_node
+    |> node.to_string(sql.to_identifier(format, _))
 
   fmt.delete
   |> fmt.from(from)

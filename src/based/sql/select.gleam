@@ -2,6 +2,8 @@ import based/db
 import based/sql
 import based/sql/internal/builder
 import based/sql/internal/fmt
+import based/sql/internal/join.{type Join}
+import based/sql/internal/node.{type Node}
 import gleam/function
 import gleam/list
 import gleam/option.{type Option, None, Some}
@@ -12,10 +14,10 @@ type For {
 
 pub opaque type Select(v) {
   Select(
-    table: Option(sql.Node(v)),
+    table: Option(sql.Table(v)),
     columns: List(String),
     distinct: Bool,
-    join: List(sql.Join(v)),
+    join: List(Join(v)),
     where: List(List(sql.Expr(v))),
     group_by: List(String),
     having: List(List(sql.Expr(v))),
@@ -61,7 +63,6 @@ pub fn from(source: a, of kind: fn(a) -> sql.Table(v)) -> Select(v) {
   let table = kind(source)
 
   let values = sql.table_to_values(table)
-  let table = sql.table_to_node(table)
 
   Select(
     table: Some(table),
@@ -108,7 +109,7 @@ pub fn join(
 ) -> Select(v) {
   let table = kind(source)
 
-  do_join(select, table, exprs, sql.inner)
+  do_join(select, table, exprs, join.inner)
 }
 
 pub fn left_join(
@@ -119,7 +120,7 @@ pub fn left_join(
 ) -> Select(v) {
   let table = kind(source)
 
-  do_join(select, table, exprs, sql.left)
+  do_join(select, table, exprs, join.left)
 }
 
 pub fn right_join(
@@ -130,7 +131,7 @@ pub fn right_join(
 ) -> Select(v) {
   let table = kind(source)
 
-  do_join(select, table, exprs, sql.right)
+  do_join(select, table, exprs, join.right)
 }
 
 pub fn full_join(
@@ -141,14 +142,14 @@ pub fn full_join(
 ) -> Select(v) {
   let table = kind(source)
 
-  do_join(select, table, exprs, sql.full)
+  do_join(select, table, exprs, join.full)
 }
 
 fn do_join(
   select: Select(v),
   table: sql.Table(v),
   exprs: List(sql.Expr(v)),
-  joiner: fn(sql.Table(v), List(sql.Expr(v))) -> sql.Join(v),
+  joiner: fn(sql.Table(v), List(sql.Expr(v))) -> join.Join(v),
 ) -> Select(v) {
   let values = list.flat_map(exprs, sql.expr_to_values)
   let join_clause = joiner(table, exprs)
@@ -228,7 +229,7 @@ pub fn subquery(format: sql.SqlFmt(v)) -> fn(Select(v)) -> sql.Table(v) {
   }
 }
 
-pub fn to_subquery(select: Select(v), format: sql.SqlFmt(v)) -> sql.Node(v) {
+pub fn to_subquery(select: Select(v), format: sql.SqlFmt(v)) -> Node(v) {
   to_query(select, format) |> sql.subquery
 }
 
@@ -252,7 +253,14 @@ fn build(select: Select(v), format: sql.SqlFmt(v)) -> String {
   }
 
   let from_fmt = case select.table {
-    Some(table) -> fmt.from(_, sql.node_to_string(table, format))
+    Some(table) -> {
+      let to_string =
+        table
+        |> sql.table_to_node
+        |> node.to_string(sql.to_identifier(format, _))
+
+      fmt.from(_, to_string)
+    }
     None -> function.identity
   }
 

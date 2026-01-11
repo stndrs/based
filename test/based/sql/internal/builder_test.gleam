@@ -1,6 +1,7 @@
 import based/sql
 import based/sql/internal/builder
 import based/sql/internal/fmt
+import based/sql/internal/join
 import based/value
 import gleam/int
 import gleam/option.{None, Some}
@@ -123,7 +124,7 @@ pub fn append_joins_test() {
   let posts_user_id = posts |> sql.attr("user_id")
 
   let joins = [
-    sql.Join(type_: sql.InnerJoin, table: sql.table(posts), exprs: [
+    join.Join(type_: join.InnerJoin, table: sql.table(posts), exprs: [
       users_id
       |> sql.column
       |> sql.eq(sql.column(posts_user_id)),

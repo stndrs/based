@@ -22,13 +22,14 @@ import based/db
 import based/sql
 import based/sql/internal/builder
 import based/sql/internal/fmt
+import based/sql/internal/node.{type Node}
 import gleam/list
 import gleam/option.{type Option, None}
 
 pub opaque type Update(v) {
   Update(
-    table: sql.Node(v),
-    sets: List(#(String, sql.Node(v))),
+    table: sql.Table(v),
+    sets: List(#(String, Node(v))),
     where: List(List(sql.Expr(v))),
     order_by: List(String),
     order: Option(sql.Order),
@@ -41,8 +42,6 @@ pub opaque type Update(v) {
 
 /// Create a new UPDATE query for the specified table
 pub fn table(table: sql.Table(v)) -> Update(v) {
-  let table = sql.table_to_node(table)
-
   Update(
     table:,
     sets: [],
@@ -57,9 +56,9 @@ pub fn table(table: sql.Table(v)) -> Update(v) {
 }
 
 /// Add a column assignment to the UPDATE statement
-pub fn set(update: Update(v), column: String, value: sql.Node(v)) {
+pub fn set(update: Update(v), column: String, value: Node(v)) {
   let sets = update.sets |> list.prepend(#(column, value))
-  let values = sql.unwrap(value)
+  let values = node.unwrap(value)
 
   Update(..update, sets:) |> prepend_values(values)
 }
@@ -112,13 +111,16 @@ fn build(update: Update(v), format: sql.SqlFmt(v)) -> String {
 
     let right =
       value
-      |> sql.node_to_string(format)
+      |> node.to_string(sql.to_identifier(format, _))
 
     column
     |> fmt.eq(right)
   }
 
-  let table = sql.node_to_string(update.table, format)
+  let table =
+    update.table
+    |> sql.table_to_node
+    |> node.to_string(sql.to_identifier(format, _))
 
   fmt.update(table)
   |> fmt.set(updates)

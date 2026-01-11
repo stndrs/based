@@ -1,5 +1,6 @@
 import based/db
 import based/sql/internal/fmt
+import based/sql/internal/node.{type Node}
 import gleam/function
 import gleam/list
 import gleam/option.{type Option, None, Some}
@@ -163,126 +164,104 @@ pub type Order {
   Desc
 }
 
-pub opaque type Node(v) {
-  TableRef(Identifier)
-  ColumnRef(Identifier)
-  Columns(List(Identifier))
-  Value(v)
-  Values(List(v))
-  Tuples(List(List(v)))
-  Query(query: db.Query(v), alias: Option(String))
-  Null(Bool)
-}
-
+@internal
 pub fn table_to_node(table: Table(v)) -> Node(v) {
   case table {
-    Table(identifier:) -> TableRef(identifier)
-    Subquery(query:, alias:) -> Query(query:, alias:)
+    Table(identifier:) -> {
+      identifier
+      |> identifier_to_string
+      |> node.TableRef
+    }
+    Subquery(query:, alias:) -> node.Query(query:, alias:)
   }
 }
 
 pub fn tuples(vals: List(List(Node(v)))) -> Node(v) {
   vals
-  |> list.map(list.flat_map(_, unwrap))
-  |> Tuples
+  |> list.map(list.flat_map(_, node.unwrap))
+  |> node.Tuples
 }
 
 pub fn list(vals: List(a), of inner_type: fn(a) -> v) -> Node(v) {
   list.map(vals, inner_type)
-  |> Values
+  |> node.Values
 }
 
 pub fn columns(names: List(String)) -> Node(v) {
-  {
-    use name <- list.map(names)
-
-    Identifier(name:, alias: None, attr: None)
-  }
-  |> Columns
+  node.Columns(names)
 }
 
 pub fn value(value: v) -> Node(v) {
-  Value(value)
+  node.Value(value)
 }
 
 pub fn nullable(value: Option(a), inner_type: fn(a) -> Node(v)) -> Node(v) {
   case value {
     Some(term) -> inner_type(term)
-    None -> Null(True)
+    None -> node.Null(True)
   }
 }
 
 @internal
 pub fn subquery(query: db.Query(v)) -> Node(v) {
-  Query(query:, alias: None)
+  node.Query(query:, alias: None)
 }
 
 pub fn values(values: List(v)) -> Node(v) {
-  Values(values)
+  node.Values(values)
 }
 
-@internal
-pub fn unwrap(node: Node(v)) -> List(v) {
-  case node {
-    Value(val) -> [val]
-    Values(vals) -> vals
-    Tuples(vals) -> list.flatten(vals)
-    Query(query:, alias: _) -> query.values
-    _ -> []
-  }
-}
-
-@internal
-pub fn node_to_string(node: Node(v), format: SqlFmt(v)) -> String {
-  case node {
-    TableRef(identifier) -> {
-      let ident =
-        format
-        |> to_identifier(identifier.name)
-
-      case identifier.alias {
-        Some(alias) -> fmt.alias(ident, alias)
-        None -> ident
-      }
-    }
-    ColumnRef(identifier) -> {
-      identifier_to_string(identifier, format)
-      |> to_identifier(format, _)
-    }
-    Columns(identifiers) ->
-      list.map(identifiers, fn(ident) {
-        ident
-        |> identifier_to_string(format)
-        |> to_identifier(format, _)
-      })
-      |> string.join(", ")
-      |> fmt.enclose
-    Value(_val) -> fmt.placeholder
-    Values(values) -> {
-      values
-      |> list.map(fn(_value) { fmt.placeholder })
-      |> string.join(", ")
-      |> fmt.enclose
-    }
-    Tuples(tuples) -> {
-      tuples
-      |> list.map(fn(vals) {
-        list.map(vals, fn(_) { fmt.placeholder })
-        |> string.join(", ")
-        |> fmt.enclose
-      })
-      |> string.join(", ")
-      |> fmt.enclose
-    }
-    Query(query:, alias: _) -> fmt.enclose(query.sql)
-    Null(val) -> {
-      case val {
-        True -> fmt.null
-        False -> "NOT NULL"
-      }
-    }
-  }
-}
+// @internal
+// pub fn node_to_string(node: Node(v), format: SqlFmt(v)) -> String {
+//   case node {
+//     TableRef(identifier) -> {
+//       let ident =
+//         format
+//         |> to_identifier(identifier.name)
+// 
+//       case identifier.alias {
+//         Some(alias) -> fmt.alias(ident, alias)
+//         None -> ident
+//       }
+//     }
+//     ColumnRef(identifier) -> {
+//       identifier_to_string(identifier, format)
+//       |> to_identifier(format, _)
+//     }
+//     Columns(identifiers) ->
+//       list.map(identifiers, fn(ident) {
+//         ident
+//         |> identifier_to_string(format)
+//         |> to_identifier(format, _)
+//       })
+//       |> string.join(", ")
+//       |> fmt.enclose
+//     Value(_val) -> fmt.placeholder
+//     Values(values) -> {
+//       values
+//       |> list.map(fn(_value) { fmt.placeholder })
+//       |> string.join(", ")
+//       |> fmt.enclose
+//     }
+//     Tuples(tuples) -> {
+//       tuples
+//       |> list.map(fn(vals) {
+//         list.map(vals, fn(_) { fmt.placeholder })
+//         |> string.join(", ")
+//         |> fmt.enclose
+//       })
+//       |> string.join(", ")
+//       |> fmt.enclose
+//     }
+//     Query(query:, alias: _) -> fmt.enclose(query.sql)
+//     Null(val) -> {
+//       case val {
+//         True -> fmt.null
+//         False -> "NOT NULL"
+//       }
+//     }
+//   }
+// }
 
 // Expr
 
@@ -298,7 +277,7 @@ pub opaque type Expr(v) {
 pub fn expr_to_values(expr: Expr(v)) -> List(v) {
   case expr {
     Compare(left, right, op) -> {
-      list.flatten([unwrap(left), operator_values(op), unwrap(right)])
+      list.flatten([node.unwrap(left), operator_values(op), node.unwrap(right)])
     }
     Logical(left, right, _) -> {
       list.flatten([expr_to_values(left), expr_to_values(right)])
@@ -311,7 +290,7 @@ pub fn expr_to_values(expr: Expr(v)) -> List(v) {
 
 fn operator_values(op: ComparisonOperator(v)) -> List(v) {
   case op {
-    Between(val) -> unwrap(val)
+    Between(val) -> node.unwrap(val)
     _ -> []
   }
 }
@@ -338,8 +317,8 @@ type LogicalOperator {
 pub fn expr_to_string(expr: Expr(v), format: SqlFmt(v)) -> String {
   case expr {
     Compare(left, right, op) -> {
-      let left = node_to_string(left, format)
-      let right = node_to_string(right, format)
+      let left = node.to_string(left, format.handle_identifier)
+      let right = node.to_string(right, format.handle_identifier)
 
       let fmt = to_comp_fmt(op)
       fmt(left, right)
@@ -357,7 +336,7 @@ pub fn expr_to_string(expr: Expr(v), format: SqlFmt(v)) -> String {
       |> fmt.not
     }
     Is(left:, right:) -> {
-      let left = node_to_string(left, format)
+      let left = node.to_string(left, format.handle_identifier)
 
       let fmt = case right {
         True -> fmt.is(_, fmt.true)
@@ -367,7 +346,7 @@ pub fn expr_to_string(expr: Expr(v), format: SqlFmt(v)) -> String {
       fmt(left)
     }
     IsNull(left:, right:) -> {
-      let left = node_to_string(left, format)
+      let left = node.to_string(left, format.handle_identifier)
 
       let fmt = case right {
         True -> fmt.is
@@ -405,41 +384,6 @@ fn to_logical_fmt(operator: LogicalOperator) -> fn(String, String) -> String {
   }
 }
 
-// Join
-
-@internal
-pub type JoinType {
-  InnerJoin
-  LeftJoin
-  RightJoin
-  FullJoin
-}
-
-@internal
-pub type Join(v) {
-  Join(type_: JoinType, table: Table(v), exprs: List(Expr(v)))
-}
-
-@internal
-pub fn inner(table: Table(v), exprs: List(Expr(v))) -> Join(v) {
-  Join(InnerJoin, table, exprs)
-}
-
-@internal
-pub fn left(table: Table(v), exprs: List(Expr(v))) -> Join(v) {
-  Join(LeftJoin, table, exprs)
-}
-
-@internal
-pub fn right(table: Table(v), exprs: List(Expr(v))) -> Join(v) {
-  Join(RightJoin, table, exprs)
-}
-
-@internal
-pub fn full(table: Table(v), exprs: List(Expr(v))) -> Join(v) {
-  Join(FullJoin, table, exprs)
-}
-
 // Identifier
 
 pub opaque type Identifier {
@@ -459,21 +403,23 @@ pub fn attr(identifier: Identifier, attr: String) -> Identifier {
 }
 
 pub fn column(identifier: Identifier) -> Node(v) {
-  ColumnRef(identifier)
+  identifier
+  |> identifier_to_string
+  |> node.ColumnRef
 }
 
 pub fn table(identifier: Identifier) -> Table(v) {
   Table(identifier:)
 }
 
-fn identifier_to_string(identifier: Identifier, fmt: SqlFmt(v)) -> String {
+fn identifier_to_string(identifier: Identifier) -> String {
   let ident = case identifier.attr {
     Some(other) -> {
       let attr =
         Identifier(name: other, alias: None, attr: None)
         |> table
         |> table_to_node
-        |> node_to_string(fmt)
+        |> node.to_string(function.identity)
 
       identifier.name
       |> string.append(".")

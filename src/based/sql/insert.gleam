@@ -2,12 +2,13 @@ import based/db
 import based/sql
 import based/sql/internal/builder
 import based/sql/internal/fmt
+import based/sql/internal/node
 import gleam/list
 import gleam/string
 
 pub opaque type Insert(v) {
   Insert(
-    table: sql.Node(v),
+    table: sql.Table(v),
     columns: List(String),
     returning: List(String),
     values: List(v),
@@ -15,7 +16,6 @@ pub opaque type Insert(v) {
 }
 
 pub fn into(table: sql.Table(v)) -> Insert(v) {
-  let table = sql.table_to_node(table)
   Insert(table:, columns: [], returning: [], values: [])
 }
 
@@ -24,7 +24,6 @@ pub fn columns(insert: Insert(v), cols: List(String)) -> Insert(v) {
 }
 
 pub fn values(insert: Insert(v), vals: List(List(v))) -> Insert(v) {
-  // let values = list.flat_map(vals, list.flat_map(_, list.flatten))
   let values = list.flatten(vals)
 
   Insert(..insert, values:)
@@ -59,7 +58,10 @@ fn build(insert: Insert(v), format: sql.SqlFmt(v)) -> String {
       |> fmt.enclose
     })
 
-  let into = sql.node_to_string(insert.table, format)
+  let into =
+    insert.table
+    |> sql.table_to_node
+    |> node.to_string(sql.to_identifier(format, _))
 
   fmt.insert(insert.columns, into:, values:)
   |> builder.append_returning(insert.returning)

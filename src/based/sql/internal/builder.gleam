@@ -1,5 +1,7 @@
 import based/sql
 import based/sql/internal/fmt
+import based/sql/internal/join.{type Join}
+import based/sql/internal/node
 import gleam/dict
 import gleam/list
 import gleam/option.{type Option, None, Some}
@@ -92,23 +94,23 @@ pub fn append_having(
 
 pub fn append_joins(
   st: String,
-  joins: List(sql.Join(v)),
+  joins: List(Join(v)),
   format: sql.SqlFmt(v),
 ) -> String {
   joins
   |> list.reverse
   |> list.fold(from: st, with: fn(st, join) {
     let join_tree = case join.type_ {
-      sql.InnerJoin -> fmt.inner_join
-      sql.LeftJoin -> fmt.left_join
-      sql.RightJoin -> fmt.right_join
-      sql.FullJoin -> fmt.full_outer_join
+      join.InnerJoin -> fmt.inner_join
+      join.LeftJoin -> fmt.left_join
+      join.RightJoin -> fmt.right_join
+      join.FullJoin -> fmt.full_outer_join
     }
 
     let table_node = sql.table_to_node(join.table)
 
     st
-    |> join_tree(sql.node_to_string(table_node, format))
+    |> join_tree(node.to_string(table_node, with: sql.to_identifier(format, _)))
     |> list.index_fold(over: join.exprs, from: _, with: fn(sql1, expr, idx) {
       let expr_fmt = case idx {
         0 -> fmt.on
