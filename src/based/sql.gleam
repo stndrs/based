@@ -226,9 +226,7 @@ pub fn attr(identifier: Identifier, attr: String) -> Identifier {
 }
 
 pub fn column(identifier: Identifier) -> Node(v) {
-  identifier
-  |> table.identifier_to_string
-  |> node.ColumnRef
+  node.Column(identifier)
 }
 
 pub fn table(identifier: Identifier) -> Table(v) {

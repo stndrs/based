@@ -130,8 +130,7 @@ fn build(update: Update(v)) -> String {
 
   let table =
     update.table
-    |> table.to_node
-    |> node.to_string(sql.to_identifier(update.sql, _))
+    |> table.to_string(sql.to_identifier(update.sql, _))
 
   fmt.update(table)
   |> fmt.set(updates)

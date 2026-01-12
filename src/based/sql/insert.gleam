@@ -2,7 +2,6 @@ import based/db
 import based/sql
 import based/sql/internal/builder
 import based/sql/internal/fmt
-import based/sql/internal/node
 import based/sql/internal/table
 import gleam/list
 import gleam/string
@@ -64,8 +63,7 @@ fn build(insert: Insert(v)) -> String {
 
   let into =
     insert.table
-    |> table.to_node
-    |> node.to_string(sql.to_identifier(insert.sql, _))
+    |> table.to_string(sql.to_identifier(insert.sql, _))
 
   fmt.insert(insert.columns, into:, values:)
   |> builder.append_returning(insert.returning)

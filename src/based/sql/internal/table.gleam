@@ -1,7 +1,5 @@
 import based/db
 import based/sql/internal/fmt
-import based/sql/internal/node
-import gleam/function
 import gleam/option.{type Option, None, Some}
 import gleam/string
 
@@ -21,14 +19,21 @@ pub fn to_values(table: Table(v)) -> List(v) {
   }
 }
 
-pub fn to_node(table: Table(v)) -> node.Node(v) {
+pub fn to_string(
+  table: Table(v),
+  with handle_identifier: fn(String) -> String,
+) -> String {
   case table {
     Table(identifier:) -> {
       identifier
-      |> identifier_to_string
-      |> node.TableRef
+      |> identifier_to_string(handle_identifier)
     }
-    Subquery(query:, alias:) -> node.Query(query:, alias:)
+    Subquery(query:, alias: Some(alias)) -> {
+      query.sql
+      |> fmt.enclose
+      |> fmt.alias(alias)
+    }
+    Subquery(query:, alias: None) -> fmt.enclose(query.sql)
   }
 }
 
@@ -52,20 +57,18 @@ pub fn attr(identifier: Identifier, attr: String) -> Identifier {
   Identifier(..identifier, attr: Some(attr))
 }
 
-pub fn identifier_to_string(identifier: Identifier) -> String {
+pub fn identifier_to_string(
+  identifier: Identifier,
+  with handle_identifier: fn(String) -> String,
+) -> String {
   let ident = case identifier.attr {
-    Some(other) -> {
-      let attr =
-        Identifier(name: other, alias: None, attr: None)
-        |> new
-        |> to_node
-        |> node.to_string(function.identity)
-
+    Some(attr) -> {
       identifier.name
+      |> handle_identifier
       |> string.append(".")
-      |> string.append(attr)
+      |> string.append(handle_identifier(attr))
     }
-    None -> identifier.name
+    None -> handle_identifier(identifier.name)
   }
 
   case identifier.alias {

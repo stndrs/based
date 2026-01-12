@@ -254,8 +254,7 @@ fn build(select: Select(v)) -> String {
     Some(table) -> {
       let to_string =
         table
-        |> table.to_node
-        |> node.to_string(sql.to_identifier(select.sql, _))
+        |> table.to_string(sql.to_identifier(select.sql, _))
 
       fmt.from(_, to_string)
     }

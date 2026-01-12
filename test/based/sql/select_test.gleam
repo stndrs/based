@@ -793,7 +793,7 @@ pub fn format_placeholders_test() {
 }
 
 pub fn format_identifier_test() {
-  let fmt =
+  let sql =
     value.sql()
     |> sql.on_identifier({ fn(value) { "\"" <> value <> "\"" } })
 
@@ -801,7 +801,7 @@ pub fn format_identifier_test() {
   let users = sql.identifier("users")
 
   let query =
-    fmt
+    sql
     |> select.from(users, of: sql.table)
     |> select.where([
       sql.identifier("id")

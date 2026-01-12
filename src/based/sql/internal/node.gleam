@@ -1,13 +1,13 @@
 import based/db
 import based/sql/internal/fmt
+import based/sql/internal/table
 import gleam/bool
 import gleam/list
 import gleam/option.{type Option}
 import gleam/string
 
 pub type Node(v) {
-  TableRef(String)
-  ColumnRef(String)
+  Column(table.Identifier)
   Columns(List(String))
   Value(v)
   Values(List(v))
@@ -28,11 +28,13 @@ pub fn unwrap(node: Node(v)) -> List(v) {
 
 pub fn to_string(
   node: Node(v),
-  with to_identifier: fn(String) -> String,
+  with handle_identifier: fn(String) -> String,
 ) -> String {
   case node {
-    TableRef(identifier) -> to_identifier(identifier)
-    ColumnRef(identifier) -> to_identifier(identifier)
+    Column(identifier) -> {
+      identifier
+      |> table.identifier_to_string(handle_identifier)
+    }
     Columns(columns) ->
       columns
       |> string.join(", ")

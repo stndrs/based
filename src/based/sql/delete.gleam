@@ -23,7 +23,6 @@ import based/sql
 import based/sql/internal/builder
 import based/sql/internal/expr
 import based/sql/internal/fmt
-import based/sql/internal/node
 import based/sql/internal/table
 import gleam/list
 
@@ -87,8 +86,7 @@ pub fn to_string(delete: Delete(v)) -> String {
 fn build(delete: Delete(v)) -> String {
   let from =
     delete.table
-    |> table.to_node
-    |> node.to_string(sql.to_identifier(delete.sql, _))
+    |> table.to_string(sql.to_identifier(delete.sql, _))
 
   fmt.delete
   |> fmt.from(from)
