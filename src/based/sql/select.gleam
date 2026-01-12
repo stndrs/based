@@ -87,7 +87,7 @@ pub fn from(sql: sql.Sql(v), identifier: sql.Identifier) -> Select(v) {
 }
 
 pub fn from_query(sql: sql.Sql(v), query: db.Query(v)) -> Select(v) {
-  let table = sql.subquery(query)
+  let table = table.subquery(query)
 
   let values = table.to_values(table)
 

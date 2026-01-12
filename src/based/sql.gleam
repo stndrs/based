@@ -1,4 +1,3 @@
-import based/db
 import based/sql/internal/expr
 import based/sql/internal/fmt
 import based/sql/internal/node
@@ -142,8 +141,6 @@ pub fn not_like(
   expr.compare(left, right, expr.NotLike)
 }
 
-// Node
-
 pub type Order {
   Asc
   Desc
@@ -179,12 +176,8 @@ pub fn values(values: List(v)) -> Node(v) {
   node.Values(values)
 }
 
-// Expr
-
 pub type Expr(v) =
   expr.Expr(v)
-
-// Identifier
 
 pub type Table(v) =
   table.Table(v)
@@ -210,10 +203,4 @@ pub fn column(identifier: Identifier) -> Node(v) {
 
 pub fn table(identifier: Identifier) -> Table(v) {
   table.new(identifier)
-}
-
-// Table
-
-pub fn subquery(query: db.Query(v)) -> Table(v) {
-  table.subquery(query)
 }
