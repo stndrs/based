@@ -1,4 +1,61 @@
+import gleam/function
 import gleam/string
+
+pub opaque type Fmt(v) {
+  Fmt(
+    handle_identifier: fn(String) -> String,
+    handle_placeholder: fn(Int) -> String,
+    handle_value: fn(v) -> String,
+  )
+}
+
+/// Returns a `Fmt(v)` record with handlers that does not apply any
+/// formatting to identifiers, and returns `?` as placeholders. The value
+/// handler's default behaviour is to panic since it handles a generic type.
+pub fn new() -> Fmt(v) {
+  Fmt(
+    handle_identifier: function.identity,
+    handle_placeholder: fn(_) { "?" },
+    handle_value: fn(_) { panic as "based/format.Fmt not configured" },
+  )
+}
+
+/// Sets the placeholder formatting function.
+pub fn on_placeholder(
+  fmt: Fmt(v),
+  handle_placeholder: fn(Int) -> String,
+) -> Fmt(v) {
+  Fmt(..fmt, handle_placeholder:)
+}
+
+/// Set the identifier formatting function.
+pub fn on_identifier(
+  fmt: Fmt(v),
+  handle_identifier: fn(String) -> String,
+) -> Fmt(v) {
+  Fmt(..fmt, handle_identifier:)
+}
+
+/// Set the value formatting function.
+pub fn on_value(fmt: Fmt(v), handle_value: fn(v) -> String) -> Fmt(v) {
+  Fmt(..fmt, handle_value:)
+}
+
+/// Apply the configured identifier format function to the provided identifier.
+pub fn to_identifier(fmt: Fmt(v), identifier: String) -> String {
+  fmt.handle_identifier(identifier)
+}
+
+/// Apply the configured value format function to the provided value.
+pub fn to_string(fmt: Fmt(v), value: v) -> String {
+  fmt.handle_value(value)
+}
+
+/// Apply the configured placeholder format function to the provided
+/// placeholder index.
+pub fn to_placeholder(fmt: Fmt(v), value: Int) -> String {
+  fmt.handle_placeholder(value)
+}
 
 pub const placeholder = ":param"
 

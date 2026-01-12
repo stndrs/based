@@ -8,7 +8,7 @@ import gleam/string
 
 pub opaque type Insert(v) {
   Insert(
-    sql: sql.Sql(v),
+    fmt: fmt.Fmt(v),
     table: sql.Table(v),
     columns: List(String),
     returning: List(String),
@@ -19,7 +19,7 @@ pub opaque type Insert(v) {
 pub fn into(sql: sql.Sql(v), identifier: sql.Identifier) -> Insert(v) {
   let table = sql.table(identifier)
 
-  Insert(sql:, table:, columns: [], returning: [], values: [])
+  Insert(fmt: sql.fmt, table:, columns: [], returning: [], values: [])
 }
 
 pub fn columns(insert: Insert(v), cols: List(String)) -> Insert(v) {
@@ -37,7 +37,7 @@ pub fn returning(insert: Insert(v), cols: List(String)) -> Insert(v) {
 }
 
 pub fn to_query(insert: Insert(v)) -> db.Query(v) {
-  let to_placeholder = sql.to_placeholder(insert.sql, _)
+  let to_placeholder = fmt.to_placeholder(insert.fmt, _)
 
   build(insert)
   |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
@@ -47,7 +47,7 @@ pub fn to_query(insert: Insert(v)) -> db.Query(v) {
 
 pub fn to_string(insert: Insert(v)) -> String {
   build(insert)
-  |> builder.to_string(insert.values, insert.sql)
+  |> builder.to_string(insert.values, insert.fmt)
 }
 
 fn build(insert: Insert(v)) -> String {
@@ -63,7 +63,7 @@ fn build(insert: Insert(v)) -> String {
 
   let into =
     insert.table
-    |> table.to_string(sql.to_identifier(insert.sql, _))
+    |> table.to_string(fmt.to_identifier(insert.fmt, _))
 
   fmt.insert(insert.columns, into:, values:)
   |> builder.append_returning(insert.returning)

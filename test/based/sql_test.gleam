@@ -1,5 +1,6 @@
 import based/sql
 import based/sql/internal/expr
+import based/sql/internal/fmt
 import based/value
 import gleam/int
 import gleeunit/should
@@ -45,7 +46,7 @@ pub fn eq_test() {
   let sql = sql.eq(sql.identifier("id") |> sql.column, val)
 
   let expected = "id = :param"
-  expr.to_string(sql, sql.to_identifier(sql.new(), _))
+  expr.to_string(sql, fmt.to_identifier(fmt.new(), _))
   |> should.equal(expected)
 
   expr.to_values(sql) |> should.equal([value.int(1)])
@@ -57,7 +58,7 @@ pub fn greater_than_test() {
   let sql = sql.gt(sql.identifier("age") |> sql.column, val)
 
   let expected = "age > :param"
-  expr.to_string(sql, sql.to_identifier(sql.new(), _))
+  expr.to_string(sql, fmt.to_identifier(fmt.new(), _))
   |> should.equal(expected)
 
   expr.to_values(sql) |> should.equal([value.int(18)])
@@ -70,7 +71,7 @@ pub fn less_than_test() {
   let sql = sql.lt(col, val)
 
   let expected = "age < :param"
-  expr.to_string(sql, sql.to_identifier(sql.new(), _))
+  expr.to_string(sql, fmt.to_identifier(fmt.new(), _))
   |> should.equal(expected)
 
   expr.to_values(sql) |> should.equal([value.int(65)])
@@ -83,7 +84,7 @@ pub fn greater_than_equal_test() {
   let sql = sql.gt_eq(col, val)
 
   let expected = "age >= :param"
-  expr.to_string(sql, sql.to_identifier(sql.new(), _))
+  expr.to_string(sql, fmt.to_identifier(fmt.new(), _))
   |> should.equal(expected)
 
   expr.to_values(sql) |> should.equal([value.int(18)])
@@ -96,7 +97,7 @@ pub fn less_than_equal_test() {
   let sql = sql.lt_eq(col, val)
 
   let expected = "age <= :param"
-  expr.to_string(sql, sql.to_identifier(sql.new(), _))
+  expr.to_string(sql, fmt.to_identifier(fmt.new(), _))
   |> should.equal(expected)
 
   expr.to_values(sql) |> should.equal([value.int(65)])
@@ -109,7 +110,7 @@ pub fn not_equal_test() {
   let sql = sql.not_eq(col, val)
 
   let expected = "status <> :param"
-  expr.to_string(sql, sql.to_identifier(sql.new(), _))
+  expr.to_string(sql, fmt.to_identifier(fmt.new(), _))
   |> should.equal(expected)
 
   expr.to_values(sql) |> should.equal([value.text("inactive")])
@@ -123,7 +124,7 @@ pub fn between_test() {
   let sql = sql.between(col, start, end)
 
   let expected = "price BETWEEN :param AND :param"
-  expr.to_string(sql, sql.to_identifier(sql.new(), _))
+  expr.to_string(sql, fmt.to_identifier(fmt.new(), _))
   |> should.equal(expected)
 
   expr.to_values(sql)
@@ -136,7 +137,7 @@ pub fn like_test() {
   let sql = sql.like(col, "%John%", value.text)
 
   let expected = "name LIKE :param"
-  expr.to_string(sql, sql.to_identifier(sql.new(), _))
+  expr.to_string(sql, fmt.to_identifier(fmt.new(), _))
   |> should.equal(expected)
 
   expr.to_values(sql) |> should.equal([value.text("%John%")])
@@ -149,7 +150,7 @@ pub fn in_test() {
   let sql = sql.in(col, values)
 
   let expected = "id IN (:param, :param, :param)"
-  expr.to_string(sql, sql.to_identifier(sql.new(), _))
+  expr.to_string(sql, fmt.to_identifier(fmt.new(), _))
   |> should.equal(expected)
 
   expr.to_values(sql)
@@ -162,7 +163,7 @@ pub fn is_test() {
   let sql = sql.is(col, True)
 
   let expected = "active IS TRUE"
-  expr.to_string(sql, sql.to_identifier(sql.new(), _))
+  expr.to_string(sql, fmt.to_identifier(fmt.new(), _))
   |> should.equal(expected)
 
   expr.to_values(sql) |> should.equal([])
@@ -174,7 +175,7 @@ pub fn not_like_test() {
   let sql = sql.not_like(col, "%admin%", of: value.text)
 
   let expected = "name NOT LIKE :param"
-  expr.to_string(sql, sql.to_identifier(sql.new(), _))
+  expr.to_string(sql, fmt.to_identifier(fmt.new(), _))
   |> should.equal(expected)
 
   expr.to_values(sql) |> should.equal([value.text("%admin%")])
@@ -189,7 +190,7 @@ pub fn and_test() {
   let and_sql = sql.and(sql1, sql2)
 
   let expected = "active = :param AND age > :param"
-  expr.to_string(and_sql, sql.to_identifier(sql.new(), _))
+  expr.to_string(and_sql, fmt.to_identifier(fmt.new(), _))
   |> should.equal(expected)
 
   expr.to_values(and_sql) |> should.equal([value.true, value.int(18)])
@@ -207,7 +208,7 @@ pub fn or_test() {
   let or_sql = sql.or(sql1, sql2)
 
   let expected = "name = :param OR email = :param"
-  expr.to_string(or_sql, sql.to_identifier(sql.new(), _))
+  expr.to_string(or_sql, fmt.to_identifier(fmt.new(), _))
   |> should.equal(expected)
 
   expr.to_values(or_sql)
@@ -221,7 +222,7 @@ pub fn not_test() {
   let not_sql = sql.not(sql1)
 
   let expected = "NOT active = :param"
-  expr.to_string(not_sql, sql.to_identifier(sql.new(), _))
+  expr.to_string(not_sql, fmt.to_identifier(fmt.new(), _))
   |> should.equal(expected)
 
   expr.to_values(not_sql) |> should.equal([value.true])
@@ -239,7 +240,7 @@ pub fn complex_sqlession_test() {
   let or_sql = sql.or(and_sql, sql3)
 
   let expected = "active = :param AND age > :param OR role = :param"
-  expr.to_string(or_sql, sql.to_identifier(sql.new(), _))
+  expr.to_string(or_sql, fmt.to_identifier(fmt.new(), _))
   |> should.equal(expected)
 
   expr.to_values(or_sql)
@@ -325,54 +326,54 @@ pub fn complex_sqlession_test() {
 
 pub fn format_test() {
   let int_fmt =
-    sql.new()
-    |> sql.on_identifier(fn(s) { "\"" <> s <> "\"" })
-    |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
-    |> sql.on_value(int.to_string)
+    fmt.new()
+    |> fmt.on_identifier(fn(s) { "\"" <> s <> "\"" })
+    |> fmt.on_placeholder(fn(i) { "$" <> int.to_string(i) })
+    |> fmt.on_value(int.to_string)
 
-  sql.to_identifier(int_fmt, "column") |> should.equal("\"column\"")
-  sql.to_placeholder(int_fmt, 1) |> should.equal("$1")
-  sql.to_string(int_fmt, 42) |> should.equal("42")
+  fmt.to_identifier(int_fmt, "column") |> should.equal("\"column\"")
+  fmt.to_placeholder(int_fmt, 1) |> should.equal("$1")
+  fmt.to_string(int_fmt, 42) |> should.equal("42")
 }
 
 pub fn on_placeholder_test() {
   let int_fmt =
-    sql.new()
-    |> sql.on_identifier(fn(s) { s })
-    |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
-    |> sql.on_value(int.to_string)
+    fmt.new()
+    |> fmt.on_identifier(fn(s) { s })
+    |> fmt.on_placeholder(fn(i) { "$" <> int.to_string(i) })
+    |> fmt.on_value(int.to_string)
 
-  let int_fmt = sql.on_placeholder(int_fmt, fn(i) { "?" <> int.to_string(i) })
+  let int_fmt = fmt.on_placeholder(int_fmt, fn(i) { "?" <> int.to_string(i) })
 
-  sql.to_placeholder(int_fmt, 1) |> should.equal("?1")
-  sql.to_identifier(int_fmt, "column") |> should.equal("column")
-  sql.to_string(int_fmt, 42) |> should.equal("42")
+  fmt.to_placeholder(int_fmt, 1) |> should.equal("?1")
+  fmt.to_identifier(int_fmt, "column") |> should.equal("column")
+  fmt.to_string(int_fmt, 42) |> should.equal("42")
 }
 
 pub fn on_node_test() {
   let int_fmt =
-    sql.new()
-    |> sql.on_identifier(fn(s) { s })
-    |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
-    |> sql.on_value(int.to_string)
+    fmt.new()
+    |> fmt.on_identifier(fn(s) { s })
+    |> fmt.on_placeholder(fn(i) { "$" <> int.to_string(i) })
+    |> fmt.on_value(int.to_string)
 
-  let int_fmt = sql.on_identifier(int_fmt, fn(s) { "[" <> s <> "]" })
+  let int_fmt = fmt.on_identifier(int_fmt, fn(s) { "[" <> s <> "]" })
 
-  sql.to_identifier(int_fmt, "column") |> should.equal("[column]")
-  sql.to_placeholder(int_fmt, 1) |> should.equal("$1")
-  sql.to_string(int_fmt, 42) |> should.equal("42")
+  fmt.to_identifier(int_fmt, "column") |> should.equal("[column]")
+  fmt.to_placeholder(int_fmt, 1) |> should.equal("$1")
+  fmt.to_string(int_fmt, 42) |> should.equal("42")
 }
 
 pub fn on_value_test() {
   let int_fmt =
-    sql.new()
-    |> sql.on_identifier(fn(s) { s })
-    |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
-    |> sql.on_value(int.to_string)
+    fmt.new()
+    |> fmt.on_identifier(fn(s) { s })
+    |> fmt.on_placeholder(fn(i) { "$" <> int.to_string(i) })
+    |> fmt.on_value(int.to_string)
 
-  let int_fmt = sql.on_value(int_fmt, fn(i) { "num:" <> int.to_string(i) })
+  let int_fmt = fmt.on_value(int_fmt, fn(i) { "num:" <> int.to_string(i) })
 
-  sql.to_string(int_fmt, 42) |> should.equal("num:42")
-  sql.to_identifier(int_fmt, "column") |> should.equal("column")
-  sql.to_placeholder(int_fmt, 1) |> should.equal("$1")
+  fmt.to_string(int_fmt, 42) |> should.equal("num:42")
+  fmt.to_identifier(int_fmt, "column") |> should.equal("column")
+  fmt.to_placeholder(int_fmt, 1) |> should.equal("$1")
 }

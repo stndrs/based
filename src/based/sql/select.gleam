@@ -16,7 +16,7 @@ type For {
 
 pub opaque type Select(v) {
   Select(
-    sql: sql.Sql(v),
+    fmt: fmt.Fmt(v),
     table: Option(sql.Table(v)),
     columns: List(String),
     distinct: Bool,
@@ -44,7 +44,7 @@ pub fn distinct(select: Select(v)) -> Select(v) {
 
 pub fn new(sql: sql.Sql(v)) -> Select(v) {
   Select(
-    sql:,
+    fmt: sql.fmt,
     table: None,
     columns: [],
     distinct: False,
@@ -73,7 +73,7 @@ pub fn from(
   let values = table.to_values(table)
 
   Select(
-    sql:,
+    fmt: sql.fmt,
     table: Some(table),
     columns: ["*"],
     distinct: False,
@@ -222,7 +222,7 @@ pub fn for_update(select: Select(v)) -> Select(v) {
 pub fn to_query(select: Select(v)) -> db.Query(v) {
   let values = select.values |> list.reverse |> list.flatten
 
-  let to_placeholder = sql.to_placeholder(select.sql, _)
+  let to_placeholder = fmt.to_placeholder(select.fmt, _)
 
   build(select)
   |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
@@ -239,7 +239,7 @@ pub fn to_string(select: Select(v)) -> String {
   let values = select.values |> list.reverse |> list.flatten
 
   build(select)
-  |> builder.to_string(values, select.sql)
+  |> builder.to_string(values, select.fmt)
 }
 
 // Builders
@@ -254,7 +254,7 @@ fn build(select: Select(v)) -> String {
     Some(table) -> {
       let to_string =
         table
-        |> table.to_string(sql.to_identifier(select.sql, _))
+        |> table.to_string(fmt.to_identifier(select.fmt, _))
 
       fmt.from(_, to_string)
     }
@@ -263,10 +263,10 @@ fn build(select: Select(v)) -> String {
 
   select_sql(select.columns)
   |> from_sql
-  |> builder.append_joins(select.join, select.sql)
-  |> builder.append_where(select.where, select.sql)
+  |> builder.append_joins(select.join, select.fmt)
+  |> builder.append_where(select.where, select.fmt)
   |> builder.append_group_by(select.group_by)
-  |> builder.append_having(select.having, select.sql)
+  |> builder.append_having(select.having, select.fmt)
   |> builder.append_order_by(select.order_by, select.order)
   |> builder.append_limit(select.limit, select.offset)
   |> append_for(select.for)

@@ -9,7 +9,7 @@ import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string
 
-pub fn to_string(query: String, values: List(v), sql: sql.Sql(v)) -> String {
+pub fn to_string(query: String, values: List(v), fmt: fmt.Fmt(v)) -> String {
   let values_by_idx =
     values
     |> list.index_map(fn(val, idx) { #(idx + 1, val) })
@@ -18,7 +18,7 @@ pub fn to_string(query: String, values: List(v), sql: sql.Sql(v)) -> String {
   let with = fn(idx) {
     values_by_idx
     |> dict.get(idx)
-    |> result.map(sql.to_string(sql, _))
+    |> result.map(fmt.to_string(fmt, _))
     |> result.unwrap("")
   }
 
@@ -48,8 +48,8 @@ pub fn placeholders(
 
 pub fn append_where(
   st: String,
-  where: List(List(sql.Expr(v))),
-  sql: sql.Sql(v),
+  where: List(List(expr.Expr(v))),
+  fmt: fmt.Fmt(v),
 ) -> String {
   where
   |> list.reverse
@@ -61,7 +61,7 @@ pub fn append_where(
     }
 
     expr
-    |> expr.to_string(sql.to_identifier(sql, _))
+    |> expr.to_string(fmt.to_identifier(fmt, _))
     |> expr_fmt(sql1, _)
   })
 }
@@ -76,7 +76,7 @@ pub fn append_group_by(st: String, group_by: List(String)) -> String {
 pub fn append_having(
   st: String,
   having: List(List(sql.Expr(v))),
-  sql: sql.Sql(v),
+  fmt: fmt.Fmt(v),
 ) -> String {
   having
   |> list.reverse
@@ -88,12 +88,12 @@ pub fn append_having(
     }
 
     expr
-    |> expr.to_string(sql.to_identifier(sql, _))
+    |> expr.to_string(fmt.to_identifier(fmt, _))
     |> expr_fmt(sql1, _)
   })
 }
 
-pub fn append_joins(st: String, joins: List(Join(v)), sql: sql.Sql(v)) -> String {
+pub fn append_joins(st: String, joins: List(Join(v)), fmt: fmt.Fmt(v)) -> String {
   joins
   |> list.reverse
   |> list.fold(from: st, with: fn(st, join) {
@@ -105,7 +105,7 @@ pub fn append_joins(st: String, joins: List(Join(v)), sql: sql.Sql(v)) -> String
     }
 
     st
-    |> join_tree(table.to_string(join.table, with: sql.to_identifier(sql, _)))
+    |> join_tree(table.to_string(join.table, with: fmt.to_identifier(fmt, _)))
     |> list.index_fold(over: join.exprs, from: _, with: fn(sql1, expr, idx) {
       let expr_fmt = case idx {
         0 -> fmt.on
@@ -113,7 +113,7 @@ pub fn append_joins(st: String, joins: List(Join(v)), sql: sql.Sql(v)) -> String
       }
 
       expr
-      |> expr.to_string(sql.to_identifier(sql, _))
+      |> expr.to_string(fmt.to_identifier(fmt, _))
       |> expr_fmt(sql1, _)
     })
   })

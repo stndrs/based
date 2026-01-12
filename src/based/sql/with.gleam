@@ -44,12 +44,12 @@ pub fn query(with: With(v), building: fn(sql.Sql(v)) -> db.Query(v)) -> With(v) 
   With(..with, query:)
 }
 
-/// Convert a WITH clause to a database query using the given format.
+/// Convert a WITH clause to a database query using the given fmt.
 pub fn to_query(with: With(v)) -> db.Query(v) {
   let values = list.flat_map(with.ctes, fn(cte) { cte.query.values })
   let values = list.flatten([values, with.query.values])
 
-  let to_placeholder = sql.to_placeholder(with.sql, _)
+  let to_placeholder = fmt.to_placeholder(with.sql.fmt, _)
 
   build(with)
   |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)

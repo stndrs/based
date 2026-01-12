@@ -29,7 +29,7 @@ import gleam/list
 /// A DELETE query with table, WHERE conditions, RETURNING columns, and values.
 pub opaque type Delete(v) {
   Delete(
-    sql: sql.Sql(v),
+    fmt: fmt.Fmt(v),
     table: sql.Table(v),
     where: List(List(sql.Expr(v))),
     returning: List(String),
@@ -41,7 +41,7 @@ pub opaque type Delete(v) {
 pub fn from(sql: sql.Sql(v), identifier: sql.Identifier) -> Delete(v) {
   let table = sql.table(identifier)
 
-  Delete(sql:, table:, where: [], returning: [], values: [])
+  Delete(fmt: sql.fmt, table:, where: [], returning: [], values: [])
 }
 
 /// Add WHERE conditions to a DELETE query.
@@ -62,11 +62,11 @@ pub fn returning(delete: Delete(v), columns: List(String)) -> Delete(v) {
   Delete(..delete, returning: columns)
 }
 
-/// Convert a DELETE query to a database query using the given format.
+/// Convert a DELETE query to a database query using the given fmt.
 pub fn to_query(del: Delete(v)) -> db.Query(v) {
   let values = del.values |> list.reverse |> list.flatten
 
-  let to_placeholder = sql.to_placeholder(del.sql, _)
+  let to_placeholder = fmt.to_placeholder(del.fmt, _)
 
   build(del)
   |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
@@ -74,23 +74,23 @@ pub fn to_query(del: Delete(v)) -> db.Query(v) {
   |> db.params(values)
 }
 
-/// Convert a DELETE query to a string representation using the given format.
+/// Convert a DELETE query to a string representation using the given fmt.
 pub fn to_string(delete: Delete(v)) -> String {
   let values = delete.values |> list.reverse |> list.flatten
 
   build(delete)
-  |> builder.to_string(values, delete.sql)
+  |> builder.to_string(values, delete.fmt)
 }
 
-/// Build a DELETE query's SQL string tree using the given format.
+/// Build a DELETE query's SQL string tree using the given fmt.
 fn build(delete: Delete(v)) -> String {
   let from =
     delete.table
-    |> table.to_string(sql.to_identifier(delete.sql, _))
+    |> table.to_string(fmt.to_identifier(delete.fmt, _))
 
   fmt.delete
   |> fmt.from(from)
-  |> builder.append_where(delete.where, delete.sql)
+  |> builder.append_where(delete.where, delete.fmt)
   |> builder.append_returning(delete.returning)
 }
 

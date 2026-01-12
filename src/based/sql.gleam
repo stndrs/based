@@ -1,8 +1,8 @@
 import based/db
 import based/sql/internal/expr
+import based/sql/internal/fmt
 import based/sql/internal/node
 import based/sql/internal/table
-import gleam/function
 import gleam/list
 import gleam/option.{type Option, None, Some}
 
@@ -27,42 +27,15 @@ import gleam/option.{type Option, None, Some}
 ///   |> sql.on_value(value.to_string)
 /// ```
 ///
-pub opaque type Sql(v) {
-  Sql(
-    handle_identifier: fn(String) -> String,
-    handle_placeholder: fn(Int) -> String,
-    handle_value: fn(v) -> String,
-  )
+pub type Sql(v) {
+  Sql(fmt: fmt.Fmt(v))
 }
 
 /// Returns a `Sql(v)` record with handlers that does not apply any
 /// formatting to identifiers, and returns `?` as placeholders. The value
 /// handler's default behaviour is to panic since it handles a generic type.
 pub fn new() -> Sql(v) {
-  Sql(
-    handle_identifier: function.identity,
-    handle_placeholder: fn(_) { "?" },
-    handle_value: fn(_) { panic as "based/sql.Sql not configured" },
-  )
-}
-
-/// Apply the configured identifier format function to the provided identifier.
-@internal
-pub fn to_identifier(sql: Sql(v), identifier: String) -> String {
-  sql.handle_identifier(identifier)
-}
-
-/// Apply the configured value format function to the provided value.
-@internal
-pub fn to_string(sql: Sql(v), value: v) -> String {
-  sql.handle_value(value)
-}
-
-/// Apply the configured placeholder format function to the provided
-/// placeholder index.
-@internal
-pub fn to_placeholder(sql: Sql(v), value: Int) -> String {
-  sql.handle_placeholder(value)
+  Sql(fmt: fmt.new())
 }
 
 /// Sets the placeholder formatting function.
@@ -70,7 +43,9 @@ pub fn on_placeholder(
   sql: Sql(v),
   handle_placeholder: fn(Int) -> String,
 ) -> Sql(v) {
-  Sql(..sql, handle_placeholder:)
+  let fmt = fmt.on_placeholder(sql.fmt, handle_placeholder)
+
+  Sql(fmt:)
 }
 
 /// Set the identifier formatting function.
@@ -78,12 +53,16 @@ pub fn on_identifier(
   sql: Sql(v),
   handle_identifier: fn(String) -> String,
 ) -> Sql(v) {
-  Sql(..sql, handle_identifier:)
+  let fmt = fmt.on_identifier(sql.fmt, handle_identifier)
+
+  Sql(fmt:)
 }
 
 /// Set the value formatting function.
 pub fn on_value(sql: Sql(v), handle_value: fn(v) -> String) -> Sql(v) {
-  Sql(..sql, handle_value:)
+  let fmt = fmt.on_value(sql.fmt, handle_value)
+
+  Sql(fmt:)
 }
 
 pub type Node(v) =

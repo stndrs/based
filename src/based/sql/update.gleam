@@ -30,7 +30,7 @@ import gleam/option.{type Option, None}
 
 pub opaque type Update(v) {
   Update(
-    sql: sql.Sql(v),
+    fmt: fmt.Fmt(v),
     table: sql.Table(v),
     sets: List(#(String, Node(v))),
     where: List(List(sql.Expr(v))),
@@ -48,7 +48,7 @@ pub fn table(sql: sql.Sql(v), identifier: sql.Identifier) -> Update(v) {
   let table = table.new(identifier)
 
   Update(
-    sql:,
+    fmt: sql.fmt,
     table:,
     sets: [],
     where: [],
@@ -98,7 +98,7 @@ pub fn returning(update: Update(v), columns: List(String)) -> Update(v) {
 pub fn to_query(update: Update(v)) -> db.Query(v) {
   let values = update.values |> list.reverse |> list.flatten
 
-  let to_placeholder = sql.to_placeholder(update.sql, _)
+  let to_placeholder = fmt.to_placeholder(update.fmt, _)
 
   build(update)
   |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
@@ -111,7 +111,7 @@ pub fn to_string(update: Update(v)) -> String {
   let values = update.values |> list.reverse |> list.flatten
 
   build(update)
-  |> builder.to_string(values, update.sql)
+  |> builder.to_string(values, update.fmt)
 }
 
 fn build(update: Update(v)) -> String {
@@ -122,7 +122,7 @@ fn build(update: Update(v)) -> String {
 
     let right =
       value
-      |> node.to_string(sql.to_identifier(update.sql, _))
+      |> node.to_string(fmt.to_identifier(update.fmt, _))
 
     column
     |> fmt.eq(right)
@@ -130,11 +130,11 @@ fn build(update: Update(v)) -> String {
 
   let table =
     update.table
-    |> table.to_string(sql.to_identifier(update.sql, _))
+    |> table.to_string(fmt.to_identifier(update.fmt, _))
 
   fmt.update(table)
   |> fmt.set(updates)
-  |> builder.append_where(update.where, update.sql)
+  |> builder.append_where(update.where, update.fmt)
   |> builder.append_returning(update.returning)
   |> builder.append_order_by(update.order_by, update.order)
   |> builder.append_limit(update.limit, update.offset)

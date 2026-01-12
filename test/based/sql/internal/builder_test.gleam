@@ -17,10 +17,10 @@ pub fn to_string_test() {
   }
 
   let format =
-    sql.new()
-    |> sql.on_identifier(fn(s) { "\"" <> s <> "\"" })
-    |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
-    |> sql.on_value(format_value)
+    fmt.new()
+    |> fmt.on_identifier(fn(s) { "\"" <> s <> "\"" })
+    |> fmt.on_placeholder(fn(i) { "$" <> int.to_string(i) })
+    |> fmt.on_value(format_value)
 
   let result = builder.to_string("SELECT * FROM users", [], format)
   should.equal(result, "SELECT * FROM users")
@@ -46,10 +46,10 @@ pub fn append_where_test() {
   let st = "SELECT * FROM users"
 
   let format =
-    sql.new()
-    |> sql.on_identifier(fn(s) { s })
-    |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
-    |> sql.on_value(fn(v) {
+    fmt.new()
+    |> fmt.on_identifier(fn(s) { s })
+    |> fmt.on_placeholder(fn(i) { "$" <> int.to_string(i) })
+    |> fmt.on_value(fn(v) {
       case v {
         value.Int(i) -> int.to_string(i)
         value.Text(s) -> "'" <> s <> "'"
@@ -86,10 +86,10 @@ pub fn append_having_test() {
   let st = "SELECT department, COUNT(*) FROM users GROUP BY department"
 
   let format =
-    sql.new()
-    |> sql.on_identifier(fn(s) { s })
-    |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
-    |> sql.on_value(fn(v) {
+    fmt.new()
+    |> fmt.on_identifier(fn(s) { s })
+    |> fmt.on_placeholder(fn(i) { "$" <> int.to_string(i) })
+    |> fmt.on_value(fn(v) {
       case v {
         value.Int(i) -> int.to_string(i)
         _ -> ""
@@ -112,10 +112,10 @@ pub fn append_joins_test() {
   let st = "SELECT * FROM users"
 
   let format =
-    sql.new()
-    |> sql.on_identifier(fn(s) { s })
-    |> sql.on_placeholder(fn(i) { "$" <> int.to_string(i) })
-    |> sql.on_value(fn(_v) { "" })
+    fmt.new()
+    |> fmt.on_identifier(fn(s) { s })
+    |> fmt.on_placeholder(fn(i) { "$" <> int.to_string(i) })
+    |> fmt.on_value(fn(_v) { "" })
 
   let users = sql.identifier("users")
   let posts = sql.identifier("posts")
