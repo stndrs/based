@@ -1022,3 +1022,50 @@ pub fn not_between_test() {
   query.sql |> should.equal(expected)
   query.values |> should.equal([value.float(10.0), value.float(50.0)])
 }
+
+pub fn raw_sql_where_test() {
+  let expected =
+    "SELECT * FROM products WHERE id = 10 AND NOT price BETWEEN ? AND ?"
+  let products = sql.identifier("products")
+
+  let query =
+    value.sql()
+    |> select.from(products)
+    |> select.where([
+      sql.raw("id = 10"),
+      sql.not(
+        sql.identifier("price")
+        |> sql.column
+        |> sql.between(
+          sql.value(value.float(10.0)),
+          sql.value(value.float(50.0)),
+        ),
+      ),
+    ])
+    |> select.to_query
+
+  query.sql |> should.equal(expected)
+  query.values |> should.equal([value.float(10.0), value.float(50.0)])
+}
+
+pub fn raw_sql_join_test() {
+  let expected =
+    "SELECT * FROM users INNER JOIN posts ON users.id = posts.user_id AND posts.title LIKE ?"
+
+  let users = sql.identifier("users")
+  let posts = sql.identifier("posts")
+
+  let query =
+    value.sql()
+    |> select.from(users)
+    |> select.join(posts, on: [
+      sql.raw("users.id = posts.user_id"),
+      sql.identifier("posts.title")
+        |> sql.column
+        |> sql.like("%gleam%", of: value.text),
+    ])
+    |> select.to_query
+
+  query.sql |> should.equal(expected)
+  query.values |> should.equal([value.text("%gleam%")])
+}

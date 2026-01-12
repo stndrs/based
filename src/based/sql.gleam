@@ -141,6 +141,10 @@ pub fn not_like(
   expr.compare(left, right, expr.NotLike)
 }
 
+pub fn raw(sql: String) -> Expr(v) {
+  expr.raw(sql)
+}
+
 pub type Order {
   Asc
   Desc

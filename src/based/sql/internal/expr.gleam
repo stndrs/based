@@ -10,6 +10,7 @@ pub opaque type Expr(v) {
   Not(expr: Expr(v))
   Is(left: Node(v), right: Bool)
   IsNull(left: Node(v), right: Bool)
+  Raw(sql: String)
 }
 
 pub fn compare(
@@ -40,6 +41,10 @@ pub fn is_null(left: Node(v), right: Bool) -> Expr(v) {
   IsNull(left:, right:)
 }
 
+pub fn raw(sql: String) -> Expr(v) {
+  Raw(sql)
+}
+
 pub fn to_values(expr: Expr(v)) -> List(v) {
   case expr {
     Compare(left, right, op) -> {
@@ -56,6 +61,7 @@ pub fn to_values(expr: Expr(v)) -> List(v) {
     Not(expr) -> to_values(expr)
     Is(..) -> []
     IsNull(..) -> []
+    Raw(..) -> []
   }
 }
 
@@ -121,6 +127,7 @@ pub fn to_string(
 
       fmt(left, fmt.null)
     }
+    Raw(sql) -> sql
   }
 }
 
