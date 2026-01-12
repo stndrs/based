@@ -18,7 +18,7 @@ pub type Field {
   Timestamp
 }
 
-pub opaque type Schema(a) {
+pub type Schema(a) {
   Schema(
     table: sql.Identifier,
     fields: Dict(String, Field),
