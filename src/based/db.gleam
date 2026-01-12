@@ -14,24 +14,28 @@ import gleam/string
 /// Error types covering database-specific errors, decoding failures,
 /// and application-level errors.
 pub type DbError {
-  DbError(message: String)
-  DecodeError(errors: List(decode.DecodeError))
-  NotFound
+  ConnectionTimeout
+  ConnectionError(message: String)
   DatabaseError(code: String, name: String, message: String)
   ConstraintError(code: String, name: String, message: String)
   SyntaxError(code: String, name: String, message: String)
+  DbError(message: String)
+  DecodeError(errors: List(decode.DecodeError))
+  NotFound
 }
 
 /// Formats the provided `DbError` as a string.
 pub fn error_to_string(err: DbError) -> String {
   case err {
-    DbError(message:) -> "[based/db.DbError] " <> message
+    ConnectionTimeout -> "[based/db.ConnectionTimeout]"
+    ConnectionError(message:) -> "[based/db.ConnectionError] " <> message
     DatabaseError(code:, name:, message:) ->
       format_db_error(code, name, message, for: "DatabaseError")
     ConstraintError(code:, name:, message:) ->
       format_db_error(code, name, message, for: "ConstraintError")
     SyntaxError(code:, name:, message:) ->
       format_db_error(code, name, message, for: "SyntaxError")
+    DbError(message:) -> "[based/db.DbError] " <> message
     NotFound -> "[based/db.NotFound]"
     DecodeError(errors:) -> {
       let error_string =
@@ -118,30 +122,6 @@ pub fn transaction(
   next: fn(conn) -> Result(t, error),
 ) -> Result(t, TransactionError(error)) {
   handler(conn, next)
-}
-
-pub fn begin(
-  conn: conn,
-  handler: fn(conn) -> Result(conn, error),
-) -> Result(conn, TransactionError(error)) {
-  handler(conn)
-  |> result.map_error(TransactionFailure)
-}
-
-pub fn commit(
-  conn: conn,
-  handler: fn(conn) -> Result(conn, error),
-) -> Result(conn, TransactionError(error)) {
-  handler(conn)
-  |> result.map_error(TransactionFailure)
-}
-
-pub fn rollback(
-  conn: conn,
-  handler: fn(conn) -> Result(conn, error),
-) -> Result(conn, TransactionError(error)) {
-  handler(conn)
-  |> result.map_error(TransactionFailure)
 }
 
 // Querying

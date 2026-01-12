@@ -125,33 +125,6 @@ pub fn transaction_error_test() {
   }
 }
 
-pub fn begin_test() {
-  let assert Ok(_conn) = db.begin(Conn, Ok)
-}
-
-pub fn begin_error_test() {
-  let assert Error(db.TransactionFailure("begin failure")) =
-    db.begin(Conn, fn(_) { Error("begin failure") })
-}
-
-pub fn commit_test() {
-  let assert Ok(_conn) = db.commit(Conn, Ok)
-}
-
-pub fn commit_error_test() {
-  let assert Error(db.TransactionFailure("commit failure")) =
-    db.commit(Conn, fn(_) { Error("commit failure") })
-}
-
-pub fn rollback_test() {
-  let assert Ok(_conn) = db.rollback(Conn, Ok)
-}
-
-pub fn rollback_error_test() {
-  let assert Error(db.TransactionFailure("rollback failure")) =
-    db.rollback(Conn, fn(_) { Error("rollback failure") })
-}
-
 pub type Conn {
   Conn
 }
