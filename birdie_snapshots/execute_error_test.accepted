@@ -1,5 +1,0 @@
----
-version: 1.4.1
-title: Execute error test
----
-INSERT INTO users (id, name) VALUES (2, 'William')

@@ -1,6 +1,5 @@
 import based/db
 import based/value
-import birdie
 import gleam/dynamic
 import gleam/dynamic/decode
 import gleam/list
@@ -33,7 +32,7 @@ pub fn query_test() {
   let assert Ok(_) =
     db.sql(sql)
     |> db.params([value.int(1)])
-    |> db.query(Conn, query_handler("Query test", returning:))
+    |> db.query(Conn, query_handler(returning:))
 }
 
 pub fn query_error_test() {
@@ -44,14 +43,13 @@ pub fn query_error_test() {
   let assert Error(_) =
     db.sql(sql)
     |> db.params([value.int(1)])
-    |> db.query(Conn, query_handler("Query error test", returning:))
+    |> db.query(Conn, query_handler(returning:))
 }
 
 pub fn execute_test() {
   let sql = "INSERT INTO users (id, name) VALUES (2, 'William')"
 
-  let assert Ok(1) =
-    db.execute(sql, Conn, execute_handler("Execute test", returning: Ok(1)))
+  let assert Ok(1) = db.execute(sql, Conn, execute_handler(returning: Ok(1)))
 }
 
 pub fn execute_error_test() {
@@ -59,8 +57,7 @@ pub fn execute_error_test() {
 
   let returning = Error(db.DbError("something failed"))
 
-  let assert Error(_) =
-    db.execute(sql, Conn, execute_handler("Execute error test", returning:))
+  let assert Error(_) = db.execute(sql, Conn, execute_handler(returning:))
 }
 
 pub fn all_test() {
@@ -72,7 +69,7 @@ pub fn all_test() {
   let assert Ok(db.Returning(count: 1, rows: [#(1, "Steve")])) =
     db.sql(sql)
     |> db.params([value.int(1)])
-    |> db.all(Conn, user_decoder, query_handler("all test", returning:))
+    |> db.all(Conn, user_decoder, query_handler(returning:))
 }
 
 pub fn all_error_test() {
@@ -83,7 +80,7 @@ pub fn all_error_test() {
   let assert Error(_) =
     db.sql(sql)
     |> db.params([value.int(1)])
-    |> db.all(Conn, user_decoder, query_handler("All error test", returning:))
+    |> db.all(Conn, user_decoder, query_handler(returning:))
 }
 
 pub fn one_test() {
@@ -95,7 +92,7 @@ pub fn one_test() {
   let assert Ok(#(1, "Steve")) =
     db.sql(sql)
     |> db.params([value.int(1)])
-    |> db.one(Conn, user_decoder, query_handler("one test", returning:))
+    |> db.one(Conn, user_decoder, query_handler(returning:))
 }
 
 pub fn one_error_test() {
@@ -106,7 +103,7 @@ pub fn one_error_test() {
   let assert Error(_) =
     db.sql(sql)
     |> db.params([value.int(1)])
-    |> db.one(Conn, user_decoder, query_handler("one error test", returning:))
+    |> db.one(Conn, user_decoder, query_handler(returning:))
 }
 
 pub fn transaction_test() {
@@ -137,25 +134,15 @@ fn user_decoder() -> decode.Decoder(#(Int, String)) {
 }
 
 fn query_handler(
-  name: String,
   returning queried: Result(db.Queried, db.DbError),
 ) -> db.QueryHandler(v, Conn) {
-  fn(query: db.Query(v), _conn) {
-    birdie.snap(query.sql, title: name)
-
-    queried
-  }
+  fn(_: db.Query(v), _conn) { queried }
 }
 
 fn execute_handler(
-  name: String,
   returning executed: Result(Int, db.DbError),
 ) -> db.ExecuteHandler(Conn) {
-  fn(sql: String, _conn) {
-    birdie.snap(sql, title: name)
-
-    executed
-  }
+  fn(_sql: String, _conn) { executed }
 }
 
 fn tx_handler(

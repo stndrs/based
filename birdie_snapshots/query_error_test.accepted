@@ -1,5 +1,0 @@
----
-version: 1.4.1
-title: Query error test
----
-SELECT * FROM users WHERE id=$1;
