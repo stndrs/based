@@ -58,7 +58,7 @@ pub fn timestamps(schema: Schema(a)) -> Schema(a) {
 }
 
 pub fn select(schema: Schema(a), sql: sql.Sql(v)) -> select.Select(v) {
-  select.from(sql, schema.table, of: sql.table)
+  select.from(sql, schema.table)
 }
 
 pub fn insert(schema: Schema(a), sql: sql.Sql(v)) -> insert.Insert(v) {

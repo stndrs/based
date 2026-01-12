@@ -63,12 +63,31 @@ pub fn new(sql: sql.Sql(v)) -> Select(v) {
 
 // From
 
-pub fn from(
-  sql: sql.Sql(v),
-  source: a,
-  of kind: fn(a) -> sql.Table(v),
-) -> Select(v) {
-  let table = kind(source)
+pub fn from(sql: sql.Sql(v), identifier: sql.Identifier) -> Select(v) {
+  let table = table.new(identifier)
+
+  let values = table.to_values(table)
+
+  Select(
+    fmt: sql.fmt,
+    table: Some(table),
+    columns: ["*"],
+    distinct: False,
+    join: [],
+    where: [],
+    group_by: [],
+    having: [],
+    order_by: [],
+    order: None,
+    limit: None,
+    offset: None,
+    for: None,
+    values: [values],
+  )
+}
+
+pub fn from_query(sql: sql.Sql(v), query: db.Query(v)) -> Select(v) {
+  let table = sql.subquery(query)
 
   let values = table.to_values(table)
 
@@ -112,44 +131,40 @@ pub fn where_not(select: Select(v), exprs: List(sql.Expr(v))) -> Select(v) {
 
 pub fn join(
   select: Select(v),
-  source: a,
-  of kind: fn(a) -> sql.Table(v),
+  identifier: sql.Identifier,
   on exprs: List(sql.Expr(v)),
 ) -> Select(v) {
-  let table = kind(source)
+  let table = table.new(identifier)
 
   do_join(select, table, exprs, join.inner)
 }
 
 pub fn left_join(
   select: Select(v),
-  source: a,
-  of kind: fn(a) -> sql.Table(v),
+  identifier: sql.Identifier,
   on exprs: List(sql.Expr(v)),
 ) -> Select(v) {
-  let table = kind(source)
+  let table = table.new(identifier)
 
   do_join(select, table, exprs, join.left)
 }
 
 pub fn right_join(
   select: Select(v),
-  source: a,
-  of kind: fn(a) -> sql.Table(v),
+  identifier: sql.Identifier,
   on exprs: List(sql.Expr(v)),
 ) -> Select(v) {
-  let table = kind(source)
+  let table = table.new(identifier)
 
   do_join(select, table, exprs, join.right)
 }
 
 pub fn full_join(
   select: Select(v),
-  source: a,
-  of kind: fn(a) -> sql.Table(v),
+  identifier: sql.Identifier,
   on exprs: List(sql.Expr(v)),
 ) -> Select(v) {
-  let table = kind(source)
+  let table = table.new(identifier)
 
   do_join(select, table, exprs, join.full)
 }

@@ -14,9 +14,9 @@ pub fn with_test() {
 
   let employees_select =
     value.sql()
-    |> select.from(employees, of: sql.table)
+    |> select.from(employees)
     |> select.columns(["e.name", "d.name"])
-    |> select.join(sql.alias(departments, "d"), of: sql.table, on: [
+    |> select.join(sql.alias(departments, "d"), on: [
       sql.identifier("e.dept_id")
       |> sql.column
       |> sql.eq(sql.identifier("d.id") |> sql.column),
@@ -27,7 +27,7 @@ pub fn with_test() {
     value.sql()
     |> with.new([with.cte("departments", employees_select)])
     |> with.query(fn(sql) {
-      select.from(sql, departments, of: sql.table)
+      select.from(sql, departments)
       |> select.columns(["*"])
       |> select.where([
         sql.identifier("name")
@@ -51,13 +51,13 @@ pub fn with_multiple_ctes_test() {
 
   let deps_select =
     value.sql()
-    |> select.from(departments, of: sql.table)
+    |> select.from(departments)
     |> select.columns(["id", "name"])
     |> select.to_query
 
   let employees_select =
     value.sql()
-    |> select.from(employees, of: sql.table)
+    |> select.from(employees)
     |> select.columns(["id", "name", "dept_id"])
     |> select.to_query
 
@@ -68,9 +68,9 @@ pub fn with_multiple_ctes_test() {
       with.cte("employees", employees_select),
     ])
     |> with.query(fn(sql) {
-      select.from(sql, sql.alias(employees, "e"), of: sql.table)
+      select.from(sql, sql.alias(employees, "e"))
       |> select.columns(["e.name", "d.name"])
-      |> select.join(sql.alias(departments, "d"), of: sql.table, on: [
+      |> select.join(sql.alias(departments, "d"), on: [
         sql.identifier("e.dept_id")
         |> sql.column
         |> sql.eq(sql.identifier("d.id") |> sql.column),
@@ -90,7 +90,7 @@ pub fn with_column_names_test() {
 
   let deps_select =
     value.sql()
-    |> select.from(departments, of: sql.table)
+    |> select.from(departments)
     |> select.columns(["id", "name"])
     |> select.to_query
 
@@ -101,7 +101,7 @@ pub fn with_column_names_test() {
       |> with.columns(["dept_id", "dept_name"]),
     ])
     |> with.query(fn(sql) {
-      select.from(sql, departments, of: sql.table)
+      select.from(sql, departments)
       |> select.columns(["dept_name"])
       |> select.where([
         sql.identifier("dept_id")
@@ -126,7 +126,7 @@ pub fn recursive_with_test() {
 
   let recursive_query =
     value.sql()
-    |> select.from(numbers, of: sql.table)
+    |> select.from(numbers)
     |> select.columns(["n + 1"])
     |> select.where([
       sql.identifier("n")
@@ -143,7 +143,7 @@ pub fn recursive_with_test() {
     |> with.new([with.cte("numbers", union_all) |> with.columns(["n"])])
     |> with.recursive
     |> with.query(fn(sql) {
-      select.from(sql, numbers, of: sql.table)
+      select.from(sql, numbers)
       |> select.columns(["n"])
       |> select.to_query
     })
@@ -162,12 +162,12 @@ pub fn with_union_test() {
 
   let users_select =
     value.sql()
-    |> select.from(users, of: sql.table)
+    |> select.from(users)
     |> select.columns(["id", "name"])
 
   let accounts_select =
     value.sql()
-    |> select.from(accounts, of: sql.table)
+    |> select.from(accounts)
     |> select.columns(["id", "username"])
 
   let union_query =
@@ -178,7 +178,7 @@ pub fn with_union_test() {
     value.sql()
     |> with.new([with.cte("combined_data", union_query)])
     |> with.query(fn(sql) {
-      select.from(sql, combined_data, of: sql.table)
+      select.from(sql, combined_data)
       |> select.columns(["*"])
       |> select.order_by(["id"])
       |> select.to_query
