@@ -75,7 +75,7 @@ pub fn append_group_by(st: String, group_by: List(String)) -> String {
 
 pub fn append_having(
   st: String,
-  having: List(List(sql.Expr(v))),
+  having: List(List(expr.Expr(v))),
   fmt: fmt.Fmt(v),
 ) -> String {
   having
