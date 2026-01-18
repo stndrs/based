@@ -6,7 +6,7 @@ import based/sql/internal/expr
 import based/sql/internal/fmt
 import based/sql/internal/join.{type Join}
 import based/sql/internal/node.{type Node}
-import based/sql/internal/table
+import based/sql/table
 import gleam/function
 import gleam/list
 import gleam/option.{type Option, None, Some}
@@ -15,10 +15,15 @@ type For {
   Update
 }
 
+type TableOrSubquery(v) {
+  Table(table.Table)
+  Subquery(db.Query(v))
+}
+
 pub opaque type Select(v) {
   Select(
     fmt: fmt.Fmt(v),
-    table: Option(sql.Table(v)),
+    table: Option(TableOrSubquery(v)),
     columns: List(String),
     distinct: Bool,
     join: List(Join(v)),
@@ -64,14 +69,10 @@ pub fn new(repo: based.Repo(v)) -> Select(v) {
 
 // From
 
-pub fn from(repo: based.Repo(v), identifier: sql.Identifier) -> Select(v) {
-  let table = table.new(identifier)
-
-  let values = table.to_values(table)
-
+pub fn from(repo: based.Repo(v), table: table.Table) -> Select(v) {
   Select(
     fmt: repo.fmt,
-    table: Some(table),
+    table: Some(Table(table)),
     columns: ["*"],
     distinct: False,
     join: [],
@@ -83,18 +84,14 @@ pub fn from(repo: based.Repo(v), identifier: sql.Identifier) -> Select(v) {
     limit: None,
     offset: None,
     for: None,
-    values: [values],
+    values: [],
   )
 }
 
 pub fn from_query(repo: based.Repo(v), query: db.Query(v)) -> Select(v) {
-  let table = table.subquery(query)
-
-  let values = table.to_values(table)
-
   Select(
     fmt: repo.fmt,
-    table: Some(table),
+    table: Some(Subquery(query)),
     columns: ["*"],
     distinct: False,
     join: [],
@@ -106,7 +103,7 @@ pub fn from_query(repo: based.Repo(v), query: db.Query(v)) -> Select(v) {
     limit: None,
     offset: None,
     for: None,
-    values: [values],
+    values: [query.values],
   )
 }
 
@@ -117,7 +114,8 @@ pub fn columns(select: Select(v), columns: List(String)) -> Select(v) {
 // Where
 
 pub fn where(select: Select(v), exprs: List(sql.Expr(v))) -> Select(v) {
-  let values = list.flat_map(exprs, expr.to_values)
+  let values =
+    list.flat_map(exprs, expr.to_values(_, fmt.to_value(select.fmt, _)))
   let where = list.prepend(select.where, exprs)
 
   Select(..select, where:)
@@ -132,51 +130,44 @@ pub fn where_not(select: Select(v), exprs: List(sql.Expr(v))) -> Select(v) {
 
 pub fn join(
   select: Select(v),
-  identifier: sql.Identifier,
+  table: table.Table,
   on exprs: List(sql.Expr(v)),
 ) -> Select(v) {
-  let table = table.new(identifier)
-
   do_join(select, table, exprs, join.inner)
 }
 
 pub fn left_join(
   select: Select(v),
-  identifier: sql.Identifier,
+  table: table.Table,
   on exprs: List(sql.Expr(v)),
 ) -> Select(v) {
-  let table = table.new(identifier)
-
   do_join(select, table, exprs, join.left)
 }
 
 pub fn right_join(
   select: Select(v),
-  identifier: sql.Identifier,
+  table: table.Table,
   on exprs: List(sql.Expr(v)),
 ) -> Select(v) {
-  let table = table.new(identifier)
-
   do_join(select, table, exprs, join.right)
 }
 
 pub fn full_join(
   select: Select(v),
-  identifier: sql.Identifier,
+  table: table.Table,
   on exprs: List(sql.Expr(v)),
 ) -> Select(v) {
-  let table = table.new(identifier)
-
   do_join(select, table, exprs, join.full)
 }
 
 fn do_join(
   select: Select(v),
-  table: sql.Table(v),
+  table: table.Table,
   exprs: List(sql.Expr(v)),
-  joiner: fn(sql.Table(v), List(sql.Expr(v))) -> join.Join(v),
+  joiner: fn(table.Table, List(sql.Expr(v))) -> join.Join(v),
 ) -> Select(v) {
-  let values = list.flat_map(exprs, expr.to_values)
+  let values =
+    list.flat_map(exprs, expr.to_values(_, fmt.to_value(select.fmt, _)))
   let join_clause = joiner(table, exprs)
   let join = list.prepend(select.join, join_clause)
 
@@ -190,7 +181,8 @@ pub fn group_by(qb: Select(v), group_by: List(String)) -> Select(v) {
 }
 
 pub fn having(select: Select(v), having: List(sql.Expr(v))) -> Select(v) {
-  let values = list.flat_map(having, expr.to_values)
+  let values =
+    list.flat_map(having, expr.to_values(_, fmt.to_value(select.fmt, _)))
   let having = list.prepend(select.having, having)
 
   Select(..select, having:)
@@ -267,10 +259,17 @@ fn build(select: Select(v)) -> String {
   }
 
   let from_sql = case select.table {
-    Some(table) -> {
+    Some(Table(table)) -> {
       let to_string =
         table
         |> table.to_string(fmt.to_identifier(select.fmt, _))
+
+      fmt.from(_, to_string)
+    }
+    Some(Subquery(query)) -> {
+      let to_string =
+        query.sql
+        |> fmt.enclose
 
       fmt.from(_, to_string)
     }

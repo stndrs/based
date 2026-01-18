@@ -24,14 +24,14 @@ import based/sql
 import based/sql/internal/builder
 import based/sql/internal/expr
 import based/sql/internal/fmt
-import based/sql/internal/table
+import based/sql/table
 import gleam/list
 
 /// A DELETE query with table, WHERE conditions, RETURNING columns, and values.
 pub opaque type Delete(v) {
   Delete(
     fmt: fmt.Fmt(v),
-    table: sql.Table(v),
+    table: table.Table,
     where: List(List(sql.Expr(v))),
     returning: List(String),
     values: List(List(v)),
@@ -39,15 +39,14 @@ pub opaque type Delete(v) {
 }
 
 /// Set the table for a DELETE query.
-pub fn from(repo: based.Repo(v), identifier: sql.Identifier) -> Delete(v) {
-  let table = sql.table(identifier)
-
+pub fn from(repo: based.Repo(v), table: table.Table) -> Delete(v) {
   Delete(fmt: repo.fmt, table:, where: [], returning: [], values: [])
 }
 
 /// Add WHERE conditions to a DELETE query.
 pub fn where(delete: Delete(v), exprs: List(sql.Expr(v))) -> Delete(v) {
-  let values = list.flat_map(exprs, expr.to_values)
+  let values =
+    list.flat_map(exprs, expr.to_values(_, fmt.to_value(delete.fmt, _)))
 
   Delete(..delete, where: [exprs]) |> prepend_values(values)
 }

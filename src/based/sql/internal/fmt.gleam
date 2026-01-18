@@ -6,6 +6,7 @@ pub opaque type Fmt(v) {
     handle_identifier: fn(String) -> String,
     handle_placeholder: fn(Int) -> String,
     handle_value: fn(v) -> String,
+    handle_text: fn(String) -> v,
   )
 }
 
@@ -17,6 +18,7 @@ pub fn new() -> Fmt(v) {
     handle_identifier: function.identity,
     handle_placeholder: fn(_) { "?" },
     handle_value: fn(_) { panic as "based/format.Fmt not configured" },
+    handle_text: fn(_) { panic as "based/format.Fmt not configured" },
   )
 }
 
@@ -41,6 +43,10 @@ pub fn on_value(fmt: Fmt(v), handle_value: fn(v) -> String) -> Fmt(v) {
   Fmt(..fmt, handle_value:)
 }
 
+pub fn on_text(fmt: Fmt(v), handle_text: fn(String) -> v) -> Fmt(v) {
+  Fmt(..fmt, handle_text:)
+}
+
 /// Apply the configured identifier format function to the provided identifier.
 pub fn to_identifier(fmt: Fmt(v), identifier: String) -> String {
   fmt.handle_identifier(identifier)
@@ -49,6 +55,10 @@ pub fn to_identifier(fmt: Fmt(v), identifier: String) -> String {
 /// Apply the configured value format function to the provided value.
 pub fn to_string(fmt: Fmt(v), value: v) -> String {
   fmt.handle_value(value)
+}
+
+pub fn to_value(fmt: Fmt(v), text: String) -> v {
+  fmt.handle_text(text)
 }
 
 /// Apply the configured placeholder format function to the provided

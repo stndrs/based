@@ -1,25 +1,22 @@
 import based
 import based/db
-import based/sql
 import based/sql/internal/builder
 import based/sql/internal/fmt
-import based/sql/internal/table
+import based/sql/table
 import gleam/list
 import gleam/string
 
 pub opaque type Insert(v) {
   Insert(
     fmt: fmt.Fmt(v),
-    table: sql.Table(v),
+    table: table.Table,
     columns: List(String),
     returning: List(String),
     values: List(v),
   )
 }
 
-pub fn into(repo: based.Repo(v), identifier: sql.Identifier) -> Insert(v) {
-  let table = sql.table(identifier)
-
+pub fn into(repo: based.Repo(v), table: table.Table) -> Insert(v) {
   Insert(fmt: repo.fmt, table:, columns: [], returning: [], values: [])
 }
 

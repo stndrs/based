@@ -1,8 +1,9 @@
 import based
-import based/sql
+import based/sql/column
 import based/sql/delete
 import based/sql/insert
 import based/sql/select
+import based/sql/table
 import based/sql/update
 import gleam/dict.{type Dict}
 import gleam/dynamic/decode.{type Decoder}
@@ -21,14 +22,14 @@ pub type Field {
 
 pub type Schema(a) {
   Schema(
-    table: sql.Identifier,
+    table: table.Table,
     fields: Dict(String, Field),
     decoder: fn() -> Decoder(a),
   )
 }
 
 pub fn new(name: String, decoder: fn() -> Decoder(a)) -> Schema(a) {
-  let table = sql.identifier(name)
+  let table = table.new(name)
   let fields = dict.new()
 
   Schema(table:, fields:, decoder:)
@@ -37,13 +38,14 @@ pub fn new(name: String, decoder: fn() -> Decoder(a)) -> Schema(a) {
 pub fn alias(schema: Schema(a), alias: String) -> Schema(a) {
   let table =
     schema.table
-    |> sql.alias(alias)
+    |> table.alias(alias)
 
   Schema(..schema, table:)
 }
 
-pub fn column(schema: Schema(a), field: String) -> sql.Identifier {
-  schema.table |> sql.attr(field)
+pub fn column(schema: Schema(a), field: String) -> column.Column {
+  column.new(field)
+  |> column.for(schema.table)
 }
 
 pub fn field(schema: Schema(a), name: String, field: Field) -> Schema(a) {

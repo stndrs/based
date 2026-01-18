@@ -173,6 +173,7 @@ pub fn repo() -> based.Repo(Value) {
   |> based.on_identifier(function.identity)
   |> based.on_placeholder(handle_placeholder)
   |> based.on_value(value_to_string)
+  |> based.on_text(text)
 }
 
 fn handle_placeholder(_: Int) -> String {

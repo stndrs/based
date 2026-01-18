@@ -71,6 +71,13 @@ pub fn on_value(repo: Repo(v), handle_value: fn(v) -> String) -> Repo(v) {
   Repo(..repo, fmt:)
 }
 
+/// Set the text to value function.
+pub fn on_text(repo: Repo(v), handle_text: fn(String) -> v) -> Repo(v) {
+  let fmt = fmt.on_text(repo.fmt, handle_text)
+
+  Repo(..repo, fmt:)
+}
+
 pub fn time_decoder(
   repo: Repo(v),
   time_decoder: fn() -> decode.Decoder(calendar.TimeOfDay),

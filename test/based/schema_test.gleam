@@ -2,41 +2,31 @@ import based
 import based/db
 import based/schema
 import based/sql
+import based/sql/column
 import based/sql/delete
 import based/sql/insert
-import based/sql/internal/fmt
-import based/sql/internal/node
 import based/sql/select
 import based/sql/update
 import based/value
 import gleam/dynamic/decode
 
 pub fn schema_column_test() {
-  let sql =
+  let repo =
     based.repo()
     |> based.on_identifier(fn(ident) { "`" <> ident <> "`" })
 
-  let users =
-    schema.new("users", fn() { decode.dynamic })
-    |> schema.field("id", schema.Id)
-    |> schema.field("name", schema.Text)
-    |> schema.timestamps
+  let users = schema.new("users", fn() { decode.dynamic })
 
   assert "`users`.`id`"
     == users
     |> schema.column("id")
-    |> sql.column
-    |> node.to_string(fmt.to_identifier(sql.fmt, _))
+    |> column.to_string(repo)
 }
 
 pub fn schema_select_test() {
   let sql = based.repo()
 
-  let users =
-    schema.new("users", fn() { decode.dynamic })
-    |> schema.field("id", schema.Id)
-    |> schema.field("name", schema.Text)
-    |> schema.timestamps
+  let users = schema.new("users", fn() { decode.dynamic })
 
   let db.Query(sql:, values:) =
     users
@@ -50,11 +40,7 @@ pub fn schema_select_test() {
 pub fn schema_insert_test() {
   let sql = based.repo()
 
-  let users =
-    schema.new("users", fn() { decode.dynamic })
-    |> schema.field("id", schema.Id)
-    |> schema.field("name", schema.Text)
-    |> schema.timestamps
+  let users = schema.new("users", fn() { decode.dynamic })
 
   let db.Query(sql:, values:) =
     users
@@ -70,11 +56,7 @@ pub fn schema_insert_test() {
 pub fn schema_delete_test() {
   let sql = based.repo()
 
-  let users =
-    schema.new("users", fn() { decode.dynamic })
-    |> schema.field("id", schema.Id)
-    |> schema.field("name", schema.Text)
-    |> schema.timestamps
+  let users = schema.new("users", fn() { decode.dynamic })
 
   let db.Query(sql:, values:) =
     users
@@ -88,20 +70,16 @@ pub fn schema_delete_test() {
 pub fn schema_update_test() {
   let sql = based.repo()
 
-  let users =
-    schema.new("users", fn() { decode.dynamic })
-    |> schema.field("id", schema.Id)
-    |> schema.field("name", schema.Text)
-    |> schema.timestamps
+  let users = schema.new("users", fn() { decode.dynamic })
 
   let db.Query(sql:, values:) =
     users
     |> schema.update(sql)
     |> update.set("name", value.text("Dick"), of: sql.value)
     |> update.where([
-      schema.column(users, "id")
-      |> sql.column
-      |> sql.eq(sql.value(value.int(10))),
+      users
+      |> schema.column("id")
+      |> column.eq(value.int(10), of: sql.value),
     ])
     |> update.to_query
 

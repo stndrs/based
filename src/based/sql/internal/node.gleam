@@ -1,27 +1,28 @@
 import based/db
 import based/sql/internal/fmt
-import based/sql/internal/table
 import gleam/bool
 import gleam/list
-import gleam/option.{type Option}
+import gleam/option.{type Option, None, Some}
 import gleam/string
 
 pub type Node(v) {
-  Column(table.Identifier)
+  Column(name: String, alias: Option(String), table: Option(String))
   Columns(List(String))
+  Text(String)
   Value(v)
-  Values(List(v))
+  List(List(Node(v)))
   Tuples(List(List(v)))
   Query(query: db.Query(v), alias: Option(String))
   Null(Bool)
 }
 
-pub fn unwrap(node: Node(v)) -> List(v) {
+pub fn unwrap(node: Node(v), with handle_text: fn(String) -> v) -> List(v) {
   case node {
     Value(val) -> [val]
-    Values(vals) -> vals
+    List(vals) -> list.flat_map(vals, unwrap(_, handle_text))
     Tuples(vals) -> list.flatten(vals)
     Query(query:, alias: _) -> query.values
+    Text(val) -> [handle_text(val)]
     _ -> []
   }
 }
@@ -31,16 +32,29 @@ pub fn to_string(
   with handle_identifier: fn(String) -> String,
 ) -> String {
   case node {
-    Column(identifier) -> {
-      identifier
-      |> table.identifier_to_string(handle_identifier)
+    Column(name:, alias:, table:) -> {
+      let ident = case table {
+        Some(table) -> {
+          table
+          |> handle_identifier
+          |> string.append(".")
+          |> string.append(handle_identifier(name))
+        }
+        None -> handle_identifier(name)
+      }
+
+      case alias {
+        Some(a) -> fmt.alias(ident, a)
+        None -> ident
+      }
     }
     Columns(columns) ->
       columns
       |> string.join(", ")
       |> fmt.enclose
+    Text(_) -> fmt.placeholder
     Value(_) -> fmt.placeholder
-    Values(values) ->
+    List(values) ->
       values
       |> list.map(fn(_) { fmt.placeholder })
       |> string.join(", ")

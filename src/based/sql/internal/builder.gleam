@@ -2,7 +2,7 @@ import based/sql
 import based/sql/internal/expr
 import based/sql/internal/fmt
 import based/sql/internal/join.{type Join}
-import based/sql/internal/table
+import based/sql/table
 import gleam/dict
 import gleam/list
 import gleam/option.{type Option, None, Some}

@@ -1,53 +1,52 @@
 import based/sql
+import based/sql/column
 import based/sql/select
+import based/sql/table
 import based/sql/union
 import based/sql/with
 import based/value
-import gleeunit/should
 
 pub fn with_test() {
   let expected =
     "WITH departments AS (SELECT e.name, d.name FROM employees AS e INNER JOIN departments AS d ON e.dept_id = d.id) SELECT * FROM departments WHERE name = ?;"
 
-  let departments = sql.identifier("departments")
-  let employees = sql.identifier("employees") |> sql.alias("e")
+  let departments = sql.table("departments")
+  let employees = sql.table("employees") |> table.alias("e")
 
   let employees_select =
     value.repo()
     |> select.from(employees)
     |> select.columns(["e.name", "d.name"])
-    |> select.join(sql.alias(departments, "d"), on: [
-      sql.identifier("e.dept_id")
-      |> sql.column
-      |> sql.eq(sql.identifier("d.id") |> sql.column),
+    |> select.join(table.alias(departments, "d"), on: [
+      column.new("e.dept_id")
+      |> column.eq(column.new("d.id"), of: column.node),
     ])
     |> select.to_query
 
   let query =
     value.repo()
     |> with.new([with.cte("departments", employees_select)])
-    |> with.query(fn(sql) {
-      select.from(sql, departments)
+    |> with.query(fn(repo) {
+      select.from(repo, departments)
       |> select.columns(["*"])
       |> select.where([
-        sql.identifier("name")
-        |> sql.column
-        |> sql.eq(sql.value(value.text("Engineering"))),
+        column.new("name")
+        |> column.eq(value.text("Engineering"), of: sql.value),
       ])
       |> select.to_query
     })
     |> with.to_query
 
-  query.sql |> should.equal(expected)
-  query.values |> should.equal([value.text("Engineering")])
+  assert expected == query.sql
+  assert [value.text("Engineering")] == query.values
 }
 
 pub fn with_multiple_ctes_test() {
   let expected =
     "WITH departments AS (SELECT id, name FROM departments), employees AS (SELECT id, name, dept_id FROM employees) SELECT e.name, d.name FROM employees AS e INNER JOIN departments AS d ON e.dept_id = d.id;"
 
-  let departments = sql.identifier("departments")
-  let employees = sql.identifier("employees")
+  let departments = sql.table("departments")
+  let employees = sql.table("employees")
 
   let deps_select =
     value.repo()
@@ -67,26 +66,25 @@ pub fn with_multiple_ctes_test() {
       with.cte("departments", deps_select),
       with.cte("employees", employees_select),
     ])
-    |> with.query(fn(sql) {
-      select.from(sql, sql.alias(employees, "e"))
+    |> with.query(fn(repo) {
+      select.from(repo, table.alias(employees, "e"))
       |> select.columns(["e.name", "d.name"])
-      |> select.join(sql.alias(departments, "d"), on: [
-        sql.identifier("e.dept_id")
-        |> sql.column
-        |> sql.eq(sql.identifier("d.id") |> sql.column),
+      |> select.join(table.alias(departments, "d"), on: [
+        column.new("e.dept_id")
+        |> column.eq(column.new("d.id"), of: column.node),
       ])
       |> select.to_query
     })
     |> with.to_query
 
-  query.sql |> should.equal(expected)
-  query.values |> should.equal([])
+  assert expected == query.sql
+  assert [] == query.values
 }
 
 pub fn with_column_names_test() {
   let expected =
     "WITH departments (dept_id, dept_name) AS (SELECT id, name FROM departments) SELECT dept_name FROM departments WHERE dept_id = ?;"
-  let departments = sql.identifier("departments")
+  let departments = sql.table("departments")
 
   let deps_select =
     value.repo()
@@ -100,20 +98,19 @@ pub fn with_column_names_test() {
       with.cte("departments", deps_select)
       |> with.columns(["dept_id", "dept_name"]),
     ])
-    |> with.query(fn(sql) {
-      select.from(sql, departments)
+    |> with.query(fn(repo) {
+      select.from(repo, departments)
       |> select.columns(["dept_name"])
       |> select.where([
-        sql.identifier("dept_id")
-        |> sql.column
-        |> sql.eq(sql.value(value.int(42))),
+        column.new("dept_id")
+        |> column.eq(value.int(42), of: sql.value),
       ])
       |> select.to_query
     })
     |> with.to_query
 
-  query.sql |> should.equal(expected)
-  query.values |> should.equal([value.int(42)])
+  assert expected == query.sql
+  assert [value.int(42)] == query.values
 }
 
 pub fn recursive_with_test() {
@@ -122,16 +119,15 @@ pub fn recursive_with_test() {
 
   let base_query = select.new(value.repo()) |> select.columns(["1"])
 
-  let numbers = sql.identifier("numbers")
+  let numbers = sql.table("numbers")
 
   let recursive_query =
     value.repo()
     |> select.from(numbers)
     |> select.columns(["n + 1"])
     |> select.where([
-      sql.identifier("n")
-      |> sql.column
-      |> sql.lt(sql.value(value.int(5))),
+      column.new("n")
+      |> column.lt(value.int(5), of: sql.value),
     ])
 
   let union_all =
@@ -142,23 +138,23 @@ pub fn recursive_with_test() {
     value.repo()
     |> with.new([with.cte("numbers", union_all) |> with.columns(["n"])])
     |> with.recursive
-    |> with.query(fn(sql) {
-      select.from(sql, numbers)
+    |> with.query(fn(repo) {
+      select.from(repo, numbers)
       |> select.columns(["n"])
       |> select.to_query
     })
     |> with.to_query
 
-  query.sql |> should.equal(expected)
-  query.values |> should.equal([value.int(5)])
+  assert expected == query.sql
+  assert [value.int(5)] == query.values
 }
 
 pub fn with_union_test() {
   let expected =
     "WITH combined_data AS (SELECT id, name FROM users UNION SELECT id, username FROM accounts) SELECT * FROM combined_data ORDER BY id;"
-  let users = sql.identifier("users")
-  let accounts = sql.identifier("accounts")
-  let combined_data = sql.identifier("combined_data")
+  let users = sql.table("users")
+  let accounts = sql.table("accounts")
+  let combined_data = sql.table("combined_data")
 
   let users_select =
     value.repo()
@@ -177,14 +173,14 @@ pub fn with_union_test() {
   let query =
     value.repo()
     |> with.new([with.cte("combined_data", union_query)])
-    |> with.query(fn(sql) {
-      select.from(sql, combined_data)
+    |> with.query(fn(repo) {
+      select.from(repo, combined_data)
       |> select.columns(["*"])
       |> select.order_by(["id"])
       |> select.to_query
     })
     |> with.to_query
 
-  query.sql |> should.equal(expected)
-  query.values |> should.equal([])
+  assert expected == query.sql
+  assert [] == query.values
 }

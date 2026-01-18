@@ -45,20 +45,24 @@ pub fn raw(sql: String) -> Expr(v) {
   Raw(sql)
 }
 
-pub fn to_values(expr: Expr(v)) -> List(v) {
+pub fn to_values(expr: Expr(v), with handle_text: fn(String) -> v) -> List(v) {
   case expr {
     Compare(left, right, op) -> {
       let op_vals = case op {
-        Between(val) -> node.unwrap(val)
+        Between(val) -> node.unwrap(val, handle_text)
         _ -> []
       }
 
-      list.flatten([node.unwrap(left), op_vals, node.unwrap(right)])
+      list.flatten([
+        node.unwrap(left, handle_text),
+        op_vals,
+        node.unwrap(right, handle_text),
+      ])
     }
     Logical(left, right, _) -> {
-      list.flatten([to_values(left), to_values(right)])
+      list.flatten([to_values(left, handle_text), to_values(right, handle_text)])
     }
-    Not(expr) -> to_values(expr)
+    Not(expr) -> to_values(expr, handle_text)
     Is(..) -> []
     IsNull(..) -> []
     Raw(..) -> []

@@ -25,14 +25,14 @@ import based/sql/internal/builder
 import based/sql/internal/expr
 import based/sql/internal/fmt
 import based/sql/internal/node.{type Node}
-import based/sql/internal/table
+import based/sql/table
 import gleam/list
 import gleam/option.{type Option, None}
 
 pub opaque type Update(v) {
   Update(
     fmt: fmt.Fmt(v),
-    table: sql.Table(v),
+    table: table.Table,
     sets: List(#(String, Node(v))),
     where: List(List(sql.Expr(v))),
     order_by: List(String),
@@ -45,9 +45,7 @@ pub opaque type Update(v) {
 }
 
 /// Create a new UPDATE query for the specified table
-pub fn table(repo: based.Repo(v), identifier: sql.Identifier) -> Update(v) {
-  let table = table.new(identifier)
-
+pub fn table(repo: based.Repo(v), table: table.Table) -> Update(v) {
   Update(
     fmt: repo.fmt,
     table:,
@@ -70,14 +68,15 @@ pub fn set(
   of kind: fn(a) -> Node(v),
 ) {
   let sets = update.sets |> list.prepend(#(column, kind(value)))
-  let values = node.unwrap(kind(value))
+  let values = node.unwrap(kind(value), with: fmt.to_value(update.fmt, _))
 
   Update(..update, sets:) |> prepend_values(values)
 }
 
 /// Add WHERE conditions to the UPDATE statement
 pub fn where(update: Update(v), exprs: List(sql.Expr(v))) -> Update(v) {
-  let values = list.flat_map(exprs, expr.to_values)
+  let values =
+    list.flat_map(exprs, expr.to_values(_, fmt.to_value(update.fmt, _)))
 
   Update(..update, where: [exprs])
   |> prepend_values(values)
