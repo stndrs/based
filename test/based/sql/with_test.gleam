@@ -18,8 +18,8 @@ pub fn with_test() {
     |> select.from(employees)
     |> select.columns(["e.name", "d.name"])
     |> select.join(table.alias(departments, "d"), on: [
-      column.new("e.dept_id")
-      |> column.eq(column.new("d.id"), of: column.node),
+      sql.column("e.dept_id")
+      |> column.eq(sql.column("d.id"), of: column.node),
     ])
     |> select.to_query
 
@@ -30,7 +30,7 @@ pub fn with_test() {
       select.from(repo, departments)
       |> select.columns(["*"])
       |> select.where([
-        column.new("name")
+        sql.column("name")
         |> column.eq(value.text("Engineering"), of: sql.value),
       ])
       |> select.to_query
@@ -70,8 +70,8 @@ pub fn with_multiple_ctes_test() {
       select.from(repo, table.alias(employees, "e"))
       |> select.columns(["e.name", "d.name"])
       |> select.join(table.alias(departments, "d"), on: [
-        column.new("e.dept_id")
-        |> column.eq(column.new("d.id"), of: column.node),
+        sql.column("e.dept_id")
+        |> column.eq(sql.column("d.id"), of: column.node),
       ])
       |> select.to_query
     })
@@ -102,7 +102,7 @@ pub fn with_column_names_test() {
       select.from(repo, departments)
       |> select.columns(["dept_name"])
       |> select.where([
-        column.new("dept_id")
+        sql.column("dept_id")
         |> column.eq(value.int(42), of: sql.value),
       ])
       |> select.to_query
@@ -126,7 +126,7 @@ pub fn recursive_with_test() {
     |> select.from(numbers)
     |> select.columns(["n + 1"])
     |> select.where([
-      column.new("n")
+      sql.column("n")
       |> column.lt(value.int(5), of: sql.value),
     ])
 

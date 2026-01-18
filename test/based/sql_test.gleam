@@ -7,11 +7,11 @@ import based/value
 
 pub fn and_test() {
   let sql1 =
-    column.new("active")
+    sql.column("active")
     |> column.eq(value.true, of: sql.value)
 
   let sql2 =
-    column.new("age")
+    sql.column("age")
     |> column.gt(value.int(18), of: sql.value)
 
   let and_sql = sql.and(sql1, sql2)
@@ -24,11 +24,11 @@ pub fn and_test() {
 
 pub fn or_test() {
   let sql1 =
-    column.new("name")
+    sql.column("name")
     |> column.eq(value.text("John"), of: sql.value)
 
   let sql2 =
-    column.new("email")
+    sql.column("email")
     |> column.eq(value.text("john@example.com"), of: sql.value)
 
   let or_sql = sql.or(sql1, sql2)
@@ -42,7 +42,7 @@ pub fn or_test() {
 
 pub fn not_test() {
   let sql1 =
-    column.new("active")
+    sql.column("active")
     |> column.eq(value.true, of: sql.value)
 
   let not_sql = sql.not(sql1)
@@ -55,15 +55,15 @@ pub fn not_test() {
 
 pub fn complex_sqlession_test() {
   let sql1 =
-    column.new("active")
+    sql.column("active")
     |> column.eq(value.true, of: sql.value)
 
   let sql2 =
-    column.new("age")
+    sql.column("age")
     |> column.gt(value.int(18), of: sql.value)
 
   let sql3 =
-    column.new("role")
+    sql.column("role")
     |> column.eq(value.text("admin"), of: sql.value)
 
   let and_sql = sql.and(sql1, sql2)

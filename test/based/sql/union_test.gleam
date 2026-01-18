@@ -15,7 +15,7 @@ pub fn union_test() {
     |> select.from(users)
     |> select.columns(["id", "name"])
     |> select.where([
-      column.new("active")
+      sql.column("active")
       |> column.is(True),
     ])
 
@@ -24,7 +24,7 @@ pub fn union_test() {
     |> select.from(employees)
     |> select.columns(["id", "name"])
     |> select.where([
-      column.new("department")
+      sql.column("department")
       |> column.eq(value.text("Engineering"), of: sql.value),
     ])
 
@@ -46,7 +46,7 @@ pub fn union_all_test() {
     |> select.from(users)
     |> select.columns(["id", "name"])
     |> select.where([
-      column.new("active")
+      sql.column("active")
       |> column.is(True),
     ])
 
@@ -55,7 +55,7 @@ pub fn union_all_test() {
     |> select.from(employees)
     |> select.columns(["id", "name"])
     |> select.where([
-      column.new("department")
+      sql.column("department")
       |> column.eq(value.text("Engineering"), of: sql.value),
     ])
 
@@ -77,7 +77,7 @@ pub fn union_to_string_test() {
     |> select.from(users)
     |> select.columns(["id", "name"])
     |> select.where([
-      column.new("active")
+      sql.column("active")
       |> column.is(True),
     ])
 
@@ -86,7 +86,7 @@ pub fn union_to_string_test() {
     |> select.from(employees)
     |> select.columns(["id", "name"])
     |> select.where([
-      column.new("department")
+      sql.column("department")
       |> column.eq(value.text("Engineering"), of: sql.value),
     ])
 
@@ -107,7 +107,7 @@ pub fn union_all_to_string_test() {
     |> select.from(users)
     |> select.columns(["id", "name"])
     |> select.where([
-      column.new("active")
+      sql.column("active")
       |> column.is(True),
     ])
 
@@ -116,7 +116,7 @@ pub fn union_all_to_string_test() {
     |> select.from(employees)
     |> select.columns(["id", "name"])
     |> select.where([
-      column.new("department")
+      sql.column("department")
       |> column.eq(value.text("Engineering"), of: sql.value),
     ])
 
@@ -138,7 +138,7 @@ pub fn multi_union_to_string_test() {
     |> select.from(users)
     |> select.columns(["id", "name"])
     |> select.where([
-      column.new("active")
+      sql.column("active")
       |> column.is(True),
     ])
 
@@ -147,7 +147,7 @@ pub fn multi_union_to_string_test() {
     |> select.from(employees)
     |> select.columns(["id", "name"])
     |> select.where([
-      column.new("department")
+      sql.column("department")
       |> column.eq(value.text("Engineering"), of: sql.value),
     ])
 
@@ -156,7 +156,7 @@ pub fn multi_union_to_string_test() {
     |> select.from(contractors)
     |> select.columns(["id", "name"])
     |> select.where([
-      column.new("status")
+      sql.column("status")
       |> column.eq(value.text("available"), of: sql.value),
     ])
 
