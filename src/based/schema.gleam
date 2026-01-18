@@ -1,3 +1,4 @@
+import based
 import based/sql
 import based/sql/delete
 import based/sql/insert
@@ -57,18 +58,18 @@ pub fn timestamps(schema: Schema(a)) -> Schema(a) {
   |> field("updated_at", Timestamp)
 }
 
-pub fn select(schema: Schema(a), sql: sql.Sql(v)) -> select.Select(v) {
-  select.from(sql, schema.table)
+pub fn select(schema: Schema(a), repo: based.Repo(v)) -> select.Select(v) {
+  select.from(repo, schema.table)
 }
 
-pub fn insert(schema: Schema(a), sql: sql.Sql(v)) -> insert.Insert(v) {
-  insert.into(sql, schema.table)
+pub fn insert(schema: Schema(a), repo: based.Repo(v)) -> insert.Insert(v) {
+  insert.into(repo, schema.table)
 }
 
-pub fn update(schema: Schema(a), sql: sql.Sql(v)) -> update.Update(v) {
-  update.table(sql, schema.table)
+pub fn update(schema: Schema(a), repo: based.Repo(v)) -> update.Update(v) {
+  update.table(repo, schema.table)
 }
 
-pub fn delete(schema: Schema(a), sql: sql.Sql(v)) -> delete.Delete(v) {
-  delete.from(sql, schema.table)
+pub fn delete(schema: Schema(a), repo: based.Repo(v)) -> delete.Delete(v) {
+  delete.from(repo, schema.table)
 }

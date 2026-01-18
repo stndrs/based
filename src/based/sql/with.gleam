@@ -1,7 +1,7 @@
 //// A builder for constructing Common Table Expressions
 
+import based
 import based/db
-import based/sql
 import based/sql/internal/builder
 import based/sql/internal/fmt
 import gleam/list
@@ -9,7 +9,12 @@ import gleam/string
 
 /// A WITH clause with recursive flag and CTEs.
 pub opaque type With(v) {
-  With(sql: sql.Sql(v), recursive: Bool, ctes: List(Cte(v)), query: db.Query(v))
+  With(
+    repo: based.Repo(v),
+    recursive: Bool,
+    ctes: List(Cte(v)),
+    query: db.Query(v),
+  )
 }
 
 /// A Common Table Expression (CTE) with name, columns, and query.
@@ -18,8 +23,8 @@ pub opaque type Cte(v) {
 }
 
 /// Create a new WITH clause with the given CTEs.
-pub fn new(sql: sql.Sql(v), ctes: List(Cte(v))) -> With(v) {
-  With(sql:, recursive: False, ctes:, query: db.sql(""))
+pub fn new(repo: based.Repo(v), ctes: List(Cte(v))) -> With(v) {
+  With(repo:, recursive: False, ctes:, query: db.sql(""))
 }
 
 /// Mark the WITH clause as recursive.
@@ -38,8 +43,11 @@ pub fn columns(cte: Cte(v), columns: List(String)) -> Cte(v) {
 }
 
 /// Set or modify the main query of a WITH clause.
-pub fn query(with: With(v), building: fn(sql.Sql(v)) -> db.Query(v)) -> With(v) {
-  let query = building(with.sql)
+pub fn query(
+  with: With(v),
+  building: fn(based.Repo(v)) -> db.Query(v),
+) -> With(v) {
+  let query = building(with.repo)
 
   With(..with, query:)
 }
@@ -49,7 +57,7 @@ pub fn to_query(with: With(v)) -> db.Query(v) {
   let values = list.flat_map(with.ctes, fn(cte) { cte.query.values })
   let values = list.flatten([values, with.query.values])
 
-  let to_placeholder = fmt.to_placeholder(with.sql.fmt, _)
+  let to_placeholder = fmt.to_placeholder(with.repo.fmt, _)
 
   build(with)
   |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)

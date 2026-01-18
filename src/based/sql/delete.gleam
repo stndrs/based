@@ -18,6 +18,7 @@
 ////   |> delete.to_query
 //// ```
 
+import based
 import based/db
 import based/sql
 import based/sql/internal/builder
@@ -38,10 +39,10 @@ pub opaque type Delete(v) {
 }
 
 /// Set the table for a DELETE query.
-pub fn from(sql: sql.Sql(v), identifier: sql.Identifier) -> Delete(v) {
+pub fn from(repo: based.Repo(v), identifier: sql.Identifier) -> Delete(v) {
   let table = sql.table(identifier)
 
-  Delete(fmt: sql.fmt, table:, where: [], returning: [], values: [])
+  Delete(fmt: repo.fmt, table:, where: [], returning: [], values: [])
 }
 
 /// Add WHERE conditions to a DELETE query.

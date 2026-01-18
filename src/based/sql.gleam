@@ -1,68 +1,8 @@
 import based/sql/internal/expr
-import based/sql/internal/fmt
 import based/sql/internal/node
 import based/sql/internal/table
 import gleam/list
 import gleam/option.{type Option, None, Some}
-
-/// Sql must be configured by adapter packages.
-///
-/// Example:
-///
-/// A PostgreSQL adapter might configure `Sql` like this:
-///
-/// ```gleam
-/// let sql = sql.new()
-///   |> sql.on_placeholder(fn(index) { "$" <> int.to_string(index) })
-///   |> sql.on_identifier(function.identifier)
-///   |> sql.on_value(value.to_string)
-/// ```
-/// A MariaDB adapter might configure `Sql` like this:
-///
-/// ```gleam
-/// let sql = sql.new()
-///   |> sql.on_placeholder(fn(_index) { "?" })
-///   |> sql.on_identifier(fn(ident) { "`" <> ident <> "`" })
-///   |> sql.on_value(value.to_string)
-/// ```
-///
-pub type Sql(v) {
-  Sql(fmt: fmt.Fmt(v))
-}
-
-/// Returns a `Sql(v)` record with handlers that does not apply any
-/// formatting to identifiers, and returns `?` as placeholders. The value
-/// handler's default behaviour is to panic since it handles a generic type.
-pub fn new() -> Sql(v) {
-  Sql(fmt: fmt.new())
-}
-
-/// Sets the placeholder formatting function.
-pub fn on_placeholder(
-  sql: Sql(v),
-  handle_placeholder: fn(Int) -> String,
-) -> Sql(v) {
-  let fmt = fmt.on_placeholder(sql.fmt, handle_placeholder)
-
-  Sql(fmt:)
-}
-
-/// Set the identifier formatting function.
-pub fn on_identifier(
-  sql: Sql(v),
-  handle_identifier: fn(String) -> String,
-) -> Sql(v) {
-  let fmt = fmt.on_identifier(sql.fmt, handle_identifier)
-
-  Sql(fmt:)
-}
-
-/// Set the value formatting function.
-pub fn on_value(sql: Sql(v), handle_value: fn(v) -> String) -> Sql(v) {
-  let fmt = fmt.on_value(sql.fmt, handle_value)
-
-  Sql(fmt:)
-}
 
 pub type Node(v) =
   node.Node(v)

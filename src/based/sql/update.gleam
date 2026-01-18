@@ -18,6 +18,7 @@
 ////   |> update.to_query
 //// ```
 
+import based
 import based/db
 import based/sql
 import based/sql/internal/builder
@@ -44,11 +45,11 @@ pub opaque type Update(v) {
 }
 
 /// Create a new UPDATE query for the specified table
-pub fn table(sql: sql.Sql(v), identifier: sql.Identifier) -> Update(v) {
+pub fn table(repo: based.Repo(v), identifier: sql.Identifier) -> Update(v) {
   let table = table.new(identifier)
 
   Update(
-    fmt: sql.fmt,
+    fmt: repo.fmt,
     table:,
     sets: [],
     where: [],

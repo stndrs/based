@@ -10,7 +10,7 @@ pub fn union_test() {
   let users = sql.identifier("users")
   let employees = sql.identifier("employees")
   let users_query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.columns(["id", "name"])
     |> select.where([
@@ -20,7 +20,7 @@ pub fn union_test() {
     ])
 
   let employees_query =
-    value.sql()
+    value.repo()
     |> select.from(employees)
     |> select.columns(["id", "name"])
     |> select.where([
@@ -43,7 +43,7 @@ pub fn union_all_test() {
   let users = sql.identifier("users")
   let employees = sql.identifier("employees")
   let users_query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.columns(["id", "name"])
     |> select.where([
@@ -53,7 +53,7 @@ pub fn union_all_test() {
     ])
 
   let employees_query =
-    value.sql()
+    value.repo()
     |> select.from(employees)
     |> select.columns(["id", "name"])
     |> select.where([
@@ -76,7 +76,7 @@ pub fn union_to_string_test() {
   let users = sql.identifier("users")
   let employees = sql.identifier("employees")
   let users_query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.columns(["id", "name"])
     |> select.where([
@@ -86,7 +86,7 @@ pub fn union_to_string_test() {
     ])
 
   let employees_query =
-    value.sql()
+    value.repo()
     |> select.from(employees)
     |> select.columns(["id", "name"])
     |> select.where([
@@ -108,7 +108,7 @@ pub fn union_all_to_string_test() {
   let users = sql.identifier("users")
   let employees = sql.identifier("employees")
   let users_query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.columns(["id", "name"])
     |> select.where([
@@ -118,7 +118,7 @@ pub fn union_all_to_string_test() {
     ])
 
   let employees_query =
-    value.sql()
+    value.repo()
     |> select.from(employees)
     |> select.columns(["id", "name"])
     |> select.where([
@@ -141,7 +141,7 @@ pub fn multi_union_to_string_test() {
   let employees = sql.identifier("employees")
   let contractors = sql.identifier("contractors")
   let users_query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.columns(["id", "name"])
     |> select.where([
@@ -151,7 +151,7 @@ pub fn multi_union_to_string_test() {
     ])
 
   let employees_query =
-    value.sql()
+    value.repo()
     |> select.from(employees)
     |> select.columns(["id", "name"])
     |> select.where([
@@ -161,7 +161,7 @@ pub fn multi_union_to_string_test() {
     ])
 
   let contractors_query =
-    value.sql()
+    value.repo()
     |> select.from(contractors)
     |> select.columns(["id", "name"])
     |> select.where([

@@ -9,7 +9,7 @@ pub fn basic_update_test() {
   let users = sql.identifier("users")
 
   let query =
-    value.sql()
+    value.repo()
     |> update.table(users)
     |> update.set("name", value.text("John"), of: sql.value)
     |> update.where([
@@ -28,7 +28,7 @@ pub fn update_multiple_columns_test() {
   let users = sql.identifier("users")
 
   let query =
-    value.sql()
+    value.repo()
     |> update.table(users)
     |> update.set("name", value.text("John"), of: sql.value)
     |> update.set("email", value.text("john@example.com"), of: sql.value)
@@ -53,7 +53,7 @@ pub fn update_with_where_not_test() {
   let users = sql.identifier("users")
 
   let query =
-    value.sql()
+    value.repo()
     |> update.table(users)
     |> update.set("active", value.true, of: sql.value)
     |> update.where_not([
@@ -72,7 +72,7 @@ pub fn update_returning_test() {
   let users = sql.identifier("users")
 
   let query =
-    value.sql()
+    value.repo()
     |> update.table(users)
     |> update.set("name", value.text("John"), of: sql.value)
     |> update.where([
@@ -92,7 +92,7 @@ pub fn update_with_is_test() {
   let products = sql.identifier("products")
 
   let query =
-    value.sql()
+    value.repo()
     |> update.table(products)
     |> update.set("price", value.float(19.99), of: sql.value)
     |> update.where([
@@ -113,7 +113,7 @@ pub fn update_set_from_subquery_test() {
   let prices = sql.identifier("prices")
 
   let price_id =
-    value.sql()
+    value.repo()
     |> select.from(prices)
     |> select.columns(["price"])
     |> select.where([
@@ -123,7 +123,7 @@ pub fn update_set_from_subquery_test() {
     ])
 
   let query =
-    value.sql()
+    value.repo()
     |> update.table(products)
     |> update.set("price", price_id, of: select.to_subquery)
     |> update.to_query
@@ -137,7 +137,7 @@ pub fn update_with_is_to_string_test() {
   let products = sql.identifier("products")
 
   let query =
-    value.sql()
+    value.repo()
     |> update.table(products)
     |> update.set("price", value.float(19.99), of: sql.value)
     |> update.where([

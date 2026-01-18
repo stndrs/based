@@ -1,4 +1,4 @@
-import based/sql
+import based
 import gleam/bit_array
 import gleam/float
 import gleam/function
@@ -168,11 +168,11 @@ pub fn nullable(inner_type: fn(a) -> Value, value: Option(a)) -> Value {
 
 // Sql
 
-pub fn sql() -> sql.Sql(Value) {
-  sql.new()
-  |> sql.on_identifier(function.identity)
-  |> sql.on_placeholder(handle_placeholder)
-  |> sql.on_value(value_to_string)
+pub fn repo() -> based.Repo(Value) {
+  based.repo()
+  |> based.on_identifier(function.identity)
+  |> based.on_placeholder(handle_placeholder)
+  |> based.on_value(value_to_string)
 }
 
 fn handle_placeholder(_: Int) -> String {

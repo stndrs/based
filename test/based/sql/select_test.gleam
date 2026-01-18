@@ -1,3 +1,4 @@
+import based
 import based/sql
 import based/sql/select
 import based/value
@@ -13,7 +14,7 @@ pub fn select_test() {
   let users = sql.identifier("users")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.columns(["id", "name"])
     |> select.to_query
@@ -27,7 +28,7 @@ pub fn select_alias_test() {
   let user_posts = sql.identifier("user_posts")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(user_posts)
     |> select.columns(["user_id AS id"])
     |> select.to_query
@@ -40,7 +41,7 @@ pub fn select_distincts_test() {
   let users = sql.identifier("users")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.columns(["id, name"])
     |> select.distinct
@@ -57,7 +58,7 @@ pub fn select_subquery_test() {
   let posts = sql.identifier("posts")
 
   let subquery =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.columns(["id"])
     |> select.where([
@@ -68,7 +69,7 @@ pub fn select_subquery_test() {
     |> select.to_subquery
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(posts)
     |> select.columns(["title"])
     |> select.where([
@@ -91,7 +92,7 @@ pub fn select_or_test() {
   let users = sql.identifier("users")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.where([
       sql.identifier("name")
@@ -118,7 +119,7 @@ pub fn select_where_not_test() {
   let users = sql.identifier("users")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.where_not([
       sql.identifier("email")
@@ -136,7 +137,7 @@ pub fn select_where_not_like_test() {
   let users = sql.identifier("users")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.where([
       sql.identifier("email")
@@ -154,7 +155,7 @@ pub fn select_distinct_test() {
   let users = sql.identifier("users")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.columns(["value"])
     |> select.distinct
@@ -172,7 +173,7 @@ pub fn select_with_join_test() {
   let posts = sql.identifier("posts")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.join(posts, on: [
       sql.identifier("users.id")
@@ -199,7 +200,7 @@ pub fn select_with_multiple_joins_test() {
   let followers = sql.identifier("followers")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.join(posts, on: [
       sql.identifier("users.id")
@@ -235,7 +236,7 @@ pub fn select_with_in_test() {
   let users = sql.identifier("users")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.where([
       sql.identifier("id")
@@ -254,7 +255,7 @@ pub fn select_with_in_tuples_test() {
   let posts = sql.identifier("posts")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(posts)
     |> select.where([
       sql.columns(["id", "user_id"])
@@ -285,7 +286,7 @@ pub fn select_with_is_null_test() {
   let users = sql.identifier("users")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.where([
       sql.identifier("deleted_at")
@@ -303,7 +304,7 @@ pub fn select_with_is_true_test() {
   let users = sql.identifier("users")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.where([
       sql.identifier("deleted_at")
@@ -321,7 +322,7 @@ pub fn select_with_is_not_null_test() {
   let users = sql.identifier("users")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.where([
       sql.identifier("active")
@@ -339,7 +340,7 @@ pub fn select_wildcard_test() {
   let users = sql.identifier("users")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.to_query
 
@@ -352,7 +353,7 @@ pub fn where_lt_test() {
   let users = sql.identifier("users")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.where([
       sql.identifier("age")
@@ -370,7 +371,7 @@ pub fn where_lt_eq_test() {
   let users = sql.identifier("users")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.where([
       sql.identifier("age")
@@ -388,7 +389,7 @@ pub fn where_not_eq_test() {
   let users = sql.identifier("users")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.where([
       sql.identifier("status")
@@ -406,7 +407,7 @@ pub fn multiple_where_test() {
   let users = sql.identifier("users")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.where([
       sql.identifier("age")
@@ -430,7 +431,7 @@ pub fn join_with_multiple_conditions_to_string_test() {
   let orders = sql.identifier("orders")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.join(orders, on: [
       sql.identifier("users.id")
@@ -458,7 +459,7 @@ pub fn select_with_limit_test() {
   let users = sql.identifier("users")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.limit(10, of: value.int)
     |> select.to_query
@@ -472,7 +473,7 @@ pub fn select_with_limit_and_offset_test() {
   let users = sql.identifier("users")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.limit(20, of: value.int)
     |> select.offset(10, of: value.int)
@@ -487,7 +488,7 @@ pub fn select_with_offset_test() {
   let users = sql.identifier("users")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.limit(100, of: value.int)
     |> select.offset(50, of: value.int)
@@ -503,7 +504,7 @@ pub fn group_by_test() {
   let employees = sql.identifier("employees")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(employees)
     |> select.columns(["department", "COUNT(*)"])
     |> select.group_by(["department"])
@@ -519,7 +520,7 @@ pub fn multiple_group_by_test() {
   let employees = sql.identifier("employees")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(employees)
     |> select.columns(["department", "location", "COUNT(*)"])
     |> select.group_by(["department", "location"])
@@ -535,7 +536,7 @@ pub fn having_test() {
   let employees = sql.identifier("employees")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(employees)
     |> select.columns(["department", "COUNT(*)"])
     |> select.group_by(["department"])
@@ -556,7 +557,7 @@ pub fn multiple_having_test() {
   let employees = sql.identifier("employees")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(employees)
     |> select.columns(["department", "AVG(salary)"])
     |> select.group_by(["department"])
@@ -579,7 +580,7 @@ pub fn order_by_with_asc_test() {
   let users = sql.identifier("users")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.order_by(["name"])
     |> select.asc
@@ -594,7 +595,7 @@ pub fn order_by_with_desc_test() {
   let users = sql.identifier("users")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.order_by(["created_at"])
     |> select.desc
@@ -609,7 +610,7 @@ pub fn multiple_order_by_columns_test() {
   let users = sql.identifier("users")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.order_by(["department", "name"])
     |> select.asc
@@ -625,7 +626,7 @@ pub fn complex_query_with_order_by_test() {
   let employees = sql.identifier("employees")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(employees)
     |> select.columns(["department", "COUNT(*)"])
     |> select.where([
@@ -661,7 +662,7 @@ pub fn from_subquery_test() {
   let employees = sql.identifier("employees")
 
   let employees_query =
-    value.sql()
+    value.repo()
     |> select.from(employees)
     |> select.columns(["id", "name", "department"])
     |> select.where([
@@ -672,7 +673,7 @@ pub fn from_subquery_test() {
     |> select.to_query
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from_query(employees_query)
     |> select.columns(["name", "department"])
     |> select.where([
@@ -692,7 +693,7 @@ pub fn complex_queried_with_aggregation_test() {
   let employees = sql.identifier("employees")
 
   let department_stats_query =
-    value.sql()
+    value.repo()
     |> select.from(employees)
     |> select.columns(["department", "SUM(salary) as total_salary"])
     |> select.group_by(["department"])
@@ -704,7 +705,7 @@ pub fn complex_queried_with_aggregation_test() {
     |> select.to_query
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from_query(department_stats_query)
     |> select.columns(["department", "total_salary"])
     |> select.where([
@@ -723,7 +724,7 @@ pub fn for_update_test() {
   let users = sql.identifier("users")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.where([
       sql.identifier("id")
@@ -743,7 +744,7 @@ pub fn complex_for_update_test() {
   let accounts = sql.identifier("accounts")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(accounts)
     |> select.columns(["id", "name", "balance"])
     |> select.where([
@@ -767,8 +768,8 @@ pub fn complex_for_update_test() {
 
 pub fn format_placeholders_test() {
   let fmt =
-    value.sql()
-    |> sql.on_placeholder(fn(idx) { "$" <> int.to_string(idx) })
+    value.repo()
+    |> based.on_placeholder(fn(idx) { "$" <> int.to_string(idx) })
 
   let expected = "SELECT * FROM users WHERE id = $1 AND name = $2"
   let users = sql.identifier("users")
@@ -794,8 +795,8 @@ pub fn format_placeholders_test() {
 
 pub fn format_identifier_test() {
   let sql =
-    value.sql()
-    |> sql.on_identifier({ fn(value) { "\"" <> value <> "\"" } })
+    value.repo()
+    |> based.on_identifier({ fn(value) { "\"" <> value <> "\"" } })
 
   let expected = "SELECT * FROM \"users\" WHERE \"id\" = ? AND \"name\" = ?"
   let users = sql.identifier("users")
@@ -826,7 +827,7 @@ pub fn for_update_with_join_test() {
   let orders = sql.identifier("orders")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(orders)
     |> select.columns(["orders.id", "orders.amount", "users.name"])
     |> select.join(users, on: [
@@ -852,7 +853,7 @@ pub fn date_time_types_test() {
   let events = sql.identifier("events")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(events)
     |> select.where([
       sql.identifier("event_date")
@@ -879,7 +880,7 @@ pub fn time_type_test() {
   let events = sql.identifier("events")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(events)
     |> select.where([
       sql.identifier("event_time")
@@ -897,7 +898,7 @@ pub fn duration_type_test() {
   let events = sql.identifier("events")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(events)
     |> select.where([
       sql.identifier("event_duration")
@@ -914,7 +915,7 @@ pub fn different_value_types_test() {
   let products = sql.identifier("products")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(products)
     |> select.where([
       sql.identifier("id")
@@ -946,7 +947,7 @@ pub fn between_test() {
   let products = sql.identifier("products")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(products)
     |> select.where([
       sql.identifier("price")
@@ -968,7 +969,7 @@ pub fn complex_between_test() {
   let orders = sql.identifier("orders")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(orders)
     |> select.where([
       sql.identifier("total")
@@ -1005,7 +1006,7 @@ pub fn not_between_test() {
   let products = sql.identifier("products")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(products)
     |> select.where([
       sql.not(
@@ -1029,7 +1030,7 @@ pub fn raw_sql_where_test() {
   let products = sql.identifier("products")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(products)
     |> select.where([
       sql.raw("id = 10"),
@@ -1056,7 +1057,7 @@ pub fn raw_sql_join_test() {
   let posts = sql.identifier("posts")
 
   let query =
-    value.sql()
+    value.repo()
     |> select.from(users)
     |> select.join(posts, on: [
       sql.raw("users.id = posts.user_id"),

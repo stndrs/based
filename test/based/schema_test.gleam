@@ -1,3 +1,4 @@
+import based
 import based/db
 import based/schema
 import based/sql
@@ -12,8 +13,8 @@ import gleam/dynamic/decode
 
 pub fn schema_column_test() {
   let sql =
-    sql.new()
-    |> sql.on_identifier(fn(ident) { "`" <> ident <> "`" })
+    based.repo()
+    |> based.on_identifier(fn(ident) { "`" <> ident <> "`" })
 
   let users =
     schema.new("users", fn() { decode.dynamic })
@@ -29,7 +30,7 @@ pub fn schema_column_test() {
 }
 
 pub fn schema_select_test() {
-  let sql = sql.new()
+  let sql = based.repo()
 
   let users =
     schema.new("users", fn() { decode.dynamic })
@@ -47,7 +48,7 @@ pub fn schema_select_test() {
 }
 
 pub fn schema_insert_test() {
-  let sql = sql.new()
+  let sql = based.repo()
 
   let users =
     schema.new("users", fn() { decode.dynamic })
@@ -67,7 +68,7 @@ pub fn schema_insert_test() {
 }
 
 pub fn schema_delete_test() {
-  let sql = sql.new()
+  let sql = based.repo()
 
   let users =
     schema.new("users", fn() { decode.dynamic })
@@ -85,7 +86,7 @@ pub fn schema_delete_test() {
 }
 
 pub fn schema_update_test() {
-  let sql = sql.new()
+  let sql = based.repo()
 
   let users =
     schema.new("users", fn() { decode.dynamic })

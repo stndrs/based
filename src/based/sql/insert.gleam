@@ -1,3 +1,4 @@
+import based
 import based/db
 import based/sql
 import based/sql/internal/builder
@@ -16,10 +17,10 @@ pub opaque type Insert(v) {
   )
 }
 
-pub fn into(sql: sql.Sql(v), identifier: sql.Identifier) -> Insert(v) {
+pub fn into(repo: based.Repo(v), identifier: sql.Identifier) -> Insert(v) {
   let table = sql.table(identifier)
 
-  Insert(fmt: sql.fmt, table:, columns: [], returning: [], values: [])
+  Insert(fmt: repo.fmt, table:, columns: [], returning: [], values: [])
 }
 
 pub fn columns(insert: Insert(v), cols: List(String)) -> Insert(v) {

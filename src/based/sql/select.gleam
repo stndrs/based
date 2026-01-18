@@ -1,3 +1,4 @@
+import based
 import based/db
 import based/sql
 import based/sql/internal/builder
@@ -42,9 +43,9 @@ pub fn distinct(select: Select(v)) -> Select(v) {
   Select(..select, distinct: True)
 }
 
-pub fn new(sql: sql.Sql(v)) -> Select(v) {
+pub fn new(repo: based.Repo(v)) -> Select(v) {
   Select(
-    fmt: sql.fmt,
+    fmt: repo.fmt,
     table: None,
     columns: [],
     distinct: False,
@@ -63,13 +64,13 @@ pub fn new(sql: sql.Sql(v)) -> Select(v) {
 
 // From
 
-pub fn from(sql: sql.Sql(v), identifier: sql.Identifier) -> Select(v) {
+pub fn from(repo: based.Repo(v), identifier: sql.Identifier) -> Select(v) {
   let table = table.new(identifier)
 
   let values = table.to_values(table)
 
   Select(
-    fmt: sql.fmt,
+    fmt: repo.fmt,
     table: Some(table),
     columns: ["*"],
     distinct: False,
@@ -86,13 +87,13 @@ pub fn from(sql: sql.Sql(v), identifier: sql.Identifier) -> Select(v) {
   )
 }
 
-pub fn from_query(sql: sql.Sql(v), query: db.Query(v)) -> Select(v) {
+pub fn from_query(repo: based.Repo(v), query: db.Query(v)) -> Select(v) {
   let table = table.subquery(query)
 
   let values = table.to_values(table)
 
   Select(
-    fmt: sql.fmt,
+    fmt: repo.fmt,
     table: Some(table),
     columns: ["*"],
     distinct: False,
