@@ -1,6 +1,6 @@
 import based/sql
 import based/sql/column
-import based/sql/internal/expr
+import based/sql/expression
 import based/sql/internal/fmt
 import based/value
 
@@ -54,8 +54,9 @@ pub fn eq_test() {
 
   let expected = "id = :param"
 
-  assert expected == expr.to_string(expression, fmt.to_identifier(fmt.new(), _))
-  assert [value.int(1)] == expr.to_values(expression, value.text)
+  assert expected
+    == expression.to_string(expression, fmt.to_identifier(fmt.new(), _))
+  assert [value.int(1)] == expression.to_values(expression, value.text)
 }
 
 pub fn greater_than_test() {
@@ -67,8 +68,9 @@ pub fn greater_than_test() {
 
   let expected = "age > :param"
 
-  assert expected == expr.to_string(expression, fmt.to_identifier(fmt.new(), _))
-  assert [value.int(18)] == expr.to_values(expression, value.text)
+  assert expected
+    == expression.to_string(expression, fmt.to_identifier(fmt.new(), _))
+  assert [value.int(18)] == expression.to_values(expression, value.text)
 }
 
 pub fn less_than_test() {
@@ -80,8 +82,9 @@ pub fn less_than_test() {
 
   let expected = "age < :param"
 
-  assert expected == expr.to_string(expression, fmt.to_identifier(fmt.new(), _))
-  assert [value.int(65)] == expr.to_values(expression, value.text)
+  assert expected
+    == expression.to_string(expression, fmt.to_identifier(fmt.new(), _))
+  assert [value.int(65)] == expression.to_values(expression, value.text)
 }
 
 pub fn greater_than_equal_test() {
@@ -93,8 +96,9 @@ pub fn greater_than_equal_test() {
 
   let expected = "age >= :param"
 
-  assert expected == expr.to_string(expression, fmt.to_identifier(fmt.new(), _))
-  assert [value.int(18)] == expr.to_values(expression, value.text)
+  assert expected
+    == expression.to_string(expression, fmt.to_identifier(fmt.new(), _))
+  assert [value.int(18)] == expression.to_values(expression, value.text)
 }
 
 pub fn less_than_equal_test() {
@@ -106,8 +110,9 @@ pub fn less_than_equal_test() {
 
   let expected = "age <= :param"
 
-  assert expected == expr.to_string(expression, fmt.to_identifier(fmt.new(), _))
-  assert [value.int(65)] == expr.to_values(expression, value.text)
+  assert expected
+    == expression.to_string(expression, fmt.to_identifier(fmt.new(), _))
+  assert [value.int(65)] == expression.to_values(expression, value.text)
 }
 
 pub fn not_equal_test() {
@@ -119,8 +124,10 @@ pub fn not_equal_test() {
 
   let expected = "status <> :param"
 
-  assert expected == expr.to_string(expression, fmt.to_identifier(fmt.new(), _))
-  assert [value.text("inactive")] == expr.to_values(expression, value.text)
+  assert expected
+    == expression.to_string(expression, fmt.to_identifier(fmt.new(), _))
+  assert [value.text("inactive")]
+    == expression.to_values(expression, value.text)
 }
 
 pub fn between_test() {
@@ -133,9 +140,10 @@ pub fn between_test() {
 
   let expected = "price BETWEEN :param AND :param"
 
-  assert expected == expr.to_string(expression, fmt.to_identifier(fmt.new(), _))
+  assert expected
+    == expression.to_string(expression, fmt.to_identifier(fmt.new(), _))
   assert [value.float(10.0), value.float(50.0)]
-    == expr.to_values(expression, value.text)
+    == expression.to_values(expression, value.text)
 }
 
 pub fn like_test() {
@@ -145,8 +153,9 @@ pub fn like_test() {
 
   let expected = "name LIKE :param"
 
-  assert expected == expr.to_string(expression, fmt.to_identifier(fmt.new(), _))
-  assert [value.text("%John%")] == expr.to_values(expression, value.text)
+  assert expected
+    == expression.to_string(expression, fmt.to_identifier(fmt.new(), _))
+  assert [value.text("%John%")] == expression.to_values(expression, value.text)
 }
 
 pub fn in_test() {
@@ -158,9 +167,10 @@ pub fn in_test() {
 
   let expected = "id IN (:param, :param, :param)"
 
-  assert expected == expr.to_string(expression, fmt.to_identifier(fmt.new(), _))
+  assert expected
+    == expression.to_string(expression, fmt.to_identifier(fmt.new(), _))
   assert [value.int(1), value.int(2), value.int(3)]
-    == expr.to_values(expression, value.text)
+    == expression.to_values(expression, value.text)
 }
 
 pub fn is_test() {
@@ -170,9 +180,10 @@ pub fn is_test() {
 
   let expected = "active IS TRUE"
 
-  assert expected == expr.to_string(expression, fmt.to_identifier(fmt.new(), _))
+  assert expected
+    == expression.to_string(expression, fmt.to_identifier(fmt.new(), _))
 
-  assert [] == expr.to_values(expression, value.text)
+  assert [] == expression.to_values(expression, value.text)
 }
 
 pub fn not_like_test() {
@@ -182,14 +193,8 @@ pub fn not_like_test() {
 
   let expected = "name NOT LIKE :param"
 
-  assert expected == expr.to_string(expression, fmt.to_identifier(fmt.new(), _))
+  assert expected
+    == expression.to_string(expression, fmt.to_identifier(fmt.new(), _))
 
-  assert [value.text("%admin%")] == expr.to_values(expression, value.text)
+  assert [value.text("%admin%")] == expression.to_values(expression, value.text)
 }
-// pub fn columns_test() {
-//   let cols_node = sql.columns(["id", "name", "email"])
-// 
-//   let expected = "(id, name, email)"
-//   sql.node_to_string(cols_node, value.format())
-//   |> should.equal(expected)
-// }

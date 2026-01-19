@@ -1,11 +1,11 @@
 import based
 import based/db
 import based/sql
+import based/sql/expression.{type Expression}
 import based/sql/internal/builder
-import based/sql/internal/expr
 import based/sql/internal/fmt
-import based/sql/internal/join.{type Join}
-import based/sql/internal/node.{type Node}
+import based/sql/join.{type Join}
+import based/sql/node.{type Node}
 import based/sql/table
 import gleam/function
 import gleam/list
@@ -27,9 +27,9 @@ pub opaque type Select(v) {
     columns: List(String),
     distinct: Bool,
     join: List(Join(v)),
-    where: List(List(sql.Expr(v))),
+    where: List(List(Expression(v))),
     group_by: List(String),
-    having: List(List(sql.Expr(v))),
+    having: List(List(Expression(v))),
     order_by: List(String),
     order: Option(sql.Order),
     limit: Option(Int),
@@ -113,16 +113,16 @@ pub fn columns(select: Select(v), columns: List(String)) -> Select(v) {
 
 // Where
 
-pub fn where(select: Select(v), exprs: List(sql.Expr(v))) -> Select(v) {
+pub fn where(select: Select(v), exprs: List(Expression(v))) -> Select(v) {
   let values =
-    list.flat_map(exprs, expr.to_values(_, fmt.to_value(select.fmt, _)))
+    list.flat_map(exprs, expression.to_values(_, fmt.to_value(select.fmt, _)))
   let where = list.prepend(select.where, exprs)
 
   Select(..select, where:)
   |> prepend_values(values)
 }
 
-pub fn where_not(select: Select(v), exprs: List(sql.Expr(v))) -> Select(v) {
+pub fn where_not(select: Select(v), exprs: List(Expression(v))) -> Select(v) {
   list.map(exprs, sql.not) |> where(select, _)
 }
 
@@ -131,7 +131,7 @@ pub fn where_not(select: Select(v), exprs: List(sql.Expr(v))) -> Select(v) {
 pub fn join(
   select: Select(v),
   table: table.Table,
-  on exprs: List(sql.Expr(v)),
+  on exprs: List(Expression(v)),
 ) -> Select(v) {
   do_join(select, table, exprs, join.inner)
 }
@@ -139,7 +139,7 @@ pub fn join(
 pub fn left_join(
   select: Select(v),
   table: table.Table,
-  on exprs: List(sql.Expr(v)),
+  on exprs: List(Expression(v)),
 ) -> Select(v) {
   do_join(select, table, exprs, join.left)
 }
@@ -147,7 +147,7 @@ pub fn left_join(
 pub fn right_join(
   select: Select(v),
   table: table.Table,
-  on exprs: List(sql.Expr(v)),
+  on exprs: List(Expression(v)),
 ) -> Select(v) {
   do_join(select, table, exprs, join.right)
 }
@@ -155,7 +155,7 @@ pub fn right_join(
 pub fn full_join(
   select: Select(v),
   table: table.Table,
-  on exprs: List(sql.Expr(v)),
+  on exprs: List(Expression(v)),
 ) -> Select(v) {
   do_join(select, table, exprs, join.full)
 }
@@ -163,11 +163,11 @@ pub fn full_join(
 fn do_join(
   select: Select(v),
   table: table.Table,
-  exprs: List(sql.Expr(v)),
-  joiner: fn(table.Table, List(sql.Expr(v))) -> join.Join(v),
+  exprs: List(Expression(v)),
+  joiner: fn(table.Table, List(Expression(v))) -> join.Join(v),
 ) -> Select(v) {
   let values =
-    list.flat_map(exprs, expr.to_values(_, fmt.to_value(select.fmt, _)))
+    list.flat_map(exprs, expression.to_values(_, fmt.to_value(select.fmt, _)))
   let join_clause = joiner(table, exprs)
   let join = list.prepend(select.join, join_clause)
 
@@ -180,9 +180,9 @@ pub fn group_by(qb: Select(v), group_by: List(String)) -> Select(v) {
   Select(..qb, group_by:)
 }
 
-pub fn having(select: Select(v), having: List(sql.Expr(v))) -> Select(v) {
+pub fn having(select: Select(v), having: List(Expression(v))) -> Select(v) {
   let values =
-    list.flat_map(having, expr.to_values(_, fmt.to_value(select.fmt, _)))
+    list.flat_map(having, expression.to_values(_, fmt.to_value(select.fmt, _)))
   let having = list.prepend(select.having, having)
 
   Select(..select, having:)
@@ -240,7 +240,7 @@ pub fn to_query(select: Select(v)) -> db.Query(v) {
 
 pub fn to_subquery(select: Select(v)) -> Node(v) {
   to_query(select)
-  |> node.Query(alias: None)
+  |> node.query(None)
 }
 
 pub fn to_string(select: Select(v)) -> String {

@@ -1,0 +1,45 @@
+import based/sql/expression
+import based/sql/table
+
+pub type JoinType {
+  InnerJoin
+  LeftJoin
+  RightJoin
+  FullJoin
+}
+
+pub type Join(v) {
+  Join(
+    type_: JoinType,
+    table: table.Table,
+    exprs: List(expression.Expression(v)),
+  )
+}
+
+pub fn inner(
+  table: table.Table,
+  exprs: List(expression.Expression(v)),
+) -> Join(v) {
+  Join(InnerJoin, table, exprs)
+}
+
+pub fn left(
+  table: table.Table,
+  exprs: List(expression.Expression(v)),
+) -> Join(v) {
+  Join(LeftJoin, table, exprs)
+}
+
+pub fn right(
+  table: table.Table,
+  exprs: List(expression.Expression(v)),
+) -> Join(v) {
+  Join(RightJoin, table, exprs)
+}
+
+pub fn full(
+  table: table.Table,
+  exprs: List(expression.Expression(v)),
+) -> Join(v) {
+  Join(FullJoin, table, exprs)
+}

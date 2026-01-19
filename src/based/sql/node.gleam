@@ -5,7 +5,7 @@ import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/string
 
-pub type Node(v) {
+pub opaque type Node(v) {
   Column(name: String, alias: Option(String), table: Option(String))
   Columns(List(String))
   Text(String)
@@ -16,10 +16,45 @@ pub type Node(v) {
   Null(Bool)
 }
 
-pub fn unwrap(node: Node(v), with handle_text: fn(String) -> v) -> List(v) {
+@internal
+pub fn query(query: db.Query(v), alias: Option(String)) -> Node(v) {
+  Query(query:, alias:)
+}
+
+@internal
+pub fn text(value: String) -> Node(v) {
+  Text(value)
+}
+
+@internal
+pub fn list(value: List(Node(v))) -> Node(v) {
+  List(value)
+}
+
+@internal
+pub fn value(value: v) -> Node(v) {
+  Value(value)
+}
+
+@internal
+pub fn null(value: Bool) -> Node(v) {
+  Null(value)
+}
+
+@internal
+pub fn column(
+  name: String,
+  alias: Option(String),
+  table: Option(String),
+) -> Node(v) {
+  Column(name:, alias:, table:)
+}
+
+@internal
+pub fn to_values(node: Node(v), with handle_text: fn(String) -> v) -> List(v) {
   case node {
     Value(val) -> [val]
-    List(vals) -> list.flat_map(vals, unwrap(_, handle_text))
+    List(vals) -> list.flat_map(vals, to_values(_, handle_text))
     Tuples(vals) -> list.flatten(vals)
     Query(query:, alias: _) -> query.values
     Text(val) -> [handle_text(val)]
@@ -27,6 +62,7 @@ pub fn unwrap(node: Node(v), with handle_text: fn(String) -> v) -> List(v) {
   }
 }
 
+@internal
 pub fn to_string(
   node: Node(v),
   with handle_identifier: fn(String) -> String,

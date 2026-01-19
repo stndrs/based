@@ -1,7 +1,7 @@
 import based/sql
-import based/sql/internal/expr
+import based/sql/expression
 import based/sql/internal/fmt
-import based/sql/internal/join.{type Join}
+import based/sql/join.{type Join}
 import based/sql/table
 import gleam/dict
 import gleam/list
@@ -48,7 +48,7 @@ pub fn placeholders(
 
 pub fn append_where(
   st: String,
-  where: List(List(expr.Expr(v))),
+  where: List(List(expression.Expression(v))),
   fmt: fmt.Fmt(v),
 ) -> String {
   where
@@ -61,7 +61,7 @@ pub fn append_where(
     }
 
     expr
-    |> expr.to_string(fmt.to_identifier(fmt, _))
+    |> expression.to_string(fmt.to_identifier(fmt, _))
     |> expr_fmt(sql1, _)
   })
 }
@@ -75,7 +75,7 @@ pub fn append_group_by(st: String, group_by: List(String)) -> String {
 
 pub fn append_having(
   st: String,
-  having: List(List(expr.Expr(v))),
+  having: List(List(expression.Expression(v))),
   fmt: fmt.Fmt(v),
 ) -> String {
   having
@@ -88,7 +88,7 @@ pub fn append_having(
     }
 
     expr
-    |> expr.to_string(fmt.to_identifier(fmt, _))
+    |> expression.to_string(fmt.to_identifier(fmt, _))
     |> expr_fmt(sql1, _)
   })
 }
@@ -113,7 +113,7 @@ pub fn append_joins(st: String, joins: List(Join(v)), fmt: fmt.Fmt(v)) -> String
       }
 
       expr
-      |> expr.to_string(fmt.to_identifier(fmt, _))
+      |> expression.to_string(fmt.to_identifier(fmt, _))
       |> expr_fmt(sql1, _)
     })
   })

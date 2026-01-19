@@ -2,7 +2,7 @@ import based/sql
 import based/sql/column
 import based/sql/internal/builder
 import based/sql/internal/fmt
-import based/sql/internal/join
+import based/sql/join
 import based/value
 import gleam/int
 import gleam/option.{None, Some}

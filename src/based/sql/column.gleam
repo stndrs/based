@@ -1,7 +1,7 @@
 import based
-import based/sql/internal/expr.{type Expr}
+import based/sql/expression.{type Expression}
 import based/sql/internal/fmt
-import based/sql/internal/node.{type Node}
+import based/sql/node.{type Node}
 import based/sql/table
 import gleam/option.{type Option, None, Some}
 import gleam/string
@@ -43,57 +43,69 @@ pub fn to_string(column: Column, repo: based.Repo(v)) -> String {
 }
 
 pub fn node(column: Column) -> Node(v) {
-  node.Column(name: column.name, alias: column.alias, table: column.table)
+  node.column(column.name, column.alias, column.table)
 }
 
 // Expressions
 
-pub fn eq(column: Column, right: a, of kind: fn(a) -> Node(v)) -> Expr(v) {
+pub fn eq(column: Column, right: a, of kind: fn(a) -> Node(v)) -> Expression(v) {
   let right = kind(right)
 
   column
   |> node
-  |> expr.compare(right, expr.Eq)
+  |> expression.compare(right, expression.Eq)
 }
 
-pub fn gt(column: Column, right: a, of kind: fn(a) -> Node(v)) -> Expr(v) {
+pub fn gt(column: Column, right: a, of kind: fn(a) -> Node(v)) -> Expression(v) {
   let right = kind(right)
 
   column
   |> node
-  |> expr.compare(right, expr.Gt)
+  |> expression.compare(right, expression.Gt)
 }
 
-pub fn lt(column: Column, right: a, of kind: fn(a) -> Node(v)) -> Expr(v) {
+pub fn lt(column: Column, right: a, of kind: fn(a) -> Node(v)) -> Expression(v) {
   let right = kind(right)
 
   column
   |> node
-  |> expr.compare(right, expr.Lt)
+  |> expression.compare(right, expression.Lt)
 }
 
-pub fn gt_eq(column: Column, right: a, of kind: fn(a) -> Node(v)) -> Expr(v) {
+pub fn gt_eq(
+  column: Column,
+  right: a,
+  of kind: fn(a) -> Node(v),
+) -> Expression(v) {
   let right = kind(right)
 
   column
   |> node
-  |> expr.compare(right, expr.GtEq)
+  |> expression.compare(right, expression.GtEq)
 }
 
-pub fn lt_eq(column: Column, right: a, of kind: fn(a) -> Node(v)) -> Expr(v) {
+pub fn lt_eq(
+  column: Column,
+  right: a,
+  of kind: fn(a) -> Node(v),
+) -> Expression(v) {
   let right = kind(right)
 
   column
   |> node
-  |> expr.compare(right, expr.LtEq)
+  |> expression.compare(right, expression.LtEq)
 }
 
-pub fn not_eq(column: Column, right: a, of kind: fn(a) -> Node(v)) -> Expr(v) {
+pub fn not_eq(
+  column: Column,
+  right: a,
+  of kind: fn(a) -> Node(v),
+) -> Expression(v) {
   let right = kind(right)
 
   column
   |> node
-  |> expr.compare(right, expr.NotEq)
+  |> expression.compare(right, expression.NotEq)
 }
 
 pub fn between(
@@ -101,53 +113,53 @@ pub fn between(
   start: a,
   end: a,
   of kind: fn(a) -> Node(v),
-) -> Expr(v) {
+) -> Expression(v) {
   let end = kind(end)
   let start = kind(start)
 
   column
   |> node
-  |> expr.compare(end, expr.Between(start))
+  |> expression.compare(end, expression.Between(start))
 }
 
-pub fn like(column: Column, val: String) -> Expr(v) {
-  let right = node.Text(val)
+pub fn like(column: Column, val: String) -> Expression(v) {
+  let right = node.text(val)
 
   column
   |> node
-  |> expr.compare(right, expr.Like)
+  |> expression.compare(right, expression.Like)
 }
 
-pub fn in(column: Column, right: a, of kind: fn(a) -> Node(v)) -> Expr(v) {
+pub fn in(column: Column, right: a, of kind: fn(a) -> Node(v)) -> Expression(v) {
   let right = kind(right)
 
   column
   |> node
-  |> expr.compare(right, expr.In)
+  |> expression.compare(right, expression.In)
 }
 
-pub fn is(column: Column, right: Bool) -> Expr(v) {
+pub fn is(column: Column, right: Bool) -> Expression(v) {
   column
   |> node
-  |> expr.is(right)
+  |> expression.is(right)
 }
 
-pub fn is_null(column: Column) -> Expr(v) {
+pub fn is_null(column: Column) -> Expression(v) {
   column
   |> node
-  |> expr.is_null(True)
+  |> expression.is_null(True)
 }
 
-pub fn is_not_null(column: Column) -> Expr(v) {
+pub fn is_not_null(column: Column) -> Expression(v) {
   column
   |> node
-  |> expr.is_null(False)
+  |> expression.is_null(False)
 }
 
-pub fn not_like(column: Column, val: String) -> Expr(v) {
-  let right = node.Text(val)
+pub fn not_like(column: Column, val: String) -> Expression(v) {
+  let right = node.text(val)
 
   column
   |> node
-  |> expr.compare(right, expr.NotLike)
+  |> expression.compare(right, expression.NotLike)
 }

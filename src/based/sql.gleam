@@ -1,6 +1,6 @@
 import based/sql/column
-import based/sql/internal/expr
-import based/sql/internal/node.{type Node}
+import based/sql/expression.{type Expression}
+import based/sql/node.{type Node}
 import based/sql/table
 import gleam/list
 import gleam/option.{type Option, None, Some}
@@ -13,20 +13,20 @@ pub fn column(name: String) -> column.Column {
   column.new(name)
 }
 
-pub fn or(left: Expr(v), right: Expr(v)) -> Expr(v) {
-  expr.logical(left, right, expr.Or)
+pub fn or(left: Expression(v), right: Expression(v)) -> Expression(v) {
+  expression.logical(left, right, expression.Or)
 }
 
-pub fn and(left: Expr(v), right: Expr(v)) -> Expr(v) {
-  expr.logical(left, right, expr.And)
+pub fn and(left: Expression(v), right: Expression(v)) -> Expression(v) {
+  expression.logical(left, right, expression.And)
 }
 
-pub fn not(expr: Expr(v)) -> Expr(v) {
-  expr.not(expr)
+pub fn not(expr: Expression(v)) -> Expression(v) {
+  expression.not(expr)
 }
 
-pub fn raw(sql: String) -> Expr(v) {
-  expr.raw(sql)
+pub fn raw(sql: String) -> Expression(v) {
+  expression.raw(sql)
 }
 
 pub type Order {
@@ -39,21 +39,18 @@ pub fn list(vals: List(a), of kind: fn(a) -> v) -> Node(v) {
   |> list.map(fn(val) {
     val
     |> kind
-    |> node.Value
+    |> node.value
   })
-  |> node.List
+  |> node.list
 }
 
 pub fn value(value: v) -> Node(v) {
-  node.Value(value)
+  node.value(value)
 }
 
 pub fn nullable(value: Option(a), inner_type: fn(a) -> Node(v)) -> Node(v) {
   case value {
     Some(term) -> inner_type(term)
-    None -> node.Null(True)
+    None -> node.null(True)
   }
 }
-
-pub type Expr(v) =
-  expr.Expr(v)

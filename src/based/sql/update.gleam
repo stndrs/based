@@ -12,7 +12,7 @@
 //// let query = update.table(sql, users)
 ////   |> update.set("name", sql.value("John", of: value.text))
 ////   |> update.where([
-////     sql.name("id") |> sql.column |> expr.eq(sql.value(value.int(123)))
+////     sql.name("id") |> sql.column |> expression.eq(sql.value(value.int(123)))
 ////   ])
 ////   |> update.returning(["id", "name"])
 ////   |> update.to_query
@@ -21,10 +21,10 @@
 import based
 import based/db
 import based/sql
+import based/sql/expression.{type Expression}
 import based/sql/internal/builder
-import based/sql/internal/expr
 import based/sql/internal/fmt
-import based/sql/internal/node.{type Node}
+import based/sql/node.{type Node}
 import based/sql/table
 import gleam/list
 import gleam/option.{type Option, None}
@@ -34,7 +34,7 @@ pub opaque type Update(v) {
     fmt: fmt.Fmt(v),
     table: table.Table,
     sets: List(#(String, Node(v))),
-    where: List(List(sql.Expr(v))),
+    where: List(List(Expression(v))),
     order_by: List(String),
     order: Option(sql.Order),
     limit: Option(Int),
@@ -68,22 +68,22 @@ pub fn set(
   of kind: fn(a) -> Node(v),
 ) {
   let sets = update.sets |> list.prepend(#(column, kind(value)))
-  let values = node.unwrap(kind(value), with: fmt.to_value(update.fmt, _))
+  let values = node.to_values(kind(value), with: fmt.to_value(update.fmt, _))
 
   Update(..update, sets:) |> prepend_values(values)
 }
 
 /// Add WHERE conditions to the UPDATE statement
-pub fn where(update: Update(v), exprs: List(sql.Expr(v))) -> Update(v) {
+pub fn where(update: Update(v), exprs: List(Expression(v))) -> Update(v) {
   let values =
-    list.flat_map(exprs, expr.to_values(_, fmt.to_value(update.fmt, _)))
+    list.flat_map(exprs, expression.to_values(_, fmt.to_value(update.fmt, _)))
 
   Update(..update, where: [exprs])
   |> prepend_values(values)
 }
 
 /// Add WHERE NOT conditions to the UPDATE statement
-pub fn where_not(update: Update(v), exprs: List(sql.Expr(v))) -> Update(v) {
+pub fn where_not(update: Update(v), exprs: List(Expression(v))) -> Update(v) {
   let negated_exprs = list.map(exprs, sql.not)
   where(update, negated_exprs)
 }

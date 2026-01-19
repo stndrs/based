@@ -1,62 +1,72 @@
 import based/sql/internal/fmt
-import based/sql/internal/node.{type Node}
+import based/sql/node.{type Node}
 import gleam/list
 
-// Expr
+// Expression
 
-pub opaque type Expr(v) {
+pub opaque type Expression(v) {
   Compare(left: Node(v), right: Node(v), operator: ComparisonOperator(v))
-  Logical(left: Expr(v), right: Expr(v), operator: LogicalOperator)
-  Not(expr: Expr(v))
+  Logical(left: Expression(v), right: Expression(v), operator: LogicalOperator)
+  Not(expr: Expression(v))
   Is(left: Node(v), right: Bool)
   IsNull(left: Node(v), right: Bool)
   Raw(sql: String)
 }
 
+@internal
 pub fn compare(
   left: Node(v),
   right: Node(v),
   operator: ComparisonOperator(v),
-) -> Expr(v) {
+) -> Expression(v) {
   Compare(left:, right:, operator:)
 }
 
+@internal
 pub fn logical(
-  left: Expr(v),
-  right: Expr(v),
+  left: Expression(v),
+  right: Expression(v),
   operator: LogicalOperator,
-) -> Expr(v) {
+) -> Expression(v) {
   Logical(left:, right:, operator:)
 }
 
-pub fn not(expr: Expr(v)) -> Expr(v) {
+@internal
+pub fn not(expr: Expression(v)) -> Expression(v) {
   Not(expr:)
 }
 
-pub fn is(left: Node(v), right: Bool) -> Expr(v) {
+@internal
+pub fn is(left: Node(v), right: Bool) -> Expression(v) {
   Is(left:, right:)
 }
 
-pub fn is_null(left: Node(v), right: Bool) -> Expr(v) {
+@internal
+pub fn is_null(left: Node(v), right: Bool) -> Expression(v) {
   IsNull(left:, right:)
 }
 
-pub fn raw(sql: String) -> Expr(v) {
+@internal
+pub fn raw(sql: String) -> Expression(v) {
   Raw(sql)
 }
 
-pub fn to_values(expr: Expr(v), with handle_text: fn(String) -> v) -> List(v) {
+@internal
+pub fn to_values(
+  expr: Expression(v),
+  with handle_text: fn(String) -> v,
+) -> List(v) {
   case expr {
     Compare(left, right, op) -> {
       let op_vals = case op {
-        Between(val) -> node.unwrap(val, handle_text)
+        Between(val) -> node.to_values(val, handle_text)
         _ -> []
       }
 
       list.flatten([
-        node.unwrap(left, handle_text),
+        node.to_values(left, handle_text),
         op_vals,
-        node.unwrap(right, handle_text),
+        node.to_values(right, handle_text),
       ])
     }
     Logical(left, right, _) -> {
@@ -69,6 +79,7 @@ pub fn to_values(expr: Expr(v), with handle_text: fn(String) -> v) -> List(v) {
   }
 }
 
+@internal
 pub type ComparisonOperator(v) {
   Eq
   Gt
@@ -82,13 +93,15 @@ pub type ComparisonOperator(v) {
   NotLike
 }
 
+@internal
 pub type LogicalOperator {
   And
   Or
 }
 
+@internal
 pub fn to_string(
-  expr: Expr(v),
+  expr: Expression(v),
   with handle_identifier: fn(String) -> String,
 ) -> String {
   case expr {
