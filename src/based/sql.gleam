@@ -29,6 +29,53 @@ pub fn raw(sql: String) -> Expression(v) {
   expression.raw(sql)
 }
 
+// ---------- Join ---------- //
+
+pub type JoinType {
+  InnerJoin
+  LeftJoin
+  RightJoin
+  FullJoin
+}
+
+pub type Join(v) {
+  Join(
+    type_: JoinType,
+    table: table.Table,
+    exprs: List(expression.Expression(v)),
+  )
+}
+
+pub fn inner_join(
+  table: table.Table,
+  exprs: List(expression.Expression(v)),
+) -> Join(v) {
+  Join(InnerJoin, table, exprs)
+}
+
+pub fn left_join(
+  table: table.Table,
+  exprs: List(expression.Expression(v)),
+) -> Join(v) {
+  Join(LeftJoin, table, exprs)
+}
+
+pub fn right_join(
+  table: table.Table,
+  exprs: List(expression.Expression(v)),
+) -> Join(v) {
+  Join(RightJoin, table, exprs)
+}
+
+pub fn full_join(
+  table: table.Table,
+  exprs: List(expression.Expression(v)),
+) -> Join(v) {
+  Join(FullJoin, table, exprs)
+}
+
+// -------------------------- //
+
 pub type Order {
   Asc
   Desc

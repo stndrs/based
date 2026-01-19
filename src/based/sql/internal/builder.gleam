@@ -1,7 +1,6 @@
 import based/sql
 import based/sql/expression
 import based/sql/internal/fmt
-import based/sql/join.{type Join}
 import based/sql/table
 import gleam/dict
 import gleam/list
@@ -93,15 +92,19 @@ pub fn append_having(
   })
 }
 
-pub fn append_joins(st: String, joins: List(Join(v)), fmt: fmt.Fmt(v)) -> String {
+pub fn append_joins(
+  st: String,
+  joins: List(sql.Join(v)),
+  fmt: fmt.Fmt(v),
+) -> String {
   joins
   |> list.reverse
   |> list.fold(from: st, with: fn(st, join) {
     let join_tree = case join.type_ {
-      join.InnerJoin -> fmt.inner_join
-      join.LeftJoin -> fmt.left_join
-      join.RightJoin -> fmt.right_join
-      join.FullJoin -> fmt.full_outer_join
+      sql.InnerJoin -> fmt.inner_join
+      sql.LeftJoin -> fmt.left_join
+      sql.RightJoin -> fmt.right_join
+      sql.FullJoin -> fmt.full_outer_join
     }
 
     st

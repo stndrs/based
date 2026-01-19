@@ -22,7 +22,6 @@ pub fn for(column: Column, table: table.Table) -> Column {
   Column(..column, table: Some(table.name))
 }
 
-@internal
 pub fn to_string(column: Column, repo: based.Repo(v)) -> String {
   let Column(name:, alias:, table:) = column
 

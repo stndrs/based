@@ -4,7 +4,8 @@ import based/sql
 import based/sql/expression.{type Expression}
 import based/sql/internal/builder
 import based/sql/internal/fmt
-import based/sql/join.{type Join}
+
+// import based/sql/join.{type Join}
 import based/sql/node.{type Node}
 import based/sql/table
 import gleam/function
@@ -26,7 +27,7 @@ pub opaque type Select(v) {
     table: Option(TableOrSubquery(v)),
     columns: List(String),
     distinct: Bool,
-    join: List(Join(v)),
+    join: List(sql.Join(v)),
     where: List(List(Expression(v))),
     group_by: List(String),
     having: List(List(Expression(v))),
@@ -133,7 +134,7 @@ pub fn join(
   table: table.Table,
   on exprs: List(Expression(v)),
 ) -> Select(v) {
-  do_join(select, table, exprs, join.inner)
+  do_join(select, table, exprs, sql.inner_join)
 }
 
 pub fn left_join(
@@ -141,7 +142,7 @@ pub fn left_join(
   table: table.Table,
   on exprs: List(Expression(v)),
 ) -> Select(v) {
-  do_join(select, table, exprs, join.left)
+  do_join(select, table, exprs, sql.left_join)
 }
 
 pub fn right_join(
@@ -149,7 +150,7 @@ pub fn right_join(
   table: table.Table,
   on exprs: List(Expression(v)),
 ) -> Select(v) {
-  do_join(select, table, exprs, join.right)
+  do_join(select, table, exprs, sql.right_join)
 }
 
 pub fn full_join(
@@ -157,14 +158,14 @@ pub fn full_join(
   table: table.Table,
   on exprs: List(Expression(v)),
 ) -> Select(v) {
-  do_join(select, table, exprs, join.full)
+  do_join(select, table, exprs, sql.full_join)
 }
 
 fn do_join(
   select: Select(v),
   table: table.Table,
   exprs: List(Expression(v)),
-  joiner: fn(table.Table, List(Expression(v))) -> join.Join(v),
+  joiner: fn(table.Table, List(Expression(v))) -> sql.Join(v),
 ) -> Select(v) {
   let values =
     list.flat_map(exprs, expression.to_values(_, fmt.to_value(select.fmt, _)))
