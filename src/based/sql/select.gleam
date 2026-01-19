@@ -4,8 +4,6 @@ import based/sql
 import based/sql/expression.{type Expression}
 import based/sql/internal/builder
 import based/sql/internal/fmt
-
-// import based/sql/join.{type Join}
 import based/sql/node.{type Node}
 import based/sql/table
 import gleam/function
@@ -23,7 +21,7 @@ type TableOrSubquery(v) {
 
 pub opaque type Select(v) {
   Select(
-    fmt: fmt.Fmt(v),
+    repo: based.Repo(v),
     table: Option(TableOrSubquery(v)),
     columns: List(String),
     distinct: Bool,
@@ -51,7 +49,7 @@ pub fn distinct(select: Select(v)) -> Select(v) {
 
 pub fn new(repo: based.Repo(v)) -> Select(v) {
   Select(
-    fmt: repo.fmt,
+    repo:,
     table: None,
     columns: [],
     distinct: False,
@@ -72,7 +70,7 @@ pub fn new(repo: based.Repo(v)) -> Select(v) {
 
 pub fn from(repo: based.Repo(v), table: table.Table) -> Select(v) {
   Select(
-    fmt: repo.fmt,
+    repo:,
     table: Some(Table(table)),
     columns: ["*"],
     distinct: False,
@@ -91,7 +89,7 @@ pub fn from(repo: based.Repo(v), table: table.Table) -> Select(v) {
 
 pub fn from_query(repo: based.Repo(v), query: db.Query(v)) -> Select(v) {
   Select(
-    fmt: repo.fmt,
+    repo:,
     table: Some(Subquery(query)),
     columns: ["*"],
     distinct: False,
@@ -116,7 +114,7 @@ pub fn columns(select: Select(v), columns: List(String)) -> Select(v) {
 
 pub fn where(select: Select(v), exprs: List(Expression(v))) -> Select(v) {
   let values =
-    list.flat_map(exprs, expression.to_values(_, fmt.to_value(select.fmt, _)))
+    list.flat_map(exprs, expression.to_values(_, select.repo.text_to_value))
   let where = list.prepend(select.where, exprs)
 
   Select(..select, where:)
@@ -168,7 +166,7 @@ fn do_join(
   joiner: fn(table.Table, List(Expression(v))) -> sql.Join(v),
 ) -> Select(v) {
   let values =
-    list.flat_map(exprs, expression.to_values(_, fmt.to_value(select.fmt, _)))
+    list.flat_map(exprs, expression.to_values(_, select.repo.text_to_value))
   let join_clause = joiner(table, exprs)
   let join = list.prepend(select.join, join_clause)
 
@@ -183,7 +181,7 @@ pub fn group_by(qb: Select(v), group_by: List(String)) -> Select(v) {
 
 pub fn having(select: Select(v), having: List(Expression(v))) -> Select(v) {
   let values =
-    list.flat_map(having, expression.to_values(_, fmt.to_value(select.fmt, _)))
+    list.flat_map(having, expression.to_values(_, select.repo.text_to_value))
   let having = list.prepend(select.having, having)
 
   Select(..select, having:)
@@ -231,7 +229,7 @@ pub fn for_update(select: Select(v)) -> Select(v) {
 pub fn to_query(select: Select(v)) -> db.Query(v) {
   let values = select.values |> list.reverse |> list.flatten
 
-  let to_placeholder = fmt.to_placeholder(select.fmt, _)
+  let to_placeholder = fmt.to_placeholder(select.repo.fmt, _)
 
   build(select)
   |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
@@ -248,7 +246,7 @@ pub fn to_string(select: Select(v)) -> String {
   let values = select.values |> list.reverse |> list.flatten
 
   build(select)
-  |> builder.to_string(values, select.fmt)
+  |> builder.to_string(values, select.repo.fmt)
 }
 
 // Builders
@@ -263,7 +261,7 @@ fn build(select: Select(v)) -> String {
     Some(Table(table)) -> {
       let to_string =
         table
-        |> table.to_string(fmt.to_identifier(select.fmt, _))
+        |> table.to_string(fmt.to_identifier(select.repo.fmt, _))
 
       fmt.from(_, to_string)
     }
@@ -279,10 +277,10 @@ fn build(select: Select(v)) -> String {
 
   select_sql(select.columns)
   |> from_sql
-  |> builder.append_joins(select.join, select.fmt)
-  |> builder.append_where(select.where, select.fmt)
+  |> builder.append_joins(select.join, select.repo.fmt)
+  |> builder.append_where(select.where, select.repo.fmt)
   |> builder.append_group_by(select.group_by)
-  |> builder.append_having(select.having, select.fmt)
+  |> builder.append_having(select.having, select.repo.fmt)
   |> builder.append_order_by(select.order_by, select.order)
   |> builder.append_limit(select.limit, select.offset)
   |> append_for(select.for)

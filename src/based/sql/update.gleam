@@ -31,7 +31,7 @@ import gleam/option.{type Option, None}
 
 pub opaque type Update(v) {
   Update(
-    fmt: fmt.Fmt(v),
+    repo: based.Repo(v),
     table: table.Table,
     sets: List(#(String, Node(v))),
     where: List(List(Expression(v))),
@@ -47,7 +47,7 @@ pub opaque type Update(v) {
 /// Create a new UPDATE query for the specified table
 pub fn table(repo: based.Repo(v), table: table.Table) -> Update(v) {
   Update(
-    fmt: repo.fmt,
+    repo:,
     table:,
     sets: [],
     where: [],
@@ -68,7 +68,7 @@ pub fn set(
   of kind: fn(a) -> Node(v),
 ) {
   let sets = update.sets |> list.prepend(#(column, kind(value)))
-  let values = node.to_values(kind(value), with: fmt.to_value(update.fmt, _))
+  let values = node.to_values(kind(value), with: update.repo.text_to_value)
 
   Update(..update, sets:) |> prepend_values(values)
 }
@@ -76,7 +76,7 @@ pub fn set(
 /// Add WHERE conditions to the UPDATE statement
 pub fn where(update: Update(v), exprs: List(Expression(v))) -> Update(v) {
   let values =
-    list.flat_map(exprs, expression.to_values(_, fmt.to_value(update.fmt, _)))
+    list.flat_map(exprs, expression.to_values(_, update.repo.text_to_value))
 
   Update(..update, where: [exprs])
   |> prepend_values(values)
@@ -98,7 +98,7 @@ pub fn returning(update: Update(v), columns: List(String)) -> Update(v) {
 pub fn to_query(update: Update(v)) -> db.Query(v) {
   let values = update.values |> list.reverse |> list.flatten
 
-  let to_placeholder = fmt.to_placeholder(update.fmt, _)
+  let to_placeholder = fmt.to_placeholder(update.repo.fmt, _)
 
   build(update)
   |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
@@ -111,7 +111,7 @@ pub fn to_string(update: Update(v)) -> String {
   let values = update.values |> list.reverse |> list.flatten
 
   build(update)
-  |> builder.to_string(values, update.fmt)
+  |> builder.to_string(values, update.repo.fmt)
 }
 
 fn build(update: Update(v)) -> String {
@@ -122,7 +122,7 @@ fn build(update: Update(v)) -> String {
 
     let right =
       value
-      |> node.to_string(fmt.to_identifier(update.fmt, _))
+      |> node.to_string(fmt.to_identifier(update.repo.fmt, _))
 
     column
     |> fmt.eq(right)
@@ -130,11 +130,11 @@ fn build(update: Update(v)) -> String {
 
   let table =
     update.table
-    |> table.to_string(fmt.to_identifier(update.fmt, _))
+    |> table.to_string(fmt.to_identifier(update.repo.fmt, _))
 
   fmt.update(table)
   |> fmt.set(updates)
-  |> builder.append_where(update.where, update.fmt)
+  |> builder.append_where(update.where, update.repo.fmt)
   |> builder.append_returning(update.returning)
   |> builder.append_order_by(update.order_by, update.order)
   |> builder.append_limit(update.limit, update.offset)

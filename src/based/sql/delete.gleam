@@ -30,7 +30,7 @@ import gleam/list
 /// A DELETE query with table, WHERE conditions, RETURNING columns, and values.
 pub opaque type Delete(v) {
   Delete(
-    fmt: fmt.Fmt(v),
+    repo: based.Repo(v),
     table: table.Table,
     where: List(List(Expression(v))),
     returning: List(String),
@@ -40,13 +40,13 @@ pub opaque type Delete(v) {
 
 /// Set the table for a DELETE query.
 pub fn from(repo: based.Repo(v), table: table.Table) -> Delete(v) {
-  Delete(fmt: repo.fmt, table:, where: [], returning: [], values: [])
+  Delete(repo: repo, table:, where: [], returning: [], values: [])
 }
 
 /// Add WHERE conditions to a DELETE query.
 pub fn where(delete: Delete(v), exprs: List(Expression(v))) -> Delete(v) {
   let values =
-    list.flat_map(exprs, expression.to_values(_, fmt.to_value(delete.fmt, _)))
+    list.flat_map(exprs, expression.to_values(_, delete.repo.text_to_value))
 
   Delete(..delete, where: [exprs]) |> prepend_values(values)
 }
@@ -66,7 +66,7 @@ pub fn returning(delete: Delete(v), columns: List(String)) -> Delete(v) {
 pub fn to_query(del: Delete(v)) -> db.Query(v) {
   let values = del.values |> list.reverse |> list.flatten
 
-  let to_placeholder = fmt.to_placeholder(del.fmt, _)
+  let to_placeholder = fmt.to_placeholder(del.repo.fmt, _)
 
   build(del)
   |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
@@ -79,18 +79,18 @@ pub fn to_string(delete: Delete(v)) -> String {
   let values = delete.values |> list.reverse |> list.flatten
 
   build(delete)
-  |> builder.to_string(values, delete.fmt)
+  |> builder.to_string(values, delete.repo.fmt)
 }
 
 /// Build a DELETE query's SQL string tree using the given fmt.
 fn build(delete: Delete(v)) -> String {
   let from =
     delete.table
-    |> table.to_string(fmt.to_identifier(delete.fmt, _))
+    |> table.to_string(fmt.to_identifier(delete.repo.fmt, _))
 
   fmt.delete
   |> fmt.from(from)
-  |> builder.append_where(delete.where, delete.fmt)
+  |> builder.append_where(delete.where, delete.repo.fmt)
   |> builder.append_returning(delete.returning)
 }
 
