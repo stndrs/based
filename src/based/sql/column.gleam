@@ -6,7 +6,7 @@ import based/sql/table
 import gleam/option.{type Option, None, Some}
 import gleam/string
 
-pub type Column {
+pub opaque type Column {
   Column(name: String, alias: Option(String), table: Option(String))
 }
 

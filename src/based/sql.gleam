@@ -1,4 +1,4 @@
-import based/sql/column
+import based/sql/column.{type Column}
 import based/sql/expression.{type Expression}
 import based/sql/node.{type Node}
 import based/sql/table
@@ -9,7 +9,7 @@ pub fn table(name: String) -> table.Table {
   table.new(name)
 }
 
-pub fn column(name: String) -> column.Column {
+pub fn column(name: String) -> Column {
   column.new(name)
 }
 

@@ -6,6 +6,12 @@ import gleam/option.{type Option, None, Some}
 import gleam/string
 
 pub opaque type Node(v) {
+  Aggregate(
+    name: String,
+    alias: Option(String),
+    table: Option(String),
+    to_string: fn(String) -> String,
+  )
   Column(name: String, alias: Option(String), table: Option(String))
   Columns(List(String))
   Text(String)
@@ -51,6 +57,16 @@ pub fn column(
 }
 
 @internal
+pub fn aggregate(
+  name: String,
+  alias: Option(String),
+  table: Option(String),
+  to_string: fn(String) -> String,
+) -> Node(v) {
+  Aggregate(name:, alias:, table:, to_string:)
+}
+
+@internal
 pub fn to_values(node: Node(v), with handle_text: fn(String) -> v) -> List(v) {
   case node {
     Value(val) -> [val]
@@ -68,6 +84,24 @@ pub fn to_string(
   with handle_identifier: fn(String) -> String,
 ) -> String {
   case node {
+    Aggregate(name:, alias:, table:, to_string:) -> {
+      let func =
+        case table {
+          Some(table) -> {
+            table
+            |> handle_identifier
+            |> string.append(".")
+            |> string.append(handle_identifier(name))
+          }
+          None -> handle_identifier(name)
+        }
+        |> to_string
+
+      case alias {
+        Some(a) -> fmt.alias(func, a)
+        None -> func
+      }
+    }
     Column(name:, alias:, table:) -> {
       let ident = case table {
         Some(table) -> {

@@ -36,9 +36,7 @@ pub fn new(name: String, decoder: fn() -> Decoder(a)) -> Schema(a) {
 }
 
 pub fn alias(schema: Schema(a), alias: String) -> Schema(a) {
-  let table =
-    schema.table
-    |> table.alias(alias)
+  let table = schema.table |> table.alias(alias)
 
   Schema(..schema, table:)
 }
