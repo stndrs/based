@@ -13,7 +13,7 @@ pub fn union_test() {
   let users_query =
     value.repo()
     |> select.from(users)
-    |> select.columns(["id", "name"])
+    |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
       sql.column("active")
       |> column.is(True),
@@ -22,7 +22,7 @@ pub fn union_test() {
   let employees_query =
     value.repo()
     |> select.from(employees)
-    |> select.columns(["id", "name"])
+    |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
       sql.column("department")
       |> column.eq(value.text("Engineering"), of: sql.value),
@@ -44,7 +44,7 @@ pub fn union_all_test() {
   let users_query =
     value.repo()
     |> select.from(users)
-    |> select.columns(["id", "name"])
+    |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
       sql.column("active")
       |> column.is(True),
@@ -53,7 +53,7 @@ pub fn union_all_test() {
   let employees_query =
     value.repo()
     |> select.from(employees)
-    |> select.columns(["id", "name"])
+    |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
       sql.column("department")
       |> column.eq(value.text("Engineering"), of: sql.value),
@@ -75,7 +75,7 @@ pub fn union_to_string_test() {
   let users_query =
     value.repo()
     |> select.from(users)
-    |> select.columns(["id", "name"])
+    |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
       sql.column("active")
       |> column.is(True),
@@ -84,7 +84,7 @@ pub fn union_to_string_test() {
   let employees_query =
     value.repo()
     |> select.from(employees)
-    |> select.columns(["id", "name"])
+    |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
       sql.column("department")
       |> column.eq(value.text("Engineering"), of: sql.value),
@@ -105,7 +105,7 @@ pub fn union_all_to_string_test() {
   let users_query =
     value.repo()
     |> select.from(users)
-    |> select.columns(["id", "name"])
+    |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
       sql.column("active")
       |> column.is(True),
@@ -114,7 +114,7 @@ pub fn union_all_to_string_test() {
   let employees_query =
     value.repo()
     |> select.from(employees)
-    |> select.columns(["id", "name"])
+    |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
       sql.column("department")
       |> column.eq(value.text("Engineering"), of: sql.value),
@@ -136,7 +136,7 @@ pub fn multi_union_to_string_test() {
   let users_query =
     value.repo()
     |> select.from(users)
-    |> select.columns(["id", "name"])
+    |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
       sql.column("active")
       |> column.is(True),
@@ -145,7 +145,7 @@ pub fn multi_union_to_string_test() {
   let employees_query =
     value.repo()
     |> select.from(employees)
-    |> select.columns(["id", "name"])
+    |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
       sql.column("department")
       |> column.eq(value.text("Engineering"), of: sql.value),
@@ -154,7 +154,7 @@ pub fn multi_union_to_string_test() {
   let contractors_query =
     value.repo()
     |> select.from(contractors)
-    |> select.columns(["id", "name"])
+    |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
       sql.column("status")
       |> column.eq(value.text("available"), of: sql.value),

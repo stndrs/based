@@ -5,7 +5,6 @@ import based/sql/internal/fmt
 import based/value
 import gleam/int
 import gleam/option.{None, Some}
-import gleeunit/should
 
 pub fn to_string_test() {
   let format_value = fn(v) {
@@ -23,12 +22,14 @@ pub fn to_string_test() {
     |> fmt.on_value(format_value)
 
   let result = builder.to_string("SELECT * FROM users", [], format)
-  should.equal(result, "SELECT * FROM users")
+
+  assert "SELECT * FROM users" == result
 
   let sql = "SELECT * FROM users WHERE id = :param AND name = :param"
   let values = [value.Int(1), value.Text("John")]
   let result = builder.to_string(sql, values, format)
-  should.equal(result, "SELECT * FROM users WHERE id = :1 AND name = 'John'")
+
+  assert "SELECT * FROM users WHERE id = :1 AND name = 'John'" == result
 }
 
 pub fn placeholders_test() {
@@ -39,7 +40,7 @@ pub fn placeholders_test() {
     builder.placeholders(for: tree, on: fmt.placeholder, with: mapper)
   let expected = "SELECT * FROM users WHERE id = $1 AND age = $2"
 
-  result |> should.equal(expected)
+  assert expected == result
 }
 
 pub fn append_where_test() {
@@ -63,7 +64,7 @@ pub fn append_where_test() {
 
   let result = builder.append_where(st, where_exprs, format)
 
-  should.equal(result, "SELECT * FROM users WHERE id = :param")
+  assert "SELECT * FROM users WHERE id = :param" == result
 }
 
 pub fn append_group_by_test() {
@@ -71,15 +72,15 @@ pub fn append_group_by_test() {
 
   let result = builder.append_group_by(st, [])
 
-  should.equal(result, "SELECT COUNT(*) FROM users")
+  assert "SELECT COUNT(*) FROM users" == result
 
   let result = builder.append_group_by(st, ["department"])
 
-  should.equal(result, "SELECT COUNT(*) FROM users GROUP BY department")
+  assert "SELECT COUNT(*) FROM users GROUP BY department" == result
 
   let result = builder.append_group_by(st, ["department", "role"])
 
-  should.equal(result, "SELECT COUNT(*) FROM users GROUP BY department, role")
+  assert "SELECT COUNT(*) FROM users GROUP BY department, role" == result
 }
 
 pub fn append_having_test() {
@@ -102,10 +103,8 @@ pub fn append_having_test() {
 
   let result = builder.append_having(st, having_exprs, format)
 
-  should.equal(
-    result,
-    "SELECT department, COUNT(*) FROM users GROUP BY department HAVING COUNT(*) > :param",
-  )
+  assert "SELECT department, COUNT(*) FROM users GROUP BY department HAVING COUNT(*) > :param"
+    == result
 }
 
 pub fn append_joins_test() {
@@ -132,10 +131,8 @@ pub fn append_joins_test() {
 
   let result = builder.append_joins(st, joins, format)
 
-  should.equal(
-    result,
-    "SELECT * FROM users INNER JOIN posts ON users.id = posts.user_id",
-  )
+  assert "SELECT * FROM users INNER JOIN posts ON users.id = posts.user_id"
+    == result
 }
 
 pub fn append_order_by_test() {
@@ -143,19 +140,19 @@ pub fn append_order_by_test() {
 
   let result = builder.append_order_by(st, [], None)
 
-  should.equal(result, "SELECT * FROM users")
+  assert "SELECT * FROM users" == result
 
   let result = builder.append_order_by(st, ["id"], Some(sql.Asc))
 
-  should.equal(result, "SELECT * FROM users ORDER BY id ASC")
+  assert "SELECT * FROM users ORDER BY id ASC" == result
 
   let result = builder.append_order_by(st, ["created_at"], Some(sql.Desc))
 
-  should.equal(result, "SELECT * FROM users ORDER BY created_at DESC")
+  assert "SELECT * FROM users ORDER BY created_at DESC" == result
 
   let result = builder.append_order_by(st, ["last_name", "first_name"], None)
 
-  should.equal(result, "SELECT * FROM users ORDER BY last_name, first_name")
+  assert "SELECT * FROM users ORDER BY last_name, first_name" == result
 }
 
 pub fn append_limit_test() {
@@ -163,15 +160,15 @@ pub fn append_limit_test() {
 
   let result = builder.append_limit(st, None, None)
 
-  should.equal(result, "SELECT * FROM users")
+  assert "SELECT * FROM users" == result
 
   let result = builder.append_limit(st, Some(10), None)
 
-  should.equal(result, "SELECT * FROM users LIMIT :param")
+  assert "SELECT * FROM users LIMIT :param" == result
 
   let result = builder.append_limit(st, Some(10), Some(20))
 
-  should.equal(result, "SELECT * FROM users LIMIT :param OFFSET :param")
+  assert "SELECT * FROM users LIMIT :param OFFSET :param" == result
 }
 
 pub fn append_returning_test() {
@@ -179,22 +176,16 @@ pub fn append_returning_test() {
 
   let result = builder.append_returning(st, [])
 
-  should.equal(
-    result,
-    "INSERT INTO users (name, email) VALUES ('John', 'john@example.com')",
-  )
+  assert "INSERT INTO users (name, email) VALUES ('John', 'john@example.com')"
+    == result
 
   let result = builder.append_returning(st, ["id"])
 
-  should.equal(
-    result,
-    "INSERT INTO users (name, email) VALUES ('John', 'john@example.com') RETURNING id",
-  )
+  assert "INSERT INTO users (name, email) VALUES ('John', 'john@example.com') RETURNING id"
+    == result
 
   let result = builder.append_returning(st, ["id", "created_at"])
 
-  should.equal(
-    result,
-    "INSERT INTO users (name, email) VALUES ('John', 'john@example.com') RETURNING id, created_at",
-  )
+  assert "INSERT INTO users (name, email) VALUES ('John', 'john@example.com') RETURNING id, created_at"
+    == result
 }

@@ -21,7 +21,7 @@
 import based
 import based/db
 import based/sql
-import based/sql/expression.{type Expression}
+import based/sql/condition.{type Condition}
 import based/sql/internal/builder
 import based/sql/internal/fmt
 import based/sql/table
@@ -32,7 +32,7 @@ pub opaque type Delete(v) {
   Delete(
     repo: based.Repo(v),
     table: table.Table,
-    where: List(List(Expression(v))),
+    where: List(List(Condition(v))),
     returning: List(String),
     values: List(List(v)),
   )
@@ -44,15 +44,16 @@ pub fn from(repo: based.Repo(v), table: table.Table) -> Delete(v) {
 }
 
 /// Add WHERE conditions to a DELETE query.
-pub fn where(delete: Delete(v), exprs: List(Expression(v))) -> Delete(v) {
+pub fn where(delete: Delete(v), conditions: List(Condition(v))) -> Delete(v) {
   let values =
-    list.flat_map(exprs, expression.to_values(_, delete.repo.text_to_value))
+    conditions
+    |> list.flat_map(condition.to_values(_, delete.repo.text_to_value))
 
-  Delete(..delete, where: [exprs]) |> prepend_values(values)
+  Delete(..delete, where: [conditions]) |> prepend_values(values)
 }
 
 /// Add negated WHERE conditions to a DELETE query.
-pub fn where_not(delete: Delete(v), exprs: List(Expression(v))) -> Delete(v) {
+pub fn where_not(delete: Delete(v), exprs: List(Condition(v))) -> Delete(v) {
   let negated_exprs = list.map(exprs, sql.not)
   where(delete, negated_exprs)
 }

@@ -1,5 +1,5 @@
 import based/sql
-import based/sql/expression
+import based/sql/condition.{type Condition}
 import based/sql/internal/fmt
 import based/sql/table
 import gleam/dict
@@ -47,7 +47,7 @@ pub fn placeholders(
 
 pub fn append_where(
   st: String,
-  where: List(List(expression.Expression(v))),
+  where: List(List(condition.Condition(v))),
   fmt: fmt.Fmt(v),
 ) -> String {
   where
@@ -60,7 +60,7 @@ pub fn append_where(
     }
 
     expr
-    |> expression.to_string(fmt.to_identifier(fmt, _))
+    |> condition.to_string(fmt)
     |> expr_fmt(sql1, _)
   })
 }
@@ -74,20 +74,20 @@ pub fn append_group_by(st: String, group_by: List(String)) -> String {
 
 pub fn append_having(
   st: String,
-  having: List(List(expression.Expression(v))),
+  having: List(List(Condition(v))),
   fmt: fmt.Fmt(v),
 ) -> String {
   having
   |> list.reverse
   |> list.flatten
-  |> list.index_fold(from: st, with: fn(sql1, expr, idx) {
+  |> list.index_fold(from: st, with: fn(sql1, condition, idx) {
     let expr_fmt = case idx {
       0 -> fmt.having
       _ -> fmt.and
     }
 
-    expr
-    |> expression.to_string(fmt.to_identifier(fmt, _))
+    condition
+    |> condition.to_string(fmt)
     |> expr_fmt(sql1, _)
   })
 }
@@ -109,16 +109,20 @@ pub fn append_joins(
 
     st
     |> join_tree(table.to_string(join.table, with: fmt.to_identifier(fmt, _)))
-    |> list.index_fold(over: join.exprs, from: _, with: fn(sql1, expr, idx) {
-      let expr_fmt = case idx {
-        0 -> fmt.on
-        _ -> fmt.and
-      }
+    |> list.index_fold(
+      over: join.exprs,
+      from: _,
+      with: fn(sql1, condition, idx) {
+        let expr_fmt = case idx {
+          0 -> fmt.on
+          _ -> fmt.and
+        }
 
-      expr
-      |> expression.to_string(fmt.to_identifier(fmt, _))
-      |> expr_fmt(sql1, _)
-    })
+        condition
+        |> condition.to_string(fmt)
+        |> expr_fmt(sql1, _)
+      },
+    )
   })
 }
 

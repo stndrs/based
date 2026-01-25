@@ -59,6 +59,10 @@ pub fn to_placeholder(fmt: Fmt(v), value: Int) -> String {
 
 pub const placeholder = ":param"
 
+pub const column = ":col:"
+
+pub const value = ":val:"
+
 pub const null = "NULL"
 
 pub const true = "TRUE"

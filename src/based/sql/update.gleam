@@ -21,10 +21,9 @@
 import based
 import based/db
 import based/sql
-import based/sql/expression.{type Expression}
+import based/sql/condition.{type Condition}
 import based/sql/internal/builder
 import based/sql/internal/fmt
-import based/sql/node.{type Node}
 import based/sql/table
 import gleam/list
 import gleam/option.{type Option, None}
@@ -33,8 +32,8 @@ pub opaque type Update(v) {
   Update(
     repo: based.Repo(v),
     table: table.Table,
-    sets: List(#(String, Node(v))),
-    where: List(List(Expression(v))),
+    sets: List(#(String, condition.Node(v))),
+    where: List(List(Condition(v))),
     order_by: List(String),
     order: Option(sql.Order),
     limit: Option(Int),
@@ -65,25 +64,26 @@ pub fn set(
   update: Update(v),
   column: String,
   value: a,
-  of kind: fn(a) -> Node(v),
+  of kind: fn(a) -> condition.Node(v),
 ) {
   let sets = update.sets |> list.prepend(#(column, kind(value)))
-  let values = node.to_values(kind(value), with: update.repo.text_to_value)
+  let values = condition.node_to_values(kind(value), update.repo.text_to_value)
 
   Update(..update, sets:) |> prepend_values(values)
 }
 
 /// Add WHERE conditions to the UPDATE statement
-pub fn where(update: Update(v), exprs: List(Expression(v))) -> Update(v) {
+pub fn where(update: Update(v), conditions: List(Condition(v))) -> Update(v) {
   let values =
-    list.flat_map(exprs, expression.to_values(_, update.repo.text_to_value))
+    conditions
+    |> list.flat_map(condition.to_values(_, update.repo.text_to_value))
 
-  Update(..update, where: [exprs])
+  Update(..update, where: [conditions])
   |> prepend_values(values)
 }
 
 /// Add WHERE NOT conditions to the UPDATE statement
-pub fn where_not(update: Update(v), exprs: List(Expression(v))) -> Update(v) {
+pub fn where_not(update: Update(v), exprs: List(Condition(v))) -> Update(v) {
   let negated_exprs = list.map(exprs, sql.not)
   where(update, negated_exprs)
 }
@@ -120,9 +120,7 @@ fn build(update: Update(v)) -> String {
   let updates = {
     use #(column, value) <- list.map(sets)
 
-    let right =
-      value
-      |> node.to_string(fmt.to_identifier(update.repo.fmt, _))
+    let right = condition.node_to_string(value, update.repo.fmt)
 
     column
     |> fmt.eq(right)

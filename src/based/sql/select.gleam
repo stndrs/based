@@ -1,10 +1,10 @@
 import based
 import based/db
 import based/sql
-import based/sql/expression.{type Expression}
+import based/sql/column.{type Column}
+import based/sql/condition.{type Condition}
 import based/sql/internal/builder
 import based/sql/internal/fmt
-import based/sql/node.{type Node}
 import based/sql/table
 import gleam/function
 import gleam/list
@@ -23,12 +23,12 @@ pub opaque type Select(v) {
   Select(
     repo: based.Repo(v),
     table: Option(TableOrSubquery(v)),
-    columns: List(String),
+    columns: List(Column),
     distinct: Bool,
     join: List(sql.Join(v)),
-    where: List(List(Expression(v))),
+    where: List(List(Condition(v))),
     group_by: List(String),
-    having: List(List(Expression(v))),
+    having: List(List(Condition(v))),
     order_by: List(String),
     order: Option(sql.Order),
     limit: Option(Int),
@@ -72,7 +72,7 @@ pub fn from(repo: based.Repo(v), table: table.Table) -> Select(v) {
   Select(
     repo:,
     table: Some(Table(table)),
-    columns: ["*"],
+    columns: [column.all],
     distinct: False,
     join: [],
     where: [],
@@ -91,7 +91,7 @@ pub fn from_query(repo: based.Repo(v), query: db.Query(v)) -> Select(v) {
   Select(
     repo:,
     table: Some(Subquery(query)),
-    columns: ["*"],
+    columns: [column.all],
     distinct: False,
     join: [],
     where: [],
@@ -106,23 +106,27 @@ pub fn from_query(repo: based.Repo(v), query: db.Query(v)) -> Select(v) {
   )
 }
 
-pub fn columns(select: Select(v), columns: List(String)) -> Select(v) {
+pub fn columns(select: Select(v), columns: List(Column)) -> Select(v) {
   Select(..select, columns:)
 }
 
 // Where
 
-pub fn where(select: Select(v), exprs: List(Expression(v))) -> Select(v) {
+pub fn where(select: Select(v), conditions: List(Condition(v))) -> Select(v) {
   let values =
-    list.flat_map(exprs, expression.to_values(_, select.repo.text_to_value))
-  let where = list.prepend(select.where, exprs)
+    conditions
+    |> list.flat_map(condition.to_values(_, select.repo.text_to_value))
+
+  let where = list.prepend(select.where, conditions)
 
   Select(..select, where:)
   |> prepend_values(values)
 }
 
-pub fn where_not(select: Select(v), exprs: List(Expression(v))) -> Select(v) {
-  list.map(exprs, sql.not) |> where(select, _)
+pub fn where_not(select: Select(v), conditions: List(Condition(v))) -> Select(v) {
+  conditions
+  |> list.map(sql.not)
+  |> where(select, _)
 }
 
 // Joins
@@ -130,44 +134,46 @@ pub fn where_not(select: Select(v), exprs: List(Expression(v))) -> Select(v) {
 pub fn join(
   select: Select(v),
   table: table.Table,
-  on exprs: List(Expression(v)),
+  on conditions: List(Condition(v)),
 ) -> Select(v) {
-  do_join(select, table, exprs, sql.inner_join)
+  do_join(select, table, conditions, sql.inner_join)
 }
 
 pub fn left_join(
   select: Select(v),
   table: table.Table,
-  on exprs: List(Expression(v)),
+  on conditions: List(Condition(v)),
 ) -> Select(v) {
-  do_join(select, table, exprs, sql.left_join)
+  do_join(select, table, conditions, sql.left_join)
 }
 
 pub fn right_join(
   select: Select(v),
   table: table.Table,
-  on exprs: List(Expression(v)),
+  on conditions: List(Condition(v)),
 ) -> Select(v) {
-  do_join(select, table, exprs, sql.right_join)
+  do_join(select, table, conditions, sql.right_join)
 }
 
 pub fn full_join(
   select: Select(v),
   table: table.Table,
-  on exprs: List(Expression(v)),
+  on conditions: List(Condition(v)),
 ) -> Select(v) {
-  do_join(select, table, exprs, sql.full_join)
+  do_join(select, table, conditions, sql.full_join)
 }
 
 fn do_join(
   select: Select(v),
   table: table.Table,
-  exprs: List(Expression(v)),
-  joiner: fn(table.Table, List(Expression(v))) -> sql.Join(v),
+  conditions: List(Condition(v)),
+  joiner: fn(table.Table, List(Condition(v))) -> sql.Join(v),
 ) -> Select(v) {
   let values =
-    list.flat_map(exprs, expression.to_values(_, select.repo.text_to_value))
-  let join_clause = joiner(table, exprs)
+    conditions
+    |> list.flat_map(condition.to_values(_, select.repo.text_to_value))
+
+  let join_clause = joiner(table, conditions)
   let join = list.prepend(select.join, join_clause)
 
   Select(..select, join:) |> prepend_values(values)
@@ -179,9 +185,11 @@ pub fn group_by(qb: Select(v), group_by: List(String)) -> Select(v) {
   Select(..qb, group_by:)
 }
 
-pub fn having(select: Select(v), having: List(Expression(v))) -> Select(v) {
+pub fn having(select: Select(v), having: List(Condition(v))) -> Select(v) {
   let values =
-    list.flat_map(having, expression.to_values(_, select.repo.text_to_value))
+    having
+    |> list.flat_map(condition.to_values(_, select.repo.text_to_value))
+
   let having = list.prepend(select.having, having)
 
   Select(..select, having:)
@@ -237,9 +245,10 @@ pub fn to_query(select: Select(v)) -> db.Query(v) {
   |> db.params(values)
 }
 
-pub fn to_subquery(select: Select(v)) -> Node(v) {
-  to_query(select)
-  |> node.query(None)
+pub fn to_subquery(select: Select(v)) -> condition.Node(v) {
+  let db.Query(sql:, values:) = to_query(select)
+
+  condition.subquery(sql, values)
 }
 
 pub fn to_string(select: Select(v)) -> String {
@@ -275,7 +284,9 @@ fn build(select: Select(v)) -> String {
     None -> function.identity
   }
 
-  select_sql(select.columns)
+  select.columns
+  |> list.map(column.to_string(_, select.repo))
+  |> select_sql
   |> from_sql
   |> builder.append_joins(select.join, select.repo.fmt)
   |> builder.append_where(select.where, select.repo.fmt)

@@ -8,18 +8,22 @@ import based/value
 
 pub fn with_test() {
   let expected =
-    "WITH departments AS (SELECT e.name, d.name FROM employees AS e INNER JOIN departments AS d ON e.dept_id = d.id) SELECT * FROM departments WHERE name = ?;"
+    "WITH departments AS (SELECT e.name, d.name FROM employees AS e INNER JOIN departments AS d ON e.dept_id = d.id) SELECT * FROM departments AS d WHERE d.name = ?;"
 
-  let departments = sql.table("departments")
+  let departments = sql.table("departments") |> table.alias("d")
   let employees = sql.table("employees") |> table.alias("e")
 
   let employees_select =
     value.repo()
     |> select.from(employees)
-    |> select.columns(["e.name", "d.name"])
-    |> select.join(table.alias(departments, "d"), on: [
-      sql.column("e.dept_id")
-      |> column.eq(sql.column("d.id"), of: column.node),
+    |> select.columns([
+      sql.column("name") |> column.for(employees),
+      sql.column("name") |> column.for(departments),
+    ])
+    |> select.join(departments, on: [
+      sql.column("dept_id")
+      |> column.for(employees)
+      |> column.eq(sql.column("id") |> column.for(departments), of: column.node),
     ])
     |> select.to_query
 
@@ -28,9 +32,10 @@ pub fn with_test() {
     |> with.new([with.cte("departments", employees_select)])
     |> with.query(fn(repo) {
       select.from(repo, departments)
-      |> select.columns(["*"])
+      |> select.columns([column.all])
       |> select.where([
         sql.column("name")
+        |> column.for(departments)
         |> column.eq(value.text("Engineering"), of: sql.value),
       ])
       |> select.to_query
@@ -51,14 +56,21 @@ pub fn with_multiple_ctes_test() {
   let deps_select =
     value.repo()
     |> select.from(departments)
-    |> select.columns(["id", "name"])
+    |> select.columns([sql.column("id"), sql.column("name")])
     |> select.to_query
 
   let employees_select =
     value.repo()
     |> select.from(employees)
-    |> select.columns(["id", "name", "dept_id"])
+    |> select.columns([
+      sql.column("id"),
+      sql.column("name"),
+      sql.column("dept_id"),
+    ])
     |> select.to_query
+
+  let employees = table.alias(employees, "e")
+  let departments = table.alias(departments, "d")
 
   let query =
     value.repo()
@@ -67,9 +79,12 @@ pub fn with_multiple_ctes_test() {
       with.cte("employees", employees_select),
     ])
     |> with.query(fn(repo) {
-      select.from(repo, table.alias(employees, "e"))
-      |> select.columns(["e.name", "d.name"])
-      |> select.join(table.alias(departments, "d"), on: [
+      select.from(repo, employees)
+      |> select.columns([
+        sql.column("name") |> column.for(employees),
+        sql.column("name") |> column.for(departments),
+      ])
+      |> select.join(departments, on: [
         sql.column("e.dept_id")
         |> column.eq(sql.column("d.id"), of: column.node),
       ])
@@ -89,7 +104,7 @@ pub fn with_column_names_test() {
   let deps_select =
     value.repo()
     |> select.from(departments)
-    |> select.columns(["id", "name"])
+    |> select.columns([sql.column("id"), sql.column("name")])
     |> select.to_query
 
   let query =
@@ -100,7 +115,7 @@ pub fn with_column_names_test() {
     ])
     |> with.query(fn(repo) {
       select.from(repo, departments)
-      |> select.columns(["dept_name"])
+      |> select.columns([sql.column("dept_name")])
       |> select.where([
         sql.column("dept_id")
         |> column.eq(value.int(42), of: sql.value),
@@ -117,14 +132,14 @@ pub fn recursive_with_test() {
   let expected =
     "WITH RECURSIVE numbers (n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM numbers WHERE n < ?) SELECT n FROM numbers;"
 
-  let base_query = select.new(value.repo()) |> select.columns(["1"])
+  let base_query = select.new(value.repo()) |> select.columns([sql.column("1")])
 
   let numbers = sql.table("numbers")
 
   let recursive_query =
     value.repo()
     |> select.from(numbers)
-    |> select.columns(["n + 1"])
+    |> select.columns([sql.column("n + 1")])
     |> select.where([
       sql.column("n")
       |> column.lt(value.int(5), of: sql.value),
@@ -140,7 +155,7 @@ pub fn recursive_with_test() {
     |> with.recursive
     |> with.query(fn(repo) {
       select.from(repo, numbers)
-      |> select.columns(["n"])
+      |> select.columns([sql.column("n")])
       |> select.to_query
     })
     |> with.to_query
@@ -159,12 +174,12 @@ pub fn with_union_test() {
   let users_select =
     value.repo()
     |> select.from(users)
-    |> select.columns(["id", "name"])
+    |> select.columns([sql.column("id"), sql.column("name")])
 
   let accounts_select =
     value.repo()
     |> select.from(accounts)
-    |> select.columns(["id", "username"])
+    |> select.columns([sql.column("id"), sql.column("username")])
 
   let union_query =
     union.new([users_select, accounts_select])
@@ -175,7 +190,7 @@ pub fn with_union_test() {
     |> with.new([with.cte("combined_data", union_query)])
     |> with.query(fn(repo) {
       select.from(repo, combined_data)
-      |> select.columns(["*"])
+      |> select.columns([column.all])
       |> select.order_by(["id"])
       |> select.to_query
     })

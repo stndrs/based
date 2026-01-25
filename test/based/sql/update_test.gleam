@@ -106,7 +106,7 @@ pub fn update_set_from_subquery_test() {
   let price_id =
     value.repo()
     |> select.from(prices)
-    |> select.columns(["price"])
+    |> select.columns([sql.column("price")])
     |> select.where([
       sql.column("id")
       |> column.eq(value.int(1), of: sql.value),
