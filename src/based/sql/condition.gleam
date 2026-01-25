@@ -14,6 +14,7 @@ pub opaque type Node(v) {
   Column(name: String, alias: Option(String), table: Option(String))
   Text(value: String)
   Value(value: v)
+  Values(values: List(Node(v)))
   Null
 }
 
@@ -25,6 +26,13 @@ pub fn text(value: String) -> Node(v) {
 @internal
 pub fn value(value: v) -> Node(v) {
   Value(value:)
+}
+
+@internal
+pub fn values(values: List(v)) -> Node(v) {
+  values
+  |> list.map(value)
+  |> Values
 }
 
 @internal
@@ -92,6 +100,12 @@ pub fn node_to_string(node: Node(v), fmt: fmt.Fmt(v)) -> String {
     Subquery(sql:, values: _) -> fmt.enclose(sql)
     Text(..) -> fmt.placeholder
     Value(..) -> fmt.placeholder
+    Values(values:) -> {
+      values
+      |> list.map(fn(_) { fmt.placeholder })
+      |> string.join(", ")
+      |> fmt.enclose
+    }
     Null -> fmt.null
   }
 }
@@ -104,6 +118,7 @@ pub fn node_to_values(node: Node(v), text_to_value: fn(String) -> v) -> List(v) 
     Text(value:) -> [text_to_value(value)]
     Subquery(sql: _, values:) -> values
     Value(value:) -> [value]
+    Values(values:) -> list.flat_map(values, node_to_values(_, text_to_value))
     Null -> []
   }
 }

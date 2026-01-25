@@ -128,7 +128,7 @@ fn aggregate_to_string(
   }
 }
 
-pub fn node(column: Column) -> condition.Node(v) {
+pub fn value(column: Column) -> condition.Node(v) {
   case column.func {
     Some(func) -> {
       let formatter = case func {
@@ -163,7 +163,7 @@ pub fn eq(
   let right = kind(right)
 
   column
-  |> node
+  |> value
   |> condition.eq(right)
 }
 
@@ -175,7 +175,7 @@ pub fn gt(
   let right = kind(right)
 
   column
-  |> node
+  |> value
   |> condition.gt(right)
 }
 
@@ -187,7 +187,7 @@ pub fn lt(
   let right = kind(right)
 
   column
-  |> node
+  |> value
   |> condition.lt(right)
 }
 
@@ -199,7 +199,7 @@ pub fn gt_eq(
   let right = kind(right)
 
   column
-  |> node
+  |> value
   |> condition.gt_eq(right)
 }
 
@@ -211,7 +211,7 @@ pub fn lt_eq(
   let right = kind(right)
 
   column
-  |> node
+  |> value
   |> condition.lt_eq(right)
 }
 
@@ -223,7 +223,7 @@ pub fn not_eq(
   let right = kind(right)
 
   column
-  |> node
+  |> value
   |> condition.not_eq(right)
 }
 
@@ -237,7 +237,7 @@ pub fn between(
   let start = kind(start)
 
   column
-  |> node
+  |> value
   |> condition.between(start, end)
 }
 
@@ -245,7 +245,7 @@ pub fn like(column: Column, val: String) -> Condition(v) {
   let right = condition.text(val)
 
   column
-  |> node
+  |> value
   |> condition.like(right)
 }
 
@@ -253,7 +253,7 @@ pub fn not_like(column: Column, val: String) -> Condition(v) {
   let right = condition.text(val)
 
   column
-  |> node
+  |> value
   |> condition.not_like(right)
 }
 
@@ -265,24 +265,24 @@ pub fn in(
   let right = kind(right)
 
   column
-  |> node
+  |> value
   |> condition.in(right)
 }
 
 pub fn is(column: Column, right: Bool) -> Condition(v) {
   column
-  |> node
+  |> value
   |> condition.is(right)
 }
 
 pub fn is_null(column: Column) -> Condition(v) {
   column
-  |> node
+  |> value
   |> condition.is_null(True)
 }
 
 pub fn is_not_null(column: Column) -> Condition(v) {
   column
-  |> node
+  |> value
   |> condition.is_null(False)
 }

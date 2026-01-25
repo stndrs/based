@@ -1,6 +1,7 @@
 import based/sql/column.{type Column}
 import based/sql/condition.{type Condition}
 import based/sql/table
+import gleam/list
 import gleam/option.{type Option, None, Some}
 
 pub fn table(name: String) -> table.Table {
@@ -79,16 +80,11 @@ pub type Order {
   Desc
 }
 
-// pub fn list(vals: List(a), of kind: fn(a) -> v) -> Node {
-//   vals
-//   |> list.map(fn(val) {
-//     val
-//     |> kind
-//     |> node.value
-//   })
-//   |> node.list
-// }
-// 
+pub fn list(vals: List(a), of kind: fn(a) -> v) -> condition.Node(v) {
+  vals
+  |> list.map(kind)
+  |> condition.values
+}
 
 pub fn value(value: v) -> condition.Node(v) {
   condition.value(value)

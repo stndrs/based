@@ -125,7 +125,7 @@ pub fn append_joins_test() {
   let joins = [
     sql.Join(type_: sql.InnerJoin, table: posts, exprs: [
       users_id
-      |> column.eq(posts_user_id, of: column.node),
+      |> column.eq(posts_user_id, of: column.value),
     ]),
   ]
 

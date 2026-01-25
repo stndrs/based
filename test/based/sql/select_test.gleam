@@ -193,7 +193,7 @@ pub fn select_with_join_test() {
     |> select.from(users)
     |> select.join(posts, on: [
       sql.column("users.id")
-        |> column.eq(sql.column("posts.user_id"), of: column.node),
+        |> column.eq(sql.column("posts.user_id"), of: column.value),
       sql.column("posts.title")
         |> column.like("%gleam%"),
     ])
@@ -218,21 +218,21 @@ pub fn select_with_multiple_joins_test() {
     |> select.from(users)
     |> select.join(posts, on: [
       sql.column("users.id")
-        |> column.eq(sql.column("posts.user_id"), of: column.node),
+        |> column.eq(sql.column("posts.user_id"), of: column.value),
       sql.column("posts.title")
         |> column.like("%gleam%"),
     ])
     |> select.left_join(comments, on: [
       sql.column("posts.comment_id")
-      |> column.eq(sql.column("comments.id"), of: column.node),
+      |> column.eq(sql.column("comments.id"), of: column.value),
     ])
     |> select.right_join(tags, on: [
       sql.column("tags.id")
-      |> column.eq(sql.column("posts.tag_id"), of: column.node),
+      |> column.eq(sql.column("posts.tag_id"), of: column.value),
     ])
     |> select.full_join(followers, on: [
       sql.column("followers.user_id")
-      |> column.eq(sql.column("users.id"), of: column.node),
+      |> column.eq(sql.column("users.id"), of: column.value),
     ])
     |> select.to_query
 
@@ -240,22 +240,22 @@ pub fn select_with_multiple_joins_test() {
   assert [value.text("%gleam%")] == query.values
 }
 
-// pub fn select_with_in_test() {
-//   let expected = "SELECT * FROM users WHERE id IN (?, ?, ?)"
-//   let users = sql.table("users")
-// 
-//   let query =
-//     value.repo()
-//     |> select.from(users)
-//     |> select.where([
-//       sql.column("id")
-//       |> column.in([1, 2, 3], of: sql.list(_, of: value.int)),
-//     ])
-//     |> select.to_query
-// 
-//   assert expected == query.sql
-//   assert [value.int(1), value.int(2), value.int(3)] == query.values
-// }
+pub fn select_with_in_test() {
+  let expected = "SELECT * FROM users WHERE id IN (?, ?, ?)"
+  let users = sql.table("users")
+
+  let query =
+    value.repo()
+    |> select.from(users)
+    |> select.where([
+      sql.column("id")
+      |> column.in([1, 2, 3], of: sql.list(_, of: value.int)),
+    ])
+    |> select.to_query
+
+  assert expected == query.sql
+  assert [value.int(1), value.int(2), value.int(3)] == query.values
+}
 
 // pub fn select_with_in_tuples_test() {
 //   let expected =
@@ -426,7 +426,7 @@ pub fn join_with_multiple_conditions_to_string_test() {
     |> select.from(users)
     |> select.join(orders, on: [
       sql.column("users.id")
-        |> column.eq(sql.column("orders.user_id"), of: column.node),
+        |> column.eq(sql.column("orders.user_id"), of: column.value),
       sql.column("orders.status")
         |> column.eq(value.text("completed"), of: sql.value),
     ])
@@ -820,7 +820,7 @@ pub fn for_update_with_join_test() {
     ])
     |> select.join(users, on: [
       sql.column("orders.user_id")
-      |> column.eq(sql.column("users.id"), of: column.node),
+      |> column.eq(sql.column("users.id"), of: column.value),
     ])
     |> select.where([
       sql.column("orders.status")
