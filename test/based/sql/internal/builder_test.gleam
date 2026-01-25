@@ -60,7 +60,7 @@ pub fn append_where_test() {
 
   let left_node = column.new("id")
   let right_node = value.int(1)
-  let where_exprs = [[column.eq(left_node, right_node, of: sql.value)]]
+  let where_exprs = [[sql.eq(left_node, right_node, of: sql.value)]]
 
   let result = builder.append_where(st, where_exprs, format)
 
@@ -99,7 +99,7 @@ pub fn append_having_test() {
 
   let count_node = column.new("COUNT(*)")
   let value_node = value.int(5)
-  let having_exprs = [[column.gt(count_node, value_node, of: sql.value)]]
+  let having_exprs = [[sql.gt(count_node, value_node, of: sql.value)]]
 
   let result = builder.append_having(st, having_exprs, format)
 

@@ -4,13 +4,19 @@ import based/sql/table
 import gleam/list
 import gleam/option.{type Option, None, Some}
 
+// ---------- Table ---------- //
+
 pub fn table(name: String) -> table.Table {
   table.new(name)
 }
 
+// ---------- Column ---------- //
+
 pub fn column(name: String) -> Column {
   column.new(name)
 }
+
+pub const all = column.all
 
 pub fn avg(name: String) -> Column {
   column.avg(name)
@@ -30,6 +36,148 @@ pub fn min(name: String) -> Column {
 
 pub fn sum(name: String) -> Column {
   column.sum(name)
+}
+
+// ---------- Conditions ---------- //
+
+pub type Comparable(a, v) {
+  Comparable(to_node: fn(a) -> condition.Node(v))
+}
+
+pub const col = Comparable(to_node: column.value)
+
+pub const value = Comparable(to_node: condition.value)
+
+pub fn eq(
+  column: Column,
+  right: a,
+  of comparable: Comparable(a, v),
+) -> Condition(v) {
+  let right = comparable.to_node(right)
+
+  column
+  |> column.value
+  |> condition.eq(right)
+}
+
+pub fn gt(
+  column: Column,
+  right: a,
+  of comparable: Comparable(a, v),
+) -> Condition(v) {
+  let right = comparable.to_node(right)
+
+  column
+  |> column.value
+  |> condition.gt(right)
+}
+
+pub fn lt(
+  column: Column,
+  right: a,
+  of comparable: Comparable(a, v),
+) -> Condition(v) {
+  let right = comparable.to_node(right)
+
+  column
+  |> column.value
+  |> condition.lt(right)
+}
+
+pub fn gt_eq(
+  column: Column,
+  right: a,
+  of comparable: Comparable(a, v),
+) -> Condition(v) {
+  let right = comparable.to_node(right)
+
+  column
+  |> column.value
+  |> condition.gt_eq(right)
+}
+
+pub fn lt_eq(
+  column: Column,
+  right: a,
+  of comparable: Comparable(a, v),
+) -> Condition(v) {
+  let right = comparable.to_node(right)
+
+  column
+  |> column.value
+  |> condition.lt_eq(right)
+}
+
+pub fn not_eq(
+  column: Column,
+  right: a,
+  of comparable: Comparable(a, v),
+) -> Condition(v) {
+  let right = comparable.to_node(right)
+
+  column
+  |> column.value
+  |> condition.not_eq(right)
+}
+
+pub fn between(
+  column: Column,
+  start: a,
+  end: a,
+  of comparable: Comparable(a, v),
+) -> Condition(v) {
+  let end = comparable.to_node(end)
+  let start = comparable.to_node(start)
+
+  column
+  |> column.value
+  |> condition.between(start, end)
+}
+
+pub fn like(column: Column, val: String) -> Condition(v) {
+  let right = condition.text(val)
+
+  column
+  |> column.value
+  |> condition.like(right)
+}
+
+pub fn not_like(column: Column, val: String) -> Condition(v) {
+  let right = condition.text(val)
+
+  column
+  |> column.value
+  |> condition.not_like(right)
+}
+
+pub fn in(
+  column: Column,
+  right: a,
+  of kind: fn(a) -> condition.Node(v),
+) -> Condition(v) {
+  let right = kind(right)
+
+  column
+  |> column.value
+  |> condition.in(right)
+}
+
+pub fn is(column: Column, right: Bool) -> Condition(v) {
+  column
+  |> column.value
+  |> condition.is(right)
+}
+
+pub fn is_null(column: Column) -> Condition(v) {
+  column
+  |> column.value
+  |> condition.is_null(True)
+}
+
+pub fn is_not_null(column: Column) -> Condition(v) {
+  column
+  |> column.value
+  |> condition.is_null(False)
 }
 
 pub fn or(left: Condition(v), right: Condition(v)) -> Condition(v) {
@@ -84,10 +232,6 @@ pub fn list(vals: List(a), of kind: fn(a) -> v) -> condition.Node(v) {
   vals
   |> list.map(kind)
   |> condition.values
-}
-
-pub fn value(value: v) -> condition.Node(v) {
-  condition.value(value)
 }
 
 pub fn nullable(

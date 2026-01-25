@@ -65,10 +65,10 @@ pub fn select_where_test() {
     |> select.columns([sql.column("title")])
     |> select.where([
       sql.column("created_at")
-        |> column.gt(value.text("2024-01-01"), of: sql.value),
+        |> sql.gt(value.text("2024-01-01"), of: sql.value),
 
       sql.column("user_id")
-        |> column.eq(value.int(10), of: sql.value),
+        |> sql.eq(value.int(10), of: sql.value),
     ])
     |> select.to_query
 
@@ -88,7 +88,7 @@ pub fn select_subquery_test() {
     |> select.columns([sql.column("id")])
     |> select.where([
       sql.column("name")
-      |> column.eq(value.text("Human Person"), of: sql.value),
+      |> sql.eq(value.text("Human Person"), of: sql.value),
     ])
 
   let query =
@@ -97,9 +97,9 @@ pub fn select_subquery_test() {
     |> select.columns([sql.column("title")])
     |> select.where([
       sql.column("created_at")
-        |> column.gt(value.text("2024-01-01"), of: sql.value),
+        |> sql.gt(value.text("2024-01-01"), of: sql.value),
       sql.column("user_id")
-        |> column.eq(subquery, of: select.to_subquery),
+        |> sql.eq(subquery, of: select.subquery),
     ])
     |> select.to_query
 
@@ -116,10 +116,10 @@ pub fn select_or_test() {
     |> select.from(users)
     |> select.where([
       sql.column("name")
-      |> column.eq(value.text("Human Person"), of: sql.value)
+      |> sql.eq(value.text("Human Person"), of: sql.value)
       |> sql.or(
         sql.column("email")
-        |> column.eq(value.text("human.person@example.com"), of: sql.value),
+        |> sql.eq(value.text("human.person@example.com"), of: sql.value),
       ),
     ])
     |> select.to_query
@@ -141,7 +141,7 @@ pub fn select_where_not_test() {
     |> select.from(users)
     |> select.where_not([
       sql.column("email")
-      |> column.eq(value.text("Human Person"), of: sql.value),
+      |> sql.eq(value.text("Human Person"), of: sql.value),
     ])
     |> select.to_query
 
@@ -193,7 +193,7 @@ pub fn select_with_join_test() {
     |> select.from(users)
     |> select.join(posts, on: [
       sql.column("users.id")
-        |> column.eq(sql.column("posts.user_id"), of: column.value),
+        |> sql.eq(sql.column("posts.user_id"), of: sql.col),
       sql.column("posts.title")
         |> column.like("%gleam%"),
     ])
@@ -218,21 +218,21 @@ pub fn select_with_multiple_joins_test() {
     |> select.from(users)
     |> select.join(posts, on: [
       sql.column("users.id")
-        |> column.eq(sql.column("posts.user_id"), of: column.value),
+        |> sql.eq(sql.column("posts.user_id"), of: sql.col),
       sql.column("posts.title")
         |> column.like("%gleam%"),
     ])
     |> select.left_join(comments, on: [
       sql.column("posts.comment_id")
-      |> column.eq(sql.column("comments.id"), of: column.value),
+      |> sql.eq(sql.column("comments.id"), of: sql.col),
     ])
     |> select.right_join(tags, on: [
       sql.column("tags.id")
-      |> column.eq(sql.column("posts.tag_id"), of: column.value),
+      |> sql.eq(sql.column("posts.tag_id"), of: sql.col),
     ])
     |> select.full_join(followers, on: [
       sql.column("followers.user_id")
-      |> column.eq(sql.column("users.id"), of: column.value),
+      |> sql.eq(sql.column("users.id"), of: sql.col),
     ])
     |> select.to_query
 
@@ -353,7 +353,7 @@ pub fn where_lt_test() {
     |> select.from(users)
     |> select.where([
       sql.column("age")
-      |> column.lt(value.int(65), of: sql.value),
+      |> sql.lt(value.int(65), of: sql.value),
     ])
     |> select.to_query
 
@@ -370,7 +370,7 @@ pub fn where_lt_eq_test() {
     |> select.from(users)
     |> select.where([
       sql.column("age")
-      |> column.lt_eq(value.int(65), of: sql.value),
+      |> sql.lt_eq(value.int(65), of: sql.value),
     ])
     |> select.to_query
 
@@ -387,7 +387,7 @@ pub fn where_not_eq_test() {
     |> select.from(users)
     |> select.where([
       sql.column("status")
-      |> column.not_eq(value.text("inactive"), of: sql.value),
+      |> sql.not_eq(value.text("inactive"), of: sql.value),
     ])
     |> select.to_query
 
@@ -404,9 +404,9 @@ pub fn multiple_where_test() {
     |> select.from(users)
     |> select.where([
       sql.column("age")
-        |> column.gt(value.int(18), of: sql.value),
+        |> sql.gt(value.int(18), of: sql.value),
       sql.column("status")
-        |> column.eq(value.text("active"), of: sql.value),
+        |> sql.eq(value.text("active"), of: sql.value),
     ])
     |> select.to_query
 
@@ -426,15 +426,15 @@ pub fn join_with_multiple_conditions_to_string_test() {
     |> select.from(users)
     |> select.join(orders, on: [
       sql.column("users.id")
-        |> column.eq(sql.column("orders.user_id"), of: column.value),
+        |> sql.eq(sql.column("orders.user_id"), of: sql.col),
       sql.column("orders.status")
-        |> column.eq(value.text("completed"), of: sql.value),
+        |> sql.eq(value.text("completed"), of: sql.value),
     ])
     |> select.where([
       sql.column("users.age")
-        |> column.gt(value.int(20), of: sql.value),
+        |> sql.gt(value.int(20), of: sql.value),
       sql.column("users.active")
-        |> column.eq(value.bool(True), of: sql.value),
+        |> sql.eq(value.bool(True), of: sql.value),
     ])
     |> select.to_string
 
@@ -533,7 +533,7 @@ pub fn having_test() {
     |> select.group_by(["department"])
     |> select.having([
       sql.count("*")
-      |> column.gt(value.int(5), of: sql.value),
+      |> sql.gt(value.int(5), of: sql.value),
     ])
     |> select.to_query
 
@@ -553,9 +553,9 @@ pub fn multiple_having_test() {
     |> select.group_by(["department"])
     |> select.having([
       sql.count("*")
-        |> column.gt(value.int(5), of: sql.value),
+        |> sql.gt(value.int(5), of: sql.value),
       sql.avg("salary")
-        |> column.gt(value.float(50_000.0), of: sql.value),
+        |> sql.gt(value.float(50_000.0), of: sql.value),
     ])
     |> select.to_query
 
@@ -622,12 +622,12 @@ pub fn complex_query_with_order_by_test() {
     ])
     |> select.where([
       sql.column("active")
-      |> column.eq(value.bool(True), of: sql.value),
+      |> sql.eq(value.bool(True), of: sql.value),
     ])
     |> select.group_by(["department"])
     |> select.having([
       sql.count("*")
-      |> column.gt(value.int(10), of: sql.value),
+      |> sql.gt(value.int(10), of: sql.value),
     ])
     |> select.order_by(["COUNT(*)"])
     |> select.desc
@@ -654,7 +654,7 @@ pub fn from_subquery_test() {
     ])
     |> select.where([
       sql.column("active")
-      |> column.eq(value.bool(True), of: sql.value),
+      |> sql.eq(value.bool(True), of: sql.value),
     ])
     |> select.to_query
 
@@ -690,7 +690,7 @@ pub fn complex_queried_with_aggregation_test() {
     |> select.group_by(["department"])
     |> select.having([
       sql.count("*")
-      |> column.gt(value.int(10), of: sql.value),
+      |> sql.gt(value.int(10), of: sql.value),
     ])
     |> select.to_query
 
@@ -703,7 +703,7 @@ pub fn complex_queried_with_aggregation_test() {
     ])
     |> select.where([
       sql.column("total_salary")
-      |> column.gt(value.float(1_000_000.0), of: sql.value),
+      |> sql.gt(value.float(1_000_000.0), of: sql.value),
     ])
     |> select.to_query
 
@@ -720,7 +720,7 @@ pub fn for_update_test() {
     |> select.from(users)
     |> select.where([
       sql.column("id")
-      |> column.eq(value.int(1), of: sql.value),
+      |> sql.eq(value.int(1), of: sql.value),
     ])
     |> select.for_update
     |> select.to_query
@@ -744,9 +744,9 @@ pub fn complex_for_update_test() {
     ])
     |> select.where([
       sql.column("user_id")
-        |> column.eq(value.int(5), of: sql.value),
+        |> sql.eq(value.int(5), of: sql.value),
       sql.column("balance")
-        |> column.gt_eq(value.float(1000.0), of: sql.value),
+        |> sql.gt_eq(value.float(1000.0), of: sql.value),
     ])
     |> select.order_by(["balance"])
     |> select.desc
@@ -771,9 +771,9 @@ pub fn format_placeholders_test() {
     |> select.from(users)
     |> select.where([
       sql.column("id")
-        |> column.eq(value.int(1), of: sql.value),
+        |> sql.eq(value.int(1), of: sql.value),
       sql.column("name")
-        |> column.eq(value.text("John"), of: sql.value),
+        |> sql.eq(value.text("John"), of: sql.value),
     ])
     |> select.to_query
 
@@ -794,9 +794,9 @@ pub fn format_identifier_test() {
     |> select.from(users)
     |> select.where([
       sql.column("id")
-        |> column.eq(value.int(1), of: sql.value),
+        |> sql.eq(value.int(1), of: sql.value),
       sql.column("name")
-        |> column.eq(value.text("John"), of: sql.value),
+        |> sql.eq(value.text("John"), of: sql.value),
     ])
     |> select.to_query
 
@@ -820,11 +820,11 @@ pub fn for_update_with_join_test() {
     ])
     |> select.join(users, on: [
       sql.column("orders.user_id")
-      |> column.eq(sql.column("users.id"), of: column.value),
+      |> sql.eq(sql.column("users.id"), of: sql.col),
     ])
     |> select.where([
       sql.column("orders.status")
-      |> column.eq(value.text("pending"), of: sql.value),
+      |> sql.eq(value.text("pending"), of: sql.value),
     ])
     |> select.for_update
     |> select.to_query
@@ -843,9 +843,9 @@ pub fn date_time_types_test() {
     |> select.from(events)
     |> select.where([
       sql.column("event_date")
-        |> column.eq(value.date(date), of: sql.value),
+        |> sql.eq(value.date(date), of: sql.value),
       sql.column("event_timestamp")
-        |> column.eq(value.timestamp(time), of: sql.value),
+        |> sql.eq(value.timestamp(time), of: sql.value),
     ])
     |> select.to_query
 
@@ -867,7 +867,7 @@ pub fn time_type_test() {
     |> select.from(events)
     |> select.where([
       sql.column("event_time")
-      |> column.eq(value.time(time_of_day), of: sql.value),
+      |> sql.eq(value.time(time_of_day), of: sql.value),
     ])
     |> select.to_query
 
@@ -883,7 +883,7 @@ pub fn duration_type_test() {
     |> select.from(events)
     |> select.where([
       sql.column("event_duration")
-      |> column.eq(value.interval(dur), of: sql.value),
+      |> sql.eq(value.interval(dur), of: sql.value),
     ])
     |> select.to_query
 
@@ -898,13 +898,13 @@ pub fn different_value_types_test() {
     |> select.from(products)
     |> select.where([
       sql.column("id")
-        |> column.eq(value.int(123), of: sql.value),
+        |> sql.eq(value.int(123), of: sql.value),
       sql.column("price")
-        |> column.gt(value.float(19.99), of: sql.value),
+        |> sql.gt(value.float(19.99), of: sql.value),
       sql.column("is_active")
-        |> column.eq(value.bool(True), of: sql.value),
+        |> sql.eq(value.bool(True), of: sql.value),
       sql.column("description")
-        |> column.eq(value.null, of: sql.value),
+        |> sql.eq(value.null, of: sql.value),
     ])
     |> select.to_query
 
@@ -921,7 +921,7 @@ pub fn between_test() {
     |> select.from(products)
     |> select.where([
       sql.column("price")
-      |> column.between(value.float(10.0), value.float(50.0), of: sql.value),
+      |> sql.between(value.float(10.0), value.float(50.0), of: sql.value),
     ])
     |> select.to_query
 
@@ -942,19 +942,15 @@ pub fn complex_between_test() {
     |> select.from(orders)
     |> select.where([
       sql.column("total")
-        |> column.between(
-          value.float(100.0),
-          value.float(1000.0),
-          of: sql.value,
-        ),
+        |> sql.between(value.float(100.0), value.float(1000.0), of: sql.value),
       sql.column("created_at")
-        |> column.between(
+        |> sql.between(
           value.date(date_start),
           value.date(date_end),
           of: sql.value,
         ),
       sql.column("status")
-        |> column.eq(value.text("completed"), of: sql.value),
+        |> sql.eq(value.text("completed"), of: sql.value),
     ])
     |> select.to_query
 
@@ -979,7 +975,7 @@ pub fn not_between_test() {
     |> select.where([
       sql.not(
         sql.column("price")
-        |> column.between(value.float(10.0), value.float(50.0), of: sql.value),
+        |> sql.between(value.float(10.0), value.float(50.0), of: sql.value),
       ),
     ])
     |> select.to_query
@@ -1000,7 +996,7 @@ pub fn raw_sql_where_test() {
       sql.raw("id = 10"),
       sql.not(
         sql.column("price")
-        |> column.between(value.float(10.0), value.float(50.0), of: sql.value),
+        |> sql.between(value.float(10.0), value.float(50.0), of: sql.value),
       ),
     ])
     |> select.to_query

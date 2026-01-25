@@ -1,5 +1,4 @@
 import based/sql
-import based/sql/column
 import based/sql/condition
 import based/sql/internal/fmt
 import based/value
@@ -7,11 +6,11 @@ import based/value
 pub fn or_test() {
   let sql1 =
     sql.column("name")
-    |> column.eq(value.text("John"), of: sql.value)
+    |> sql.eq(value.text("John"), of: sql.value)
 
   let sql2 =
     sql.column("email")
-    |> column.eq(value.text("john@example.com"), of: sql.value)
+    |> sql.eq(value.text("john@example.com"), of: sql.value)
 
   let or_sql = sql.or(sql1, sql2)
 
@@ -25,7 +24,7 @@ pub fn or_test() {
 pub fn not_test() {
   let sql1 =
     sql.column("active")
-    |> column.eq(value.true, of: sql.value)
+    |> sql.eq(value.true, of: sql.value)
 
   let not_sql = sql.not(sql1)
 
@@ -36,7 +35,7 @@ pub fn not_test() {
 }
 
 pub fn value_test() {
-  let val = sql.value(value.int(42))
+  let val = sql.value.to_node(value.int(42))
 
   assert ":param" == condition.node_to_string(val, fmt.new())
 
@@ -75,9 +74,9 @@ pub fn value_test() {
 // }
 // 
 pub fn special_values_test() {
-  let true_node = sql.value(value.true)
-  let false_node = sql.value(value.false)
-  let null_node = sql.value(value.null)
+  let true_node = sql.value.to_node(value.true)
+  let false_node = sql.value.to_node(value.false)
+  let null_node = sql.value.to_node(value.null)
 
   assert ":param" == condition.node_to_string(true_node, fmt.new())
   assert ":param" == condition.node_to_string(false_node, fmt.new())

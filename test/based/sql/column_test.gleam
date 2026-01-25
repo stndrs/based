@@ -50,7 +50,7 @@ pub fn eq_test() {
 
   let condition =
     column.new("id")
-    |> column.eq(val, of: sql.value)
+    |> column.eq(val, of: condition.value)
 
   let expected = "id = :param"
 
@@ -63,7 +63,7 @@ pub fn greater_than_test() {
 
   let condition =
     column.new("age")
-    |> column.gt(val, of: sql.value)
+    |> column.gt(val, of: condition.value)
 
   let expected = "age > :param"
 
@@ -76,7 +76,7 @@ pub fn less_than_test() {
 
   let condition =
     column.new("age")
-    |> column.lt(val, of: sql.value)
+    |> column.lt(val, of: condition.value)
 
   let expected = "age < :param"
 
@@ -89,7 +89,7 @@ pub fn greater_than_equal_test() {
 
   let condition =
     column.new("age")
-    |> column.gt_eq(val, of: sql.value)
+    |> column.gt_eq(val, of: condition.value)
 
   let expected = "age >= :param"
 
@@ -102,7 +102,7 @@ pub fn less_than_equal_test() {
 
   let condition =
     column.new("age")
-    |> column.lt_eq(val, of: sql.value)
+    |> column.lt_eq(val, of: condition.value)
 
   let expected = "age <= :param"
 
@@ -115,7 +115,7 @@ pub fn not_equal_test() {
 
   let condition =
     column.new("status")
-    |> column.not_eq(val, of: sql.value)
+    |> column.not_eq(val, of: condition.value)
 
   let expected = "status <> :param"
 
@@ -129,7 +129,7 @@ pub fn between_test() {
 
   let condition =
     column.new("price")
-    |> column.between(start, end, of: sql.value)
+    |> column.between(start, end, of: condition.value)
 
   let expected = "price BETWEEN :param AND :param"
 

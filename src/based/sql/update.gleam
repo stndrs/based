@@ -64,10 +64,12 @@ pub fn set(
   update: Update(v),
   column: String,
   value: a,
-  of kind: fn(a) -> condition.Node(v),
+  of comparable: sql.Comparable(a, v),
 ) {
-  let sets = update.sets |> list.prepend(#(column, kind(value)))
-  let values = condition.node_to_values(kind(value), update.repo.text_to_value)
+  let value_node = comparable.to_node(value)
+
+  let sets = update.sets |> list.prepend(#(column, value_node))
+  let values = condition.node_to_values(value_node, update.repo.text_to_value)
 
   Update(..update, sets:) |> prepend_values(values)
 }

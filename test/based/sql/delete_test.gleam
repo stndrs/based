@@ -1,5 +1,4 @@
 import based/sql
-import based/sql/column
 import based/sql/delete
 import based/value
 import gleeunit/should
@@ -13,7 +12,7 @@ pub fn basic_delete_test() {
     |> delete.from(users)
     |> delete.where([
       sql.column("id")
-      |> column.eq(value.int(1), of: sql.value),
+      |> sql.eq(value.int(1), of: sql.value),
     ])
     |> delete.to_query
 
@@ -30,7 +29,7 @@ pub fn delete_with_where_not_test() {
     |> delete.from(users)
     |> delete.where_not([
       sql.column("id")
-      |> column.eq(value.int(1), of: sql.value),
+      |> sql.eq(value.int(1), of: sql.value),
     ])
     |> delete.to_query
 
@@ -47,9 +46,9 @@ pub fn delete_with_multiple_conditions_test() {
     |> delete.from(users)
     |> delete.where([
       sql.column("id")
-        |> column.eq(value.int(1), of: sql.value),
+        |> sql.eq(value.int(1), of: sql.value),
       sql.column("created_at")
-        |> column.lt(value.text("2024-01-01"), of: sql.value),
+        |> sql.lt(value.text("2024-01-01"), of: sql.value),
     ])
     |> delete.to_query
 
@@ -67,7 +66,7 @@ pub fn delete_returning_test() {
     |> delete.from(users)
     |> delete.where([
       sql.column("id")
-      |> column.eq(value.int(1), of: sql.value),
+      |> sql.eq(value.int(1), of: sql.value),
     ])
     |> delete.returning(["id", "name"])
     |> delete.to_query
@@ -85,9 +84,9 @@ pub fn delete_to_string_test() {
     |> delete.from(users)
     |> delete.where([
       sql.column("id")
-        |> column.eq(value.int(1), of: sql.value),
+        |> sql.eq(value.int(1), of: sql.value),
       sql.column("created_at")
-        |> column.lt(value.text("2024-01-01"), of: sql.value),
+        |> sql.lt(value.text("2024-01-01"), of: sql.value),
     ])
 
   delete.to_string(query) |> should.equal(expected)

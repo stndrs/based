@@ -14,7 +14,7 @@ pub fn basic_update_test() {
     |> update.set("name", value.text("John"), of: sql.value)
     |> update.where([
       sql.column("id")
-      |> column.eq(value.int(1), of: sql.value),
+      |> sql.eq(value.int(1), of: sql.value),
     ])
     |> update.to_query
 
@@ -33,7 +33,7 @@ pub fn update_multiple_columns_test() {
     |> update.set("email", value.text("john@example.com"), of: sql.value)
     |> update.where([
       sql.column("id")
-      |> column.eq(value.int(1), of: sql.value),
+      |> sql.eq(value.int(1), of: sql.value),
     ])
     |> update.to_query
 
@@ -52,7 +52,7 @@ pub fn update_with_where_not_test() {
     |> update.set("active", value.true, of: sql.value)
     |> update.where_not([
       sql.column("id")
-      |> column.eq(value.int(1), of: sql.value),
+      |> sql.eq(value.int(1), of: sql.value),
     ])
     |> update.to_query
 
@@ -70,7 +70,7 @@ pub fn update_returning_test() {
     |> update.set("name", value.text("John"), of: sql.value)
     |> update.where([
       sql.column("id")
-      |> column.eq(value.int(1), of: sql.value),
+      |> sql.eq(value.int(1), of: sql.value),
     ])
     |> update.returning(["id", "name"])
     |> update.to_query
@@ -109,13 +109,13 @@ pub fn update_set_from_subquery_test() {
     |> select.columns([sql.column("price")])
     |> select.where([
       sql.column("id")
-      |> column.eq(value.int(1), of: sql.value),
+      |> sql.eq(value.int(1), of: sql.value),
     ])
 
   let query =
     value.repo()
     |> update.table(products)
-    |> update.set("price", price_id, of: select.to_subquery)
+    |> update.set("price", price_id, of: select.subquery)
     |> update.to_query
 
   assert expected == query.sql

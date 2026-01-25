@@ -249,6 +249,8 @@ pub fn to_subquery(select: Select(v)) -> condition.Node(v) {
   condition.subquery(sql, values)
 }
 
+pub const subquery = sql.Comparable(to_node: to_subquery)
+
 pub fn to_string(select: Select(v)) -> String {
   let values = select.values |> list.reverse |> list.flatten
 

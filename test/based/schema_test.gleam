@@ -79,7 +79,7 @@ pub fn schema_update_test() {
     |> update.where([
       users
       |> schema.column("id")
-      |> column.eq(value.int(10), of: sql.value),
+      |> sql.eq(value.int(10), of: sql.value),
     ])
     |> update.to_query
 
