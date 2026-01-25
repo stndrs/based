@@ -15,7 +15,7 @@ pub fn schema_column_test() {
     based.repo()
     |> based.on_identifier(fn(ident) { "`" <> ident <> "`" })
 
-  let users = schema.new("users", fn() { decode.dynamic })
+  let users = schema.new(repo, "users", fn(_) { decode.dynamic })
 
   assert "`users`.`id`"
     == users
@@ -24,13 +24,13 @@ pub fn schema_column_test() {
 }
 
 pub fn schema_select_test() {
-  let sql = based.repo()
+  let repo = based.repo()
 
-  let users = schema.new("users", fn() { decode.dynamic })
+  let users = schema.new(repo, "users", fn(_) { decode.dynamic })
 
   let db.Query(sql:, values:) =
     users
-    |> schema.select(sql)
+    |> schema.select
     |> select.to_query
 
   assert "SELECT * FROM users" == sql
@@ -38,13 +38,13 @@ pub fn schema_select_test() {
 }
 
 pub fn schema_insert_test() {
-  let sql = based.repo()
+  let repo = based.repo()
 
-  let users = schema.new("users", fn() { decode.dynamic })
+  let users = schema.new(repo, "users", fn(_) { decode.dynamic })
 
   let db.Query(sql:, values:) =
     users
-    |> schema.insert(sql)
+    |> schema.insert
     |> insert.columns(["id", "name"])
     |> insert.values([[value.int(10), value.text("Richard")]])
     |> insert.to_query
@@ -54,13 +54,13 @@ pub fn schema_insert_test() {
 }
 
 pub fn schema_delete_test() {
-  let sql = based.repo()
+  let repo = based.repo()
 
-  let users = schema.new("users", fn() { decode.dynamic })
+  let users = schema.new(repo, "users", fn(_) { decode.dynamic })
 
   let db.Query(sql:, values:) =
     users
-    |> schema.delete(sql)
+    |> schema.delete
     |> delete.to_query
 
   assert "DELETE FROM users" == sql
@@ -68,13 +68,13 @@ pub fn schema_delete_test() {
 }
 
 pub fn schema_update_test() {
-  let sql = based.repo()
+  let repo = based.repo()
 
-  let users = schema.new("users", fn() { decode.dynamic })
+  let users = schema.new(repo, "users", fn(_) { decode.dynamic })
 
   let db.Query(sql:, values:) =
     users
-    |> schema.update(sql)
+    |> schema.update
     |> update.set("name", value.text("Dick"), of: sql.value)
     |> update.where([
       users

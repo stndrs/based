@@ -35,6 +35,11 @@ pub type Repo(v) {
   )
 }
 
+// Decoders
+// Value mappers
+// query functions
+// Formatting
+
 pub fn repo() -> Repo(v) {
   Repo(
     time_decoder: fn() { panic as "based.Repo time_decoder not configured" },
