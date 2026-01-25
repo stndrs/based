@@ -119,8 +119,7 @@ pub fn where(select: Select(v), conditions: List(Condition(v))) -> Select(v) {
 
   let where = list.prepend(select.where, conditions)
 
-  Select(..select, where:)
-  |> prepend_values(values)
+  Select(..select, where:) |> prepend_values(values)
 }
 
 pub fn where_not(select: Select(v), conditions: List(Condition(v))) -> Select(v) {
@@ -192,8 +191,7 @@ pub fn having(select: Select(v), having: List(Condition(v))) -> Select(v) {
 
   let having = list.prepend(select.having, having)
 
-  Select(..select, having:)
-  |> prepend_values(values)
+  Select(..select, having:) |> prepend_values(values)
 }
 
 // Order By

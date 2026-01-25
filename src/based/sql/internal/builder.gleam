@@ -53,13 +53,13 @@ pub fn append_where(
   where
   |> list.reverse
   |> list.flatten
-  |> list.index_fold(from: st, with: fn(sql1, expr, idx) {
+  |> list.index_fold(from: st, with: fn(sql1, condition, idx) {
     let expr_fmt = case idx {
       0 -> fmt.where
       _ -> fmt.and
     }
 
-    expr
+    condition
     |> condition.to_string(fmt)
     |> expr_fmt(sql1, _)
   })

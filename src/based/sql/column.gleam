@@ -64,32 +64,13 @@ const asterisk = "*"
 
 pub const all = Column(name: asterisk, alias: None, table: None, func: None)
 
+@internal
 pub fn to_string(column: Column, repo: based.Repo(v)) -> String {
   let Column(name:, alias:, table:, func:) = column
 
-  use <- bool.guard(when: name == asterisk, return: asterisk)
-
-  let col = case table {
-    Some(table) -> {
-      table
-      |> fmt.to_identifier(repo.fmt, _)
-      |> string.append(".")
-      |> string.append(fmt.to_identifier(repo.fmt, name))
-    }
-    None -> fmt.to_identifier(repo.fmt, name)
-  }
-
   let col = case func {
-    Some(func) -> {
-      case func {
-        Avg -> fmt.avg(col)
-        Count -> fmt.count(col)
-        Max -> fmt.max(col)
-        Min -> fmt.min(col)
-        Sum -> fmt.sum(col)
-      }
-    }
-    None -> col
+    Some(func) -> aggregate_to_string(func, name, table, repo.fmt)
+    None -> column_to_string(name, table, repo.fmt)
   }
 
   case alias {
@@ -98,8 +79,70 @@ pub fn to_string(column: Column, repo: based.Repo(v)) -> String {
   }
 }
 
+fn column_to_string(
+  name: String,
+  table: Option(String),
+  fmt: fmt.Fmt(v),
+) -> String {
+  use <- bool.guard(when: name == asterisk, return: asterisk)
+
+  case table {
+    Some(table) -> {
+      fmt.to_identifier(fmt, table)
+      |> string.append(".")
+      |> string.append(fmt.to_identifier(fmt, name))
+    }
+    None -> fmt.to_identifier(fmt, name)
+  }
+}
+
+fn aggregate_to_string(
+  func: Function,
+  name: String,
+  table: Option(String),
+  fmt: fmt.Fmt(v),
+) -> String {
+  let col = case table {
+    Some(table) -> {
+      fmt.to_identifier(fmt, table)
+      |> string.append(".")
+      |> string.append({
+        use <- bool.guard(when: name == asterisk, return: asterisk)
+
+        fmt.to_identifier(fmt, name)
+      })
+    }
+    None -> {
+      use <- bool.guard(when: name == asterisk, return: asterisk)
+
+      fmt.to_identifier(fmt, name)
+    }
+  }
+
+  case func {
+    Avg -> fmt.avg(col)
+    Count -> fmt.count(col)
+    Max -> fmt.max(col)
+    Min -> fmt.min(col)
+    Sum -> fmt.sum(col)
+  }
+}
+
 pub fn node(column: Column) -> condition.Node(v) {
-  condition.column(column.name, column.alias, column.table)
+  case column.func {
+    Some(func) -> {
+      let formatter = case func {
+        Avg -> fmt.avg
+        Count -> fmt.count
+        Max -> fmt.max
+        Min -> fmt.min
+        Sum -> fmt.sum
+      }
+
+      condition.aggregate(formatter, column.name, column.table, column.alias)
+    }
+    None -> condition.column(column.name, column.alias, column.table)
+  }
 }
 
 @internal

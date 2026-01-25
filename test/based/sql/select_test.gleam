@@ -493,7 +493,7 @@ pub fn group_by_test() {
   let query =
     value.repo()
     |> select.from(employees)
-    |> select.columns([sql.column("department"), sql.column("COUNT(*)")])
+    |> select.columns([sql.column("department"), sql.count("*")])
     |> select.group_by(["department"])
     |> select.to_query
 
@@ -512,7 +512,7 @@ pub fn multiple_group_by_test() {
     |> select.columns([
       sql.column("department"),
       sql.column("location"),
-      sql.column("COUNT(*)"),
+      sql.count("*"),
     ])
     |> select.group_by(["department", "location"])
     |> select.to_query
@@ -529,10 +529,10 @@ pub fn having_test() {
   let query =
     value.repo()
     |> select.from(employees)
-    |> select.columns([sql.column("department"), sql.column("COUNT(*)")])
+    |> select.columns([sql.column("department"), sql.count("*")])
     |> select.group_by(["department"])
     |> select.having([
-      sql.column("COUNT(*)")
+      sql.count("*")
       |> column.gt(value.int(5), of: sql.value),
     ])
     |> select.to_query
@@ -549,12 +549,12 @@ pub fn multiple_having_test() {
   let query =
     value.repo()
     |> select.from(employees)
-    |> select.columns([sql.column("department"), sql.column("AVG(salary)")])
+    |> select.columns([sql.column("department"), sql.avg("salary")])
     |> select.group_by(["department"])
     |> select.having([
-      sql.column("COUNT(*)")
+      sql.count("*")
         |> column.gt(value.int(5), of: sql.value),
-      sql.column("AVG(salary)")
+      sql.avg("salary")
         |> column.gt(value.float(50_000.0), of: sql.value),
     ])
     |> select.to_query
@@ -618,7 +618,7 @@ pub fn complex_query_with_order_by_test() {
     |> select.from(employees)
     |> select.columns([
       sql.column("department"),
-      sql.column("COUNT(*)"),
+      sql.count("*"),
     ])
     |> select.where([
       sql.column("active")
@@ -626,7 +626,7 @@ pub fn complex_query_with_order_by_test() {
     ])
     |> select.group_by(["department"])
     |> select.having([
-      sql.column("COUNT(*)")
+      sql.count("*")
       |> column.gt(value.int(10), of: sql.value),
     ])
     |> select.order_by(["COUNT(*)"])
@@ -685,11 +685,11 @@ pub fn complex_queried_with_aggregation_test() {
     |> select.from(employees)
     |> select.columns([
       sql.column("department"),
-      sql.column("SUM(salary)") |> column.alias("total_salary"),
+      sql.sum("salary") |> column.alias("total_salary"),
     ])
     |> select.group_by(["department"])
     |> select.having([
-      sql.column("COUNT(*)")
+      sql.count("*")
       |> column.gt(value.int(10), of: sql.value),
     ])
     |> select.to_query

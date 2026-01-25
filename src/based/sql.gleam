@@ -11,6 +11,26 @@ pub fn column(name: String) -> Column {
   column.new(name)
 }
 
+pub fn avg(name: String) -> Column {
+  column.avg(name)
+}
+
+pub fn count(name: String) -> Column {
+  column.count(name)
+}
+
+pub fn max(name: String) -> Column {
+  column.max(name)
+}
+
+pub fn min(name: String) -> Column {
+  column.min(name)
+}
+
+pub fn sum(name: String) -> Column {
+  column.sum(name)
+}
+
 pub fn or(left: Condition(v), right: Condition(v)) -> Condition(v) {
   condition.or(left, right)
 }
