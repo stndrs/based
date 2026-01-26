@@ -60,7 +60,7 @@ pub fn append_where_test() {
 
   let left_node = column.new("id")
   let right_node = value.int(1)
-  let #(condition, _values) = sql.eq(left_node, right_node, of: sql.value)
+  let #(condition, _values) = sql.eq(left_node, right_node, of: sql.val)
 
   let result = builder.append_where(st, [[condition]], format)
 
@@ -99,7 +99,7 @@ pub fn append_having_test() {
 
   let count_node = column.new("COUNT(*)")
   let value_node = value.int(5)
-  let #(condition, _values) = sql.gt(count_node, value_node, of: sql.value)
+  let #(condition, _values) = sql.gt(count_node, value_node, of: sql.val)
 
   let result = builder.append_having(st, [[condition]], format)
 
@@ -123,7 +123,7 @@ pub fn append_joins_test() {
   let posts_user_id = column.new("user_id") |> column.for(posts)
 
   let #(join_condition, _values) =
-    users_id |> sql.eq(posts_user_id, of: sql.value)
+    users_id |> sql.eq(posts_user_id, of: sql.val)
 
   let joins = [
     sql.inner_join(posts, [join_condition]),

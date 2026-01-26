@@ -40,7 +40,15 @@ pub fn sum(name: String) -> Column {
 
 // ---------- Conditions ---------- //
 
-pub fn col() -> condition.Comparable(Column, v) {
+pub type Kind(a, v) {
+  Kind(comparable: fn() -> condition.Comparable(a, v))
+}
+
+pub const col = Kind(comparable: column_comparable)
+
+pub const val = Kind(comparable: value_comparable)
+
+fn column_comparable() -> condition.Comparable(Column, v) {
   condition.comparable(fn(col) {
     let node = column.value(col)
 
@@ -48,7 +56,7 @@ pub fn col() -> condition.Comparable(Column, v) {
   })
 }
 
-pub fn value() -> condition.Comparable(v, v) {
+fn value_comparable() -> condition.Comparable(v, v) {
   condition.comparable(fn(val) {
     let node = condition.value
 
@@ -59,58 +67,58 @@ pub fn value() -> condition.Comparable(v, v) {
 pub fn eq(
   column: Column,
   right: a,
-  of right_comparable: fn() -> condition.Comparable(a, v),
+  of kind: Kind(a, v),
 ) -> #(Condition, List(v)) {
-  column.eq(column, right, of: right_comparable)
+  column.eq(column, right, of: kind.comparable)
 }
 
 pub fn gt(
   column: Column,
   right: a,
-  of right_comparable: fn() -> condition.Comparable(a, v),
+  of kind: Kind(a, v),
 ) -> #(Condition, List(v)) {
-  column.gt(column, right, of: right_comparable)
+  column.gt(column, right, of: kind.comparable)
 }
 
 pub fn lt(
   column: Column,
   right: a,
-  of right_comparable: fn() -> condition.Comparable(a, v),
+  of kind: Kind(a, v),
 ) -> #(Condition, List(v)) {
-  column.lt(column, right, of: right_comparable)
+  column.lt(column, right, of: kind.comparable)
 }
 
 pub fn gt_eq(
   column: Column,
   right: a,
-  of right_comparable: fn() -> condition.Comparable(a, v),
+  of kind: Kind(a, v),
 ) -> #(Condition, List(v)) {
-  column.gt_eq(column, right, of: right_comparable)
+  column.gt_eq(column, right, of: kind.comparable)
 }
 
 pub fn lt_eq(
   column: Column,
   right: a,
-  of right_comparable: fn() -> condition.Comparable(a, v),
+  of kind: Kind(a, v),
 ) -> #(Condition, List(v)) {
-  column.lt_eq(column, right, of: right_comparable)
+  column.lt_eq(column, right, of: kind.comparable)
 }
 
 pub fn not_eq(
   column: Column,
   right: a,
-  of right_comparable: fn() -> condition.Comparable(a, v),
+  of kind: Kind(a, v),
 ) -> #(Condition, List(v)) {
-  column.not_eq(column, right, of: right_comparable)
+  column.not_eq(column, right, of: kind.comparable)
 }
 
 pub fn between(
   column: Column,
   start: a,
   end: a,
-  of right_comparable: fn() -> condition.Comparable(a, v),
+  of kind: Kind(a, v),
 ) -> #(Condition, List(v)) {
-  column.between(column, start, end, of: right_comparable)
+  column.between(column, start, end, of: kind.comparable)
 }
 
 pub fn like(column: Column, val: String) -> #(Condition, List(v)) {
@@ -124,9 +132,9 @@ pub fn not_like(column: Column, val: String) -> #(Condition, List(v)) {
 pub fn in(
   column: Column,
   right: a,
-  of right_comparable: fn() -> condition.Comparable(a, v),
+  of kind: Kind(a, v),
 ) -> #(Condition, List(v)) {
-  column.in(column, right, of: right_comparable)
+  column.in(column, right, of: kind.comparable)
 }
 
 pub fn is(column: Column, right: Bool) -> Condition {
@@ -199,8 +207,8 @@ pub type Order {
   Desc
 }
 
-pub fn list(of kind: fn(a) -> v) -> fn() -> condition.Comparable(List(a), v) {
-  fn() {
+pub fn list(of kind: fn(a) -> v) -> Kind(List(a), v) {
+  Kind(comparable: fn() {
     condition.comparable(fn(vals: List(a)) {
       let node =
         vals
@@ -211,7 +219,7 @@ pub fn list(of kind: fn(a) -> v) -> fn() -> condition.Comparable(List(a), v) {
 
       #(node, vals)
     })
-  }
+  })
 }
 
 pub fn nullable(

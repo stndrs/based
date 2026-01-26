@@ -11,10 +11,10 @@ pub fn basic_update_test() {
   let query =
     value.repo()
     |> update.table(users)
-    |> update.set("name", value.text("John"), of: sql.value)
+    |> update.set("name", value.text("John"), of: sql.val)
     |> update.where([
       sql.column("id")
-      |> sql.eq(value.int(1), of: sql.value),
+      |> sql.eq(value.int(1), of: sql.val),
     ])
     |> update.to_query
 
@@ -29,11 +29,11 @@ pub fn update_multiple_columns_test() {
   let query =
     value.repo()
     |> update.table(users)
-    |> update.set("name", value.text("John"), of: sql.value)
-    |> update.set("email", value.text("john@example.com"), of: sql.value)
+    |> update.set("name", value.text("John"), of: sql.val)
+    |> update.set("email", value.text("john@example.com"), of: sql.val)
     |> update.where([
       sql.column("id")
-      |> sql.eq(value.int(1), of: sql.value),
+      |> sql.eq(value.int(1), of: sql.val),
     ])
     |> update.to_query
 
@@ -49,10 +49,10 @@ pub fn update_with_where_not_test() {
   let query =
     value.repo()
     |> update.table(users)
-    |> update.set("active", value.true, of: sql.value)
+    |> update.set("active", value.true, of: sql.val)
     |> update.where_not([
       sql.column("id")
-      |> sql.eq(value.int(1), of: sql.value),
+      |> sql.eq(value.int(1), of: sql.val),
     ])
     |> update.to_query
 
@@ -67,10 +67,10 @@ pub fn update_returning_test() {
   let query =
     value.repo()
     |> update.table(users)
-    |> update.set("name", value.text("John"), of: sql.value)
+    |> update.set("name", value.text("John"), of: sql.val)
     |> update.where([
       sql.column("id")
-      |> sql.eq(value.int(1), of: sql.value),
+      |> sql.eq(value.int(1), of: sql.val),
     ])
     |> update.returning(["id", "name"])
     |> update.to_query
@@ -86,7 +86,7 @@ pub fn update_with_is_test() {
   let query =
     value.repo()
     |> update.table(products)
-    |> update.set("price", value.float(19.99), of: sql.value)
+    |> update.set("price", value.float(19.99), of: sql.val)
     |> update.where([
       sql.column("is_deleted")
       |> column.is(False),
@@ -109,7 +109,7 @@ pub fn update_set_from_subquery_test() {
     |> select.columns([sql.column("price")])
     |> select.where([
       sql.column("id")
-      |> sql.eq(value.int(1), of: sql.value),
+      |> sql.eq(value.int(1), of: sql.val),
     ])
 
   let query =
@@ -129,7 +129,7 @@ pub fn update_with_is_to_string_test() {
   let query =
     value.repo()
     |> update.table(products)
-    |> update.set("price", value.float(19.99), of: sql.value)
+    |> update.set("price", value.float(19.99), of: sql.val)
     |> update.where([
       sql.column("is_deleted")
       |> column.is(False),

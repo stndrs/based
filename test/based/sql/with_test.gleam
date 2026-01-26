@@ -36,7 +36,7 @@ pub fn with_test() {
       |> select.where([
         sql.column("name")
         |> column.for(departments)
-        |> sql.eq(value.text("Engineering"), of: sql.value),
+        |> sql.eq(value.text("Engineering"), of: sql.val),
       ])
       |> select.to_query
     })
@@ -86,7 +86,7 @@ pub fn with_multiple_ctes_test() {
       ])
       |> select.join(departments, on: [
         sql.column("e.dept_id")
-        |> column.eq(sql.column("d.id"), of: sql.col),
+        |> sql.eq(sql.column("d.id"), of: sql.col),
       ])
       |> select.to_query
     })
@@ -118,7 +118,7 @@ pub fn with_column_names_test() {
       |> select.columns([sql.column("dept_name")])
       |> select.where([
         sql.column("dept_id")
-        |> sql.eq(value.int(42), of: sql.value),
+        |> sql.eq(value.int(42), of: sql.val),
       ])
       |> select.to_query
     })
@@ -142,7 +142,7 @@ pub fn recursive_with_test() {
     |> select.columns([sql.column("n + 1")])
     |> select.where([
       sql.column("n")
-      |> sql.lt(value.int(5), of: sql.value),
+      |> sql.lt(value.int(5), of: sql.val),
     ])
 
   let union_all =

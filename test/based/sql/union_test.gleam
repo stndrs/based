@@ -25,7 +25,7 @@ pub fn union_test() {
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
       sql.column("department")
-      |> sql.eq(value.text("Engineering"), of: sql.value),
+      |> sql.eq(value.text("Engineering"), of: sql.val),
     ])
 
   let query =
@@ -56,7 +56,7 @@ pub fn union_all_test() {
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
       sql.column("department")
-      |> sql.eq(value.text("Engineering"), of: sql.value),
+      |> sql.eq(value.text("Engineering"), of: sql.val),
     ])
 
   let query =
@@ -87,7 +87,7 @@ pub fn union_to_string_test() {
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
       sql.column("department")
-      |> sql.eq(value.text("Engineering"), of: sql.value),
+      |> sql.eq(value.text("Engineering"), of: sql.val),
     ])
 
   let result =
@@ -117,7 +117,7 @@ pub fn union_all_to_string_test() {
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
       sql.column("department")
-      |> sql.eq(value.text("Engineering"), of: sql.value),
+      |> sql.eq(value.text("Engineering"), of: sql.val),
     ])
 
   let result =
@@ -148,7 +148,7 @@ pub fn multi_union_to_string_test() {
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
       sql.column("department")
-      |> sql.eq(value.text("Engineering"), of: sql.value),
+      |> sql.eq(value.text("Engineering"), of: sql.val),
     ])
 
   let contractors_query =
@@ -157,7 +157,7 @@ pub fn multi_union_to_string_test() {
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
       sql.column("status")
-      |> sql.eq(value.text("available"), of: sql.value),
+      |> sql.eq(value.text("available"), of: sql.val),
     ])
 
   let result =

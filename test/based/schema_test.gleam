@@ -75,11 +75,11 @@ pub fn schema_update_test() {
   let db.Query(sql:, values:) =
     users
     |> schema.update
-    |> update.set("name", value.text("Dick"), of: sql.value)
+    |> update.set("name", value.text("Dick"), of: sql.val)
     |> update.where([
       users
       |> schema.column("id")
-      |> sql.eq(value.int(10), of: sql.value),
+      |> sql.eq(value.int(10), of: sql.val),
     ])
     |> update.to_query
 

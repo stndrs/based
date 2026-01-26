@@ -248,7 +248,9 @@ pub fn to_query(select: Select(v)) -> db.Query(v) {
   |> db.params(values)
 }
 
-pub fn subquery() -> condition.Comparable(Select(v), v) {
+pub const subquery = sql.Kind(comparable: subquery_comp)
+
+fn subquery_comp() -> condition.Comparable(Select(v), v) {
   condition.comparable(fn(select: Select(v)) {
     let query = to_query(select)
 

@@ -60,13 +60,8 @@ pub fn table(repo: based.Repo(v), table: table.Table) -> Update(v) {
 }
 
 /// Add a column assignment to the UPDATE statement
-pub fn set(
-  update: Update(v),
-  column: String,
-  value: a,
-  of comparable: fn() -> condition.Comparable(a, v),
-) {
-  let #(node, values) = condition.to_node_and_values(comparable(), value)
+pub fn set(update: Update(v), column: String, value: a, of kind: sql.Kind(a, v)) {
+  let #(node, values) = condition.to_node_and_values(kind.comparable(), value)
   let sets = update.sets |> list.prepend(#(column, node))
 
   Update(..update, sets:) |> prepend_values(values)

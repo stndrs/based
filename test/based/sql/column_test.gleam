@@ -3,6 +3,7 @@ import based/sql/column
 import based/sql/condition
 import based/sql/internal/fmt
 import based/value
+import gleam/list
 
 pub fn column_test() {
   let col = column.new("id")
@@ -45,12 +46,16 @@ pub fn table_and_alias_test() {
   assert expected == column.to_string(col, value.repo())
 }
 
+fn value_comp() -> condition.Comparable(a, v) {
+  condition.comparable(fn(_) { #(condition.value, []) })
+}
+
 pub fn eq_test() {
   let val = value.int(1)
 
   let #(condition, values) =
     column.new("id")
-    |> column.eq(val, of: sql.value)
+    |> column.eq(val, of: value_comp)
 
   let expected = "id = :param"
 
@@ -63,7 +68,7 @@ pub fn greater_than_test() {
 
   let #(condition, values) =
     column.new("age")
-    |> column.gt(val, of: sql.value)
+    |> column.gt(val, of: value_comp)
 
   let expected = "age > :param"
 
@@ -76,7 +81,7 @@ pub fn less_than_test() {
 
   let #(condition, values) =
     column.new("age")
-    |> column.lt(val, of: sql.value)
+    |> column.lt(val, of: value_comp)
 
   let expected = "age < :param"
 
@@ -89,7 +94,7 @@ pub fn greater_than_equal_test() {
 
   let #(condition, values) =
     column.new("age")
-    |> column.gt_eq(val, of: sql.value)
+    |> column.gt_eq(val, of: value_comp)
 
   let expected = "age >= :param"
 
@@ -102,7 +107,7 @@ pub fn less_than_equal_test() {
 
   let #(condition, values) =
     column.new("age")
-    |> column.lt_eq(val, of: sql.value)
+    |> column.lt_eq(val, of: value_comp)
 
   let expected = "age <= :param"
 
@@ -115,7 +120,7 @@ pub fn not_equal_test() {
 
   let #(condition, values) =
     column.new("status")
-    |> column.not_eq(val, of: sql.value)
+    |> column.not_eq(val, of: value_comp)
 
   let expected = "status <> :param"
 
@@ -129,7 +134,7 @@ pub fn between_test() {
 
   let #(condition, values) =
     column.new("price")
-    |> column.between(start, end, of: sql.value)
+    |> column.between(start, end, of: value_comp)
 
   let expected = "price BETWEEN :param AND :param"
 
@@ -151,9 +156,24 @@ pub fn like_test() {
 pub fn in_test() {
   let values = [1, 2, 3]
 
+  let list_comp = fn(kind: fn(a) -> v) {
+    fn() {
+      condition.comparable(fn(vals: List(a)) {
+        let node =
+          vals
+          |> list.length
+          |> condition.values
+
+        let vals = list.map(vals, kind)
+
+        #(node, vals)
+      })
+    }
+  }
+
   let #(condition, values) =
     column.new("id")
-    |> column.in(values, of: sql.list(value.int))
+    |> column.in(values, of: list_comp(value.int))
 
   let expected = "id IN (:param, :param, :param)"
 

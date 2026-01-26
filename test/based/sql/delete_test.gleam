@@ -12,7 +12,7 @@ pub fn basic_delete_test() {
     |> delete.from(users)
     |> delete.where([
       sql.column("id")
-      |> sql.eq(value.int(1), of: sql.value),
+      |> sql.eq(value.int(1), of: sql.val),
     ])
     |> delete.to_query
 
@@ -29,7 +29,7 @@ pub fn delete_with_where_not_test() {
     |> delete.from(users)
     |> delete.where_not([
       sql.column("id")
-      |> sql.eq(value.int(1), of: sql.value),
+      |> sql.eq(value.int(1), of: sql.val),
     ])
     |> delete.to_query
 
@@ -46,9 +46,9 @@ pub fn delete_with_multiple_conditions_test() {
     |> delete.from(users)
     |> delete.where([
       sql.column("id")
-        |> sql.eq(value.int(1), of: sql.value),
+        |> sql.eq(value.int(1), of: sql.val),
       sql.column("created_at")
-        |> sql.lt(value.text("2024-01-01"), of: sql.value),
+        |> sql.lt(value.text("2024-01-01"), of: sql.val),
     ])
     |> delete.to_query
 
@@ -66,7 +66,7 @@ pub fn delete_returning_test() {
     |> delete.from(users)
     |> delete.where([
       sql.column("id")
-      |> sql.eq(value.int(1), of: sql.value),
+      |> sql.eq(value.int(1), of: sql.val),
     ])
     |> delete.returning(["id", "name"])
     |> delete.to_query
@@ -84,9 +84,9 @@ pub fn delete_to_string_test() {
     |> delete.from(users)
     |> delete.where([
       sql.column("id")
-        |> sql.eq(value.int(1), of: sql.value),
+        |> sql.eq(value.int(1), of: sql.val),
       sql.column("created_at")
-        |> sql.lt(value.text("2024-01-01"), of: sql.value),
+        |> sql.lt(value.text("2024-01-01"), of: sql.val),
     ])
 
   delete.to_string(query) |> should.equal(expected)

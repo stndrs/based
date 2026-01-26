@@ -6,11 +6,11 @@ import based/value
 pub fn or_test() {
   let sql1 =
     sql.column("name")
-    |> sql.eq(value.text("John"), of: sql.value)
+    |> sql.eq(value.text("John"), of: sql.val)
 
   let sql2 =
     sql.column("email")
-    |> sql.eq(value.text("john@example.com"), of: sql.value)
+    |> sql.eq(value.text("john@example.com"), of: sql.val)
 
   let #(condition, values) = sql.or(sql1, sql2)
 
@@ -23,7 +23,7 @@ pub fn or_test() {
 pub fn not_test() {
   let sql1 =
     sql.column("active")
-    |> sql.eq(value.true, of: sql.value)
+    |> sql.eq(value.true, of: sql.val)
 
   let #(condition, values) = sql.not(sql1)
 
