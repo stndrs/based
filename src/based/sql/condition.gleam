@@ -1,4 +1,5 @@
 import based/sql/internal/fmt
+import based/sql/internal/value
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/string
@@ -333,7 +334,7 @@ pub fn raw(sql: String) -> Condition {
 
 pub fn split(
   conditions: List(#(Condition, List(v))),
-  text_to_value: fn(String) -> v,
+  value_mapper: value.ValueMapper(v),
 ) -> #(List(Condition), List(v)) {
   let empty: #(List(Condition), List(List(v))) = #([], [])
 
@@ -343,7 +344,8 @@ pub fn split(
       let #(next_condition, next_values) = condition
 
       let #(acc_conditions, acc_values) = acc
-      let condition_values = to_values(next_condition, text_to_value)
+      let condition_values =
+        to_values(next_condition, value.from_text(_, value_mapper))
 
       #(
         list.prepend(acc_conditions, next_condition),

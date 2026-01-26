@@ -117,7 +117,7 @@ pub fn where(
   conditions: List(#(Condition, List(v))),
 ) -> Select(v) {
   let #(conditions, values) =
-    condition.split(conditions, select.repo.text_to_value)
+    condition.split(conditions, select.repo.value_mapper)
 
   let where = list.prepend(select.where, conditions)
 
@@ -174,7 +174,7 @@ fn do_join(
   joiner: fn(table.Table, List(Condition)) -> sql.Join,
 ) -> Select(v) {
   let #(conditions, values) =
-    condition.split(conditions, select.repo.text_to_value)
+    condition.split(conditions, select.repo.value_mapper)
 
   let join = joiner(table, conditions)
   let join = list.prepend(select.join, join)
@@ -192,7 +192,7 @@ pub fn having(
   select: Select(v),
   having: List(#(Condition, List(v))),
 ) -> Select(v) {
-  let #(conditions, values) = condition.split(having, select.repo.text_to_value)
+  let #(conditions, values) = condition.split(having, select.repo.value_mapper)
 
   let having = list.prepend(select.having, conditions)
 
