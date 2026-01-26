@@ -59,7 +59,7 @@ pub fn insert_returning_test() {
     |> insert.into(users)
     |> insert.columns(["name"])
     |> insert.values([[value.text("John")]])
-    |> insert.returning(["id", "name"])
+    |> insert.returning([sql.column("id"), sql.column("name")])
     |> insert.to_query
 
   query.sql |> should.equal(expected)

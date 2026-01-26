@@ -46,8 +46,8 @@ pub fn table_and_alias_test() {
   assert expected == column.to_string(col, value.repo())
 }
 
-fn value_comp() -> condition.Comparable(a, v) {
-  condition.comparable(fn(_) { #(condition.value, []) })
+fn value_comp() -> condition.Comparable(v, v) {
+  condition.comparable(fn(val) { #(condition.value, [val]) })
 }
 
 pub fn eq_test() {

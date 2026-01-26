@@ -21,6 +21,7 @@
 import based
 import based/db
 import based/sql
+import based/sql/column.{type Column}
 import based/sql/condition.{type Condition}
 import based/sql/internal/builder
 import based/sql/internal/fmt
@@ -38,7 +39,7 @@ pub opaque type Update(v) {
     order: Option(sql.Order),
     limit: Option(Int),
     offset: Option(Int),
-    returning: List(String),
+    returning: List(Column),
     values: List(List(v)),
   )
 }
@@ -95,7 +96,7 @@ pub fn where_not(
 
 /// Specify columns to return after the update. Only applies to adapter
 /// packages that support RETURNING.
-pub fn returning(update: Update(v), columns: List(String)) -> Update(v) {
+pub fn returning(update: Update(v), columns: List(Column)) -> Update(v) {
   Update(..update, returning: columns)
 }
 
@@ -135,10 +136,12 @@ fn build(update: Update(v)) -> String {
     update.table
     |> table.to_string(fmt.to_identifier(update.repo.fmt, _))
 
+  let returning = list.map(update.returning, column.to_string(_, update.repo))
+
   fmt.update(table)
   |> fmt.set(updates)
   |> builder.append_where(update.where, update.repo.fmt)
-  |> builder.append_returning(update.returning)
+  |> builder.append_returning(returning)
   |> builder.append_order_by(update.order_by, update.order)
   |> builder.append_limit(update.limit, update.offset)
 }

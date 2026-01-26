@@ -72,7 +72,7 @@ pub fn update_returning_test() {
       sql.column("id")
       |> sql.eq(value.int(1), of: sql.val),
     ])
-    |> update.returning(["id", "name"])
+    |> update.returning([sql.column("id"), sql.column("name")])
     |> update.to_query
 
   assert expected == query.sql

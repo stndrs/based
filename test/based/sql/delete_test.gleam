@@ -68,7 +68,7 @@ pub fn delete_returning_test() {
       sql.column("id")
       |> sql.eq(value.int(1), of: sql.val),
     ])
-    |> delete.returning(["id", "name"])
+    |> delete.returning([sql.column("id"), sql.column("name")])
     |> delete.to_query
 
   query.sql |> should.equal(expected)

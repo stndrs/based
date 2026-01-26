@@ -21,6 +21,7 @@
 import based
 import based/db
 import based/sql
+import based/sql/column.{type Column}
 import based/sql/condition.{type Condition}
 import based/sql/internal/builder
 import based/sql/internal/fmt
@@ -33,7 +34,7 @@ pub opaque type Delete(v) {
     repo: based.Repo(v),
     table: table.Table,
     where: List(List(Condition)),
-    returning: List(String),
+    returning: List(Column),
     values: List(List(v)),
   )
 }
@@ -72,7 +73,7 @@ pub fn where_not(
 }
 
 /// Set RETURNING columns for a DELETE query.
-pub fn returning(delete: Delete(v), columns: List(String)) -> Delete(v) {
+pub fn returning(delete: Delete(v), columns: List(Column)) -> Delete(v) {
   Delete(..delete, returning: columns)
 }
 
@@ -102,10 +103,12 @@ fn build(delete: Delete(v)) -> String {
     delete.table
     |> table.to_string(fmt.to_identifier(delete.repo.fmt, _))
 
+  let returning = list.map(delete.returning, column.to_string(_, delete.repo))
+
   fmt.delete
   |> fmt.from(from)
   |> builder.append_where(delete.where, delete.repo.fmt)
-  |> builder.append_returning(delete.returning)
+  |> builder.append_returning(returning)
 }
 
 /// Prepend values to a DELETE query.
