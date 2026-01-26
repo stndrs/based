@@ -25,10 +25,10 @@ pub opaque type Select(v) {
     table: Option(TableOrSubquery(v)),
     columns: List(Column),
     distinct: Bool,
-    join: List(sql.Join(v)),
-    where: List(List(Condition(v))),
+    join: List(sql.Join),
+    where: List(List(Condition)),
     group_by: List(String),
-    having: List(List(Condition(v))),
+    having: List(List(Condition)),
     order_by: List(String),
     order: Option(sql.Order),
     limit: Option(Int),
@@ -112,17 +112,22 @@ pub fn columns(select: Select(v), columns: List(Column)) -> Select(v) {
 
 // Where
 
-pub fn where(select: Select(v), conditions: List(Condition(v))) -> Select(v) {
-  let values =
-    conditions
-    |> list.flat_map(condition.to_values(_, select.repo.text_to_value))
+pub fn where(
+  select: Select(v),
+  conditions: List(#(Condition, List(v))),
+) -> Select(v) {
+  let #(conditions, values) =
+    condition.split(conditions, select.repo.text_to_value)
 
   let where = list.prepend(select.where, conditions)
 
   Select(..select, where:) |> prepend_values(values)
 }
 
-pub fn where_not(select: Select(v), conditions: List(Condition(v))) -> Select(v) {
+pub fn where_not(
+  select: Select(v),
+  conditions: List(#(Condition, List(v))),
+) -> Select(v) {
   conditions
   |> list.map(sql.not)
   |> where(select, _)
@@ -133,7 +138,7 @@ pub fn where_not(select: Select(v), conditions: List(Condition(v))) -> Select(v)
 pub fn join(
   select: Select(v),
   table: table.Table,
-  on conditions: List(Condition(v)),
+  on conditions: List(#(Condition, List(v))),
 ) -> Select(v) {
   do_join(select, table, conditions, sql.inner_join)
 }
@@ -141,7 +146,7 @@ pub fn join(
 pub fn left_join(
   select: Select(v),
   table: table.Table,
-  on conditions: List(Condition(v)),
+  on conditions: List(#(Condition, List(v))),
 ) -> Select(v) {
   do_join(select, table, conditions, sql.left_join)
 }
@@ -149,7 +154,7 @@ pub fn left_join(
 pub fn right_join(
   select: Select(v),
   table: table.Table,
-  on conditions: List(Condition(v)),
+  on conditions: List(#(Condition, List(v))),
 ) -> Select(v) {
   do_join(select, table, conditions, sql.right_join)
 }
@@ -157,7 +162,7 @@ pub fn right_join(
 pub fn full_join(
   select: Select(v),
   table: table.Table,
-  on conditions: List(Condition(v)),
+  on conditions: List(#(Condition, List(v))),
 ) -> Select(v) {
   do_join(select, table, conditions, sql.full_join)
 }
@@ -165,15 +170,14 @@ pub fn full_join(
 fn do_join(
   select: Select(v),
   table: table.Table,
-  conditions: List(Condition(v)),
-  joiner: fn(table.Table, List(Condition(v))) -> sql.Join(v),
+  conditions: List(#(Condition, List(v))),
+  joiner: fn(table.Table, List(Condition)) -> sql.Join,
 ) -> Select(v) {
-  let values =
-    conditions
-    |> list.flat_map(condition.to_values(_, select.repo.text_to_value))
+  let #(conditions, values) =
+    condition.split(conditions, select.repo.text_to_value)
 
-  let join_clause = joiner(table, conditions)
-  let join = list.prepend(select.join, join_clause)
+  let join = joiner(table, conditions)
+  let join = list.prepend(select.join, join)
 
   Select(..select, join:) |> prepend_values(values)
 }
@@ -184,12 +188,13 @@ pub fn group_by(qb: Select(v), group_by: List(String)) -> Select(v) {
   Select(..qb, group_by:)
 }
 
-pub fn having(select: Select(v), having: List(Condition(v))) -> Select(v) {
-  let values =
-    having
-    |> list.flat_map(condition.to_values(_, select.repo.text_to_value))
+pub fn having(
+  select: Select(v),
+  having: List(#(Condition, List(v))),
+) -> Select(v) {
+  let #(conditions, values) = condition.split(having, select.repo.text_to_value)
 
-  let having = list.prepend(select.having, having)
+  let having = list.prepend(select.having, conditions)
 
   Select(..select, having:) |> prepend_values(values)
 }
@@ -243,13 +248,17 @@ pub fn to_query(select: Select(v)) -> db.Query(v) {
   |> db.params(values)
 }
 
-pub fn to_subquery(select: Select(v)) -> condition.Node(v) {
-  let db.Query(sql:, values:) = to_query(select)
+pub fn subquery() -> condition.Comparable(Select(v), v) {
+  condition.comparable(fn(select: Select(v)) {
+    let query = to_query(select)
 
-  condition.subquery(sql, values)
+    let count = list.length(query.values)
+
+    let node = condition.subquery(query.sql, count)
+
+    #(node, query.values)
+  })
 }
-
-pub const subquery = sql.Comparable(to_node: to_subquery)
 
 pub fn to_string(select: Select(v)) -> String {
   let values = select.values |> list.reverse |> list.flatten

@@ -23,10 +23,7 @@ pub fn with_test() {
     |> select.join(departments, on: [
       sql.column("dept_id")
       |> column.for(employees)
-      |> column.eq(
-        sql.column("id") |> column.for(departments),
-        of: column.value,
-      ),
+      |> sql.eq(sql.column("id") |> column.for(departments), of: sql.col),
     ])
     |> select.to_query
 
@@ -89,7 +86,7 @@ pub fn with_multiple_ctes_test() {
       ])
       |> select.join(departments, on: [
         sql.column("e.dept_id")
-        |> column.eq(sql.column("d.id"), of: column.value),
+        |> column.eq(sql.column("d.id"), of: sql.col),
       ])
       |> select.to_query
     })

@@ -60,9 +60,9 @@ pub fn append_where_test() {
 
   let left_node = column.new("id")
   let right_node = value.int(1)
-  let where_exprs = [[sql.eq(left_node, right_node, of: sql.value)]]
+  let #(condition, _values) = sql.eq(left_node, right_node, of: sql.value)
 
-  let result = builder.append_where(st, where_exprs, format)
+  let result = builder.append_where(st, [[condition]], format)
 
   assert "SELECT * FROM users WHERE id = :param" == result
 }
@@ -99,9 +99,9 @@ pub fn append_having_test() {
 
   let count_node = column.new("COUNT(*)")
   let value_node = value.int(5)
-  let having_exprs = [[sql.gt(count_node, value_node, of: sql.value)]]
+  let #(condition, _values) = sql.gt(count_node, value_node, of: sql.value)
 
-  let result = builder.append_having(st, having_exprs, format)
+  let result = builder.append_having(st, [[condition]], format)
 
   assert "SELECT department, COUNT(*) FROM users GROUP BY department HAVING COUNT(*) > :param"
     == result
@@ -122,17 +122,16 @@ pub fn append_joins_test() {
   let users_id = column.new("id") |> column.for(users)
   let posts_user_id = column.new("user_id") |> column.for(posts)
 
+  let #(join_condition, _values) =
+    users_id |> sql.eq(posts_user_id, of: sql.value)
+
   let joins = [
-    sql.Join(type_: sql.InnerJoin, table: posts, exprs: [
-      users_id
-      |> column.eq(posts_user_id, of: column.value),
-    ]),
+    sql.inner_join(posts, [join_condition]),
   ]
 
   let result = builder.append_joins(st, joins, format)
 
-  assert "SELECT * FROM users INNER JOIN posts ON users.id = posts.user_id"
-    == result
+  assert "SELECT * FROM users INNER JOIN posts ON users.id = :param" == result
 }
 
 pub fn append_order_by_test() {

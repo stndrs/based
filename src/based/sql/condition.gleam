@@ -3,40 +3,36 @@ import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/string
 
-pub opaque type Node(v) {
+pub opaque type Node {
   Aggregate(
     fun: fn(String) -> String,
     column: String,
     table: Option(String),
     alias: Option(String),
   )
-  Subquery(sql: String, values: List(v))
+  Subquery(sql: String, values: Int)
   Column(name: String, alias: Option(String), table: Option(String))
   Text(value: String)
-  Value(value: v)
-  Values(values: List(Node(v)))
+  Value
+  Values(count: Int)
   Null
 }
 
 @internal
-pub fn text(value: String) -> Node(v) {
+pub fn text(value: String) -> Node {
   Text(value:)
 }
 
 @internal
-pub fn value(value: v) -> Node(v) {
-  Value(value:)
+pub const value = Value
+
+@internal
+pub fn values(count: Int) -> Node {
+  Values(count:)
 }
 
 @internal
-pub fn values(values: List(v)) -> Node(v) {
-  values
-  |> list.map(value)
-  |> Values
-}
-
-@internal
-pub fn subquery(sql: String, values: List(v)) -> Node(v) {
+pub fn subquery(sql: String, values: Int) -> Node {
   Subquery(sql:, values:)
 }
 
@@ -45,7 +41,7 @@ pub fn column(
   name: String,
   alias: Option(String),
   table: Option(String),
-) -> Node(v) {
+) -> Node {
   Column(name:, alias:, table:)
 }
 
@@ -55,7 +51,7 @@ pub fn aggregate(
   column: String,
   table: Option(String),
   alias: Option(String),
-) -> Node(v) {
+) -> Node {
   Aggregate(fun:, column:, table:, alias:)
 }
 
@@ -63,7 +59,7 @@ pub fn aggregate(
 pub const null = Null
 
 @internal
-pub fn node_to_string(node: Node(v), fmt: fmt.Fmt(v)) -> String {
+pub fn node_to_string(node: Node, fmt: fmt.Fmt(v)) -> String {
   case node {
     Aggregate(fun:, column:, table:, alias:) -> {
       let col = case table {
@@ -100,8 +96,8 @@ pub fn node_to_string(node: Node(v), fmt: fmt.Fmt(v)) -> String {
     Subquery(sql:, values: _) -> fmt.enclose(sql)
     Text(..) -> fmt.placeholder
     Value(..) -> fmt.placeholder
-    Values(values:) -> {
-      values
+    Values(count:) -> {
+      list.repeat("", times: count)
       |> list.map(fn(_) { fmt.placeholder })
       |> string.join(", ")
       |> fmt.enclose
@@ -111,30 +107,30 @@ pub fn node_to_string(node: Node(v), fmt: fmt.Fmt(v)) -> String {
 }
 
 @internal
-pub fn node_to_values(node: Node(v), text_to_value: fn(String) -> v) -> List(v) {
+pub fn node_to_values(node: Node, text_to_value: fn(String) -> v) -> List(v) {
   case node {
     Aggregate(..) -> []
     Column(..) -> []
     Text(value:) -> [text_to_value(value)]
-    Subquery(sql: _, values:) -> values
-    Value(value:) -> [value]
-    Values(values:) -> list.flat_map(values, node_to_values(_, text_to_value))
+    Subquery(sql: _, values: _) -> []
+    Value -> []
+    Values(_) -> []
     Null -> []
   }
 }
 
-pub opaque type Condition(v) {
-  Compare(left: Node(v), right: Node(v), operator: Operator(v))
-  Is(left: Node(v), right: Bool)
-  IsNull(left: Node(v), right: Bool)
-  Or(left: Condition(v), right: Condition(v))
-  Not(condition: Condition(v))
+pub opaque type Condition {
+  Compare(left: Node, right: Node, operator: Operator)
+  Is(left: Node, right: Bool)
+  IsNull(left: Node, right: Bool)
+  Or(left: Condition, right: Condition)
+  Not(condition: Condition)
   Raw(sql: String)
 }
 
 @internal
 pub fn to_values(
-  condition: Condition(v),
+  condition: Condition,
   text_to_value: fn(String) -> v,
 ) -> List(v) {
   case condition {
@@ -161,80 +157,211 @@ pub fn to_values(
   }
 }
 
-type Operator(v) {
+type Operator {
   Eq
   Gt
   Lt
   GtEq
   LtEq
   NotEq
-  Between(Node(v))
+  Between(Node)
   In
   Like
   NotLike
 }
 
-pub fn eq(left: Node(v), right: Node(v)) -> Condition(v) {
-  Compare(left:, right:, operator: Eq)
+pub opaque type Comparable(a, v) {
+  Comparable(function: fn(a) -> #(Node, List(v)))
 }
 
-pub fn gt(left: Node(v), right: Node(v)) -> Condition(v) {
-  Compare(left:, right:, operator: Gt)
+pub fn comparable(function: fn(a) -> #(Node, List(v))) -> Comparable(a, v) {
+  Comparable(function:)
 }
 
-pub fn lt(left: Node(v), right: Node(v)) -> Condition(v) {
-  Compare(left:, right:, operator: Lt)
+@internal
+pub fn to_node_and_values(
+  comparable: Comparable(a, v),
+  value: a,
+) -> #(Node, List(v)) {
+  comparable.function(value)
 }
 
-pub fn gt_eq(left: Node(v), right: Node(v)) -> Condition(v) {
-  Compare(left:, right:, operator: GtEq)
+pub fn eq(
+  left: a,
+  right: b,
+  of left_comparable: fn() -> Comparable(a, v),
+  and right_comparable: fn() -> Comparable(b, v),
+) -> #(Condition, List(v)) {
+  let #(left, left_values) = left_comparable().function(left)
+  let #(right, right_values) = right_comparable().function(right)
+
+  let condition = Compare(left:, right:, operator: Eq)
+  let values = list.append(left_values, right_values)
+
+  #(condition, values)
 }
 
-pub fn lt_eq(left: Node(v), right: Node(v)) -> Condition(v) {
-  Compare(left:, right:, operator: LtEq)
+pub fn gt(
+  left: a,
+  right: b,
+  of left_comparable: fn() -> Comparable(a, v),
+  and right_comparable: fn() -> Comparable(b, v),
+) -> #(Condition, List(v)) {
+  let #(left, left_values) = left_comparable().function(left)
+  let #(right, right_values) = right_comparable().function(right)
+
+  let condition = Compare(left:, right:, operator: Gt)
+  let values = list.append(left_values, right_values)
+
+  #(condition, values)
 }
 
-pub fn not_eq(left: Node(v), right: Node(v)) -> Condition(v) {
-  Compare(left:, right:, operator: NotEq)
+pub fn lt(
+  left: a,
+  right: b,
+  of left_comparable: fn() -> Comparable(a, v),
+  and right_comparable: fn() -> Comparable(b, v),
+) -> #(Condition, List(v)) {
+  let #(left, left_values) = left_comparable().function(left)
+  let #(right, right_values) = right_comparable().function(right)
+
+  let condition = Compare(left:, right:, operator: Lt)
+  let values = list.append(left_values, right_values)
+
+  #(condition, values)
 }
 
-pub fn between(left: Node(v), start: Node(v), end: Node(v)) -> Condition(v) {
-  Compare(left:, right: start, operator: Between(end))
+pub fn gt_eq(
+  left: a,
+  right: b,
+  of left_comparable: fn() -> Comparable(a, v),
+  and right_comparable: fn() -> Comparable(b, v),
+) -> #(Condition, List(v)) {
+  let #(left, left_values) = left_comparable().function(left)
+  let #(right, right_values) = right_comparable().function(right)
+
+  let condition = Compare(left:, right:, operator: GtEq)
+  let values = list.append(left_values, right_values)
+
+  #(condition, values)
 }
 
-pub fn in(left: Node(v), right: Node(v)) -> Condition(v) {
-  Compare(left:, right:, operator: In)
+pub fn lt_eq(
+  left: a,
+  right: b,
+  of left_comparable: fn() -> Comparable(a, v),
+  and right_comparable: fn() -> Comparable(b, v),
+) -> #(Condition, List(v)) {
+  let #(left, left_values) = left_comparable().function(left)
+  let #(right, right_values) = right_comparable().function(right)
+
+  let condition = Compare(left:, right:, operator: LtEq)
+  let values = list.append(left_values, right_values)
+
+  #(condition, values)
 }
 
-pub fn like(left: Node(v), right: Node(v)) -> Condition(v) {
+pub fn not_eq(
+  left: a,
+  right: b,
+  of left_comparable: fn() -> Comparable(a, v),
+  and right_comparable: fn() -> Comparable(b, v),
+) -> #(Condition, List(v)) {
+  let #(left, left_values) = left_comparable().function(left)
+  let #(right, right_values) = right_comparable().function(right)
+
+  let condition = Compare(left:, right:, operator: NotEq)
+  let values = list.append(left_values, right_values)
+
+  #(condition, values)
+}
+
+pub fn between(
+  left: a,
+  start: b,
+  end: b,
+  of left_comparable: fn() -> Comparable(a, v),
+  and between_comparable: fn() -> Comparable(b, v),
+) -> #(Condition, List(v)) {
+  let #(left, left_values) = left_comparable().function(left)
+  let #(right, start_values) = between_comparable().function(start)
+  let #(end, end_values) = between_comparable().function(end)
+
+  let condition = Compare(left:, right:, operator: Between(end))
+
+  let values = list.flatten([left_values, start_values, end_values])
+
+  #(condition, values)
+}
+
+pub fn in(
+  left: a,
+  right: b,
+  of left_comparable: fn() -> Comparable(a, v),
+  and right_comparable: fn() -> Comparable(b, v),
+) -> #(Condition, List(v)) {
+  let #(left, left_values) = left_comparable().function(left)
+  let #(right, right_values) = right_comparable().function(right)
+
+  let condition = Compare(left:, right:, operator: In)
+  let values = list.append(left_values, right_values)
+
+  #(condition, values)
+}
+
+pub fn like(left: Node, right: Node) -> Condition {
   Compare(left:, right:, operator: Like)
 }
 
-pub fn not_like(left: Node(v), right: Node(v)) -> Condition(v) {
+pub fn not_like(left: Node, right: Node) -> Condition {
   Compare(left:, right:, operator: NotLike)
 }
 
-pub fn is(left: Node(v), right: Bool) -> Condition(v) {
+pub fn is(left: Node, right: Bool) -> Condition {
   Is(left:, right:)
 }
 
-pub fn is_null(left: Node(v), right: Bool) -> Condition(v) {
+pub fn is_null(left: Node, right: Bool) -> Condition {
   IsNull(left:, right:)
 }
 
-pub fn or(left: Condition(v), right: Condition(v)) -> Condition(v) {
+pub fn or(left: Condition, right: Condition) -> Condition {
   Or(left:, right:)
 }
 
-pub fn not(condition: Condition(v)) -> Condition(v) {
+pub fn not(condition: Condition) -> Condition {
   Not(condition:)
 }
 
-pub fn raw(sql: String) -> Condition(v) {
+pub fn raw(sql: String) -> Condition {
   Raw(sql:)
 }
 
-pub fn to_string(cond: Condition(v), fmt: fmt.Fmt(v)) -> String {
+pub fn split(
+  conditions: List(#(Condition, List(v))),
+  text_to_value: fn(String) -> v,
+) -> #(List(Condition), List(v)) {
+  let empty: #(List(Condition), List(List(v))) = #([], [])
+
+  let #(conditions, values) =
+    conditions
+    |> list.fold(from: empty, with: fn(acc, condition) {
+      let #(next_condition, next_values) = condition
+
+      let #(acc_conditions, acc_values) = acc
+      let condition_values = to_values(next_condition, text_to_value)
+
+      #(
+        list.prepend(acc_conditions, next_condition),
+        list.prepend(acc_values, next_values)
+          |> list.prepend(condition_values),
+      )
+    })
+
+  #(list.reverse(conditions), list.flatten(list.reverse(values)))
+}
+
+pub fn to_string(cond: Condition, fmt: fmt.Fmt(v)) -> String {
   case cond {
     Compare(left:, right:, operator:) -> {
       let left = node_to_string(left, fmt)
@@ -275,7 +402,7 @@ pub fn to_string(cond: Condition(v), fmt: fmt.Fmt(v)) -> String {
 }
 
 fn operator_to_fmt(
-  operator: Operator(v),
+  operator: Operator,
   fmt: fmt.Fmt(v),
 ) -> fn(String, String) -> String {
   case operator {
@@ -297,7 +424,7 @@ fn operator_to_fmt(
 }
 
 fn operator_to_value(
-  operator: Operator(v),
+  operator: Operator,
   text_to_value: fn(String) -> v,
 ) -> List(v) {
   case operator {

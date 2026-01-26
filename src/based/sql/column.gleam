@@ -128,7 +128,7 @@ fn aggregate_to_string(
   }
 }
 
-pub fn value(column: Column) -> condition.Node(v) {
+pub fn value(column: Column) -> condition.Node {
   case column.func {
     Some(func) -> {
       let formatter = case func {
@@ -155,134 +155,124 @@ pub fn table(column: Column) -> Option(String) {
   column.table
 }
 
+pub fn comparable() -> condition.Comparable(Column, v) {
+  condition.comparable(fn(col) {
+    let node = value(col)
+
+    #(node, [])
+  })
+}
+
 pub fn eq(
   column: Column,
   right: a,
-  of kind: fn(a) -> condition.Node(v),
-) -> Condition(v) {
-  let right = kind(right)
-
-  column
-  |> value
-  |> condition.eq(right)
+  of right_comparable: fn() -> condition.Comparable(a, v),
+) -> #(Condition, List(v)) {
+  condition.eq(column, right, of: comparable, and: right_comparable)
 }
 
 pub fn gt(
   column: Column,
   right: a,
-  of kind: fn(a) -> condition.Node(v),
-) -> Condition(v) {
-  let right = kind(right)
-
-  column
-  |> value
-  |> condition.gt(right)
+  of right_comparable: fn() -> condition.Comparable(a, v),
+) -> #(Condition, List(v)) {
+  condition.gt(column, right, of: comparable, and: right_comparable)
 }
 
 pub fn lt(
   column: Column,
   right: a,
-  of kind: fn(a) -> condition.Node(v),
-) -> Condition(v) {
-  let right = kind(right)
-
-  column
-  |> value
-  |> condition.lt(right)
+  of right_comparable: fn() -> condition.Comparable(a, v),
+) -> #(Condition, List(v)) {
+  condition.lt(column, right, of: comparable, and: right_comparable)
 }
 
 pub fn gt_eq(
   column: Column,
   right: a,
-  of kind: fn(a) -> condition.Node(v),
-) -> Condition(v) {
-  let right = kind(right)
-
-  column
-  |> value
-  |> condition.gt_eq(right)
+  of right_comparable: fn() -> condition.Comparable(a, v),
+) -> #(Condition, List(v)) {
+  condition.gt_eq(column, right, of: comparable, and: right_comparable)
 }
 
 pub fn lt_eq(
   column: Column,
   right: a,
-  of kind: fn(a) -> condition.Node(v),
-) -> Condition(v) {
-  let right = kind(right)
-
-  column
-  |> value
-  |> condition.lt_eq(right)
+  of right_comparable: fn() -> condition.Comparable(a, v),
+) -> #(Condition, List(v)) {
+  condition.lt_eq(column, right, of: comparable, and: right_comparable)
 }
 
 pub fn not_eq(
   column: Column,
   right: a,
-  of kind: fn(a) -> condition.Node(v),
-) -> Condition(v) {
-  let right = kind(right)
-
-  column
-  |> value
-  |> condition.not_eq(right)
+  of right_comparable: fn() -> condition.Comparable(a, v),
+) -> #(Condition, List(v)) {
+  condition.not_eq(column, right, of: comparable, and: right_comparable)
 }
 
 pub fn between(
   column: Column,
   start: a,
   end: a,
-  of kind: fn(a) -> condition.Node(v),
-) -> Condition(v) {
-  let end = kind(end)
-  let start = kind(start)
-
-  column
-  |> value
-  |> condition.between(start, end)
+  of right_comparable: fn() -> condition.Comparable(a, v),
+) -> #(Condition, List(v)) {
+  condition.between(column, start, end, of: comparable, and: right_comparable)
 }
 
-pub fn like(column: Column, val: String) -> Condition(v) {
+pub fn like(column: Column, val: String) -> #(Condition, List(v)) {
   let right = condition.text(val)
 
-  column
-  |> value
-  |> condition.like(right)
+  let condition =
+    column
+    |> value
+    |> condition.like(right)
+
+  #(condition, [])
 }
 
-pub fn not_like(column: Column, val: String) -> Condition(v) {
+pub fn not_like(column: Column, val: String) -> #(Condition, List(v)) {
   let right = condition.text(val)
 
-  column
-  |> value
-  |> condition.not_like(right)
+  let condition =
+    column
+    |> value
+    |> condition.not_like(right)
+
+  #(condition, [])
 }
 
 pub fn in(
   column: Column,
   right: a,
-  of kind: fn(a) -> condition.Node(v),
-) -> Condition(v) {
-  let right = kind(right)
-
-  column
-  |> value
-  |> condition.in(right)
+  of right_comparable: fn() -> condition.Comparable(a, v),
+) -> #(Condition, List(v)) {
+  condition.in(column, right, of: comparable, and: right_comparable)
 }
 
-pub fn is(column: Column, right: Bool) -> Condition(v) {
-  column
-  |> value
-  |> condition.is(right)
+pub fn is(column: Column, right: Bool) -> #(Condition, List(v)) {
+  let condition =
+    column
+    |> value
+    |> condition.is(right)
+
+  #(condition, [])
 }
 
-pub fn is_null(column: Column) -> Condition(v) {
-  column
-  |> value
-  |> condition.is_null(True)
+pub fn is_null(column: Column) -> #(Condition, List(v)) {
+  let condition =
+    column
+    |> value
+    |> condition.is_null(True)
+
+  #(condition, [])
 }
 
-pub fn is_not_null(column: Column) -> Condition(v) {
-  column
-  |> value
-  |> condition.is_null(False)
+pub fn is_not_null(column: Column) -> #(Condition, List(v)) {
+  let condition =
+    column
+    |> value
+    |> condition.is_null(False)
+
+  #(condition, [])
 }

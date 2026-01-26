@@ -47,7 +47,7 @@ pub fn placeholders(
 
 pub fn append_where(
   st: String,
-  where: List(List(condition.Condition(v))),
+  where: List(List(condition.Condition)),
   fmt: fmt.Fmt(v),
 ) -> String {
   where
@@ -74,7 +74,7 @@ pub fn append_group_by(st: String, group_by: List(String)) -> String {
 
 pub fn append_having(
   st: String,
-  having: List(List(Condition(v))),
+  having: List(List(Condition)),
   fmt: fmt.Fmt(v),
 ) -> String {
   having
@@ -94,7 +94,7 @@ pub fn append_having(
 
 pub fn append_joins(
   st: String,
-  joins: List(sql.Join(v)),
+  joins: List(sql.Join),
   fmt: fmt.Fmt(v),
 ) -> String {
   joins
@@ -110,7 +110,7 @@ pub fn append_joins(
     st
     |> join_tree(table.to_string(join.table, with: fmt.to_identifier(fmt, _)))
     |> list.index_fold(
-      over: join.exprs,
+      over: join.conditions,
       from: _,
       with: fn(sql1, condition, idx) {
         let expr_fmt = case idx {

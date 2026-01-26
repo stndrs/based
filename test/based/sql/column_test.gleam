@@ -48,98 +48,97 @@ pub fn table_and_alias_test() {
 pub fn eq_test() {
   let val = value.int(1)
 
-  let condition =
+  let #(condition, values) =
     column.new("id")
-    |> column.eq(val, of: condition.value)
+    |> column.eq(val, of: sql.value)
 
   let expected = "id = :param"
 
   assert expected == condition.to_string(condition, fmt.new())
-  assert [value.int(1)] == condition.to_values(condition, value.text)
+  assert [value.int(1)] == values
 }
 
 pub fn greater_than_test() {
   let val = value.int(18)
 
-  let condition =
+  let #(condition, values) =
     column.new("age")
-    |> column.gt(val, of: condition.value)
+    |> column.gt(val, of: sql.value)
 
   let expected = "age > :param"
 
   assert expected == condition.to_string(condition, fmt.new())
-  assert [value.int(18)] == condition.to_values(condition, value.text)
+  assert [value.int(18)] == values
 }
 
 pub fn less_than_test() {
   let val = value.int(65)
 
-  let condition =
+  let #(condition, values) =
     column.new("age")
-    |> column.lt(val, of: condition.value)
+    |> column.lt(val, of: sql.value)
 
   let expected = "age < :param"
 
   assert expected == condition.to_string(condition, fmt.new())
-  assert [value.int(65)] == condition.to_values(condition, value.text)
+  assert [value.int(65)] == values
 }
 
 pub fn greater_than_equal_test() {
   let val = value.int(18)
 
-  let condition =
+  let #(condition, values) =
     column.new("age")
-    |> column.gt_eq(val, of: condition.value)
+    |> column.gt_eq(val, of: sql.value)
 
   let expected = "age >= :param"
 
   assert expected == condition.to_string(condition, fmt.new())
-  assert [value.int(18)] == condition.to_values(condition, value.text)
+  assert [value.int(18)] == values
 }
 
 pub fn less_than_equal_test() {
   let val = value.int(65)
 
-  let condition =
+  let #(condition, values) =
     column.new("age")
-    |> column.lt_eq(val, of: condition.value)
+    |> column.lt_eq(val, of: sql.value)
 
   let expected = "age <= :param"
 
   assert expected == condition.to_string(condition, fmt.new())
-  assert [value.int(65)] == condition.to_values(condition, value.text)
+  assert [value.int(65)] == values
 }
 
 pub fn not_equal_test() {
   let val = value.text("inactive")
 
-  let condition =
+  let #(condition, values) =
     column.new("status")
-    |> column.not_eq(val, of: condition.value)
+    |> column.not_eq(val, of: sql.value)
 
   let expected = "status <> :param"
 
   assert expected == condition.to_string(condition, fmt.new())
-  assert [value.text("inactive")] == condition.to_values(condition, value.text)
+  assert [value.text("inactive")] == values
 }
 
 pub fn between_test() {
   let start = value.float(10.0)
   let end = value.float(50.0)
 
-  let condition =
+  let #(condition, values) =
     column.new("price")
-    |> column.between(start, end, of: condition.value)
+    |> column.between(start, end, of: sql.value)
 
   let expected = "price BETWEEN :param AND :param"
 
   assert expected == condition.to_string(condition, fmt.new())
-  assert [value.float(10.0), value.float(50.0)]
-    == condition.to_values(condition, value.text)
+  assert [value.float(10.0), value.float(50.0)] == values
 }
 
 pub fn like_test() {
-  let condition =
+  let #(condition, _values) =
     column.new("name")
     |> column.like("%John%")
 
@@ -152,7 +151,7 @@ pub fn like_test() {
 // pub fn in_test() {
 //   let values = [1, 2, 3]
 // 
-//   let condition =
+//   let #(condition, values) =
 //     column.new("id")
 //     |> column.in(values, of: sql.list(_, value.int))
 // 
@@ -165,7 +164,7 @@ pub fn like_test() {
 // }
 
 pub fn is_test() {
-  let condition =
+  let #(condition, values) =
     column.new("active")
     |> column.is(True)
 
@@ -173,11 +172,11 @@ pub fn is_test() {
 
   assert expected == condition.to_string(condition, fmt.new())
 
-  assert [] == condition.to_values(condition, value.text)
+  assert [] == values
 }
 
 pub fn not_like_test() {
-  let condition =
+  let #(condition, _values) =
     column.new("name")
     |> column.not_like("%admin%")
 

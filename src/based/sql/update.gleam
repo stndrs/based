@@ -32,8 +32,8 @@ pub opaque type Update(v) {
   Update(
     repo: based.Repo(v),
     table: table.Table,
-    sets: List(#(String, condition.Node(v))),
-    where: List(List(Condition(v))),
+    sets: List(#(String, condition.Node)),
+    where: List(List(Condition)),
     order_by: List(String),
     order: Option(sql.Order),
     limit: Option(Int),
@@ -64,29 +64,37 @@ pub fn set(
   update: Update(v),
   column: String,
   value: a,
-  of comparable: sql.Comparable(a, v),
+  of comparable: fn() -> condition.Comparable(a, v),
 ) {
-  let value_node = comparable.to_node(value)
-
-  let sets = update.sets |> list.prepend(#(column, value_node))
-  let values = condition.node_to_values(value_node, update.repo.text_to_value)
+  let #(node, values) = condition.to_node_and_values(comparable(), value)
+  let sets = update.sets |> list.prepend(#(column, node))
 
   Update(..update, sets:) |> prepend_values(values)
 }
 
 /// Add WHERE conditions to the UPDATE statement
-pub fn where(update: Update(v), conditions: List(Condition(v))) -> Update(v) {
-  let values =
+pub fn where(
+  update: Update(v),
+  conditions: List(#(Condition, List(v))),
+) -> Update(v) {
+  let conds =
     conditions
-    |> list.flat_map(condition.to_values(_, update.repo.text_to_value))
+    |> list.map(fn(cond) { cond.0 })
 
-  Update(..update, where: [conditions])
-  |> prepend_values(values)
+  let vals =
+    conditions
+    |> list.flat_map(fn(cond) { cond.1 })
+
+  Update(..update, where: [conds]) |> prepend_values(vals)
 }
 
 /// Add WHERE NOT conditions to the UPDATE statement
-pub fn where_not(update: Update(v), exprs: List(Condition(v))) -> Update(v) {
-  let negated_exprs = list.map(exprs, sql.not)
+pub fn where_not(
+  update: Update(v),
+  conditions: List(#(Condition, List(v))),
+) -> Update(v) {
+  let negated_exprs = list.map(conditions, sql.not)
+
   where(update, negated_exprs)
 }
 

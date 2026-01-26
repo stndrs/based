@@ -158,7 +158,7 @@ pub fn select_where_not_like_test() {
     |> select.from(users)
     |> select.where([
       sql.column("email")
-      |> column.not_like("Human Person"),
+      |> sql.not_like("Human Person"),
     ])
     |> select.to_query
 
@@ -195,7 +195,7 @@ pub fn select_with_join_test() {
       sql.column("users.id")
         |> sql.eq(sql.column("posts.user_id"), of: sql.col),
       sql.column("posts.title")
-        |> column.like("%gleam%"),
+        |> sql.like("%gleam%"),
     ])
     |> select.to_query
 
@@ -220,7 +220,7 @@ pub fn select_with_multiple_joins_test() {
       sql.column("users.id")
         |> sql.eq(sql.column("posts.user_id"), of: sql.col),
       sql.column("posts.title")
-        |> column.like("%gleam%"),
+        |> sql.like("%gleam%"),
     ])
     |> select.left_join(comments, on: [
       sql.column("posts.comment_id")
@@ -249,7 +249,7 @@ pub fn select_with_in_test() {
     |> select.from(users)
     |> select.where([
       sql.column("id")
-      |> column.in([1, 2, 3], of: sql.list(_, of: value.int)),
+      |> sql.in([1, 2, 3], of: sql.list(of: value.int)),
     ])
     |> select.to_query
 
@@ -296,7 +296,7 @@ pub fn select_with_is_null_test() {
   let query =
     value.repo()
     |> select.from(users)
-    |> select.where([sql.column("deleted_at") |> column.is_null])
+    |> select.where([sql.column("deleted_at") |> sql.is_null])
     |> select.to_query
 
   assert expected == query.sql
@@ -1018,7 +1018,7 @@ pub fn raw_sql_join_test() {
     |> select.join(posts, on: [
       sql.raw("users.id = posts.user_id"),
       sql.column("posts.title")
-        |> column.like("%gleam%"),
+        |> sql.like("%gleam%"),
     ])
     |> select.to_query
 

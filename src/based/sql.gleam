@@ -40,156 +40,127 @@ pub fn sum(name: String) -> Column {
 
 // ---------- Conditions ---------- //
 
-pub type Comparable(a, v) {
-  Comparable(to_node: fn(a) -> condition.Node(v))
+pub fn col() -> condition.Comparable(Column, v) {
+  condition.comparable(fn(col) {
+    let node = column.value(col)
+
+    #(node, [])
+  })
 }
 
-pub const col = Comparable(to_node: column.value)
+pub fn value() -> condition.Comparable(v, v) {
+  condition.comparable(fn(val) {
+    let node = condition.value
 
-pub const value = Comparable(to_node: condition.value)
+    #(node, [val])
+  })
+}
 
 pub fn eq(
   column: Column,
   right: a,
-  of comparable: Comparable(a, v),
-) -> Condition(v) {
-  let right = comparable.to_node(right)
-
-  column
-  |> column.value
-  |> condition.eq(right)
+  of right_comparable: fn() -> condition.Comparable(a, v),
+) -> #(Condition, List(v)) {
+  column.eq(column, right, of: right_comparable)
 }
 
 pub fn gt(
   column: Column,
   right: a,
-  of comparable: Comparable(a, v),
-) -> Condition(v) {
-  let right = comparable.to_node(right)
-
-  column
-  |> column.value
-  |> condition.gt(right)
+  of right_comparable: fn() -> condition.Comparable(a, v),
+) -> #(Condition, List(v)) {
+  column.gt(column, right, of: right_comparable)
 }
 
 pub fn lt(
   column: Column,
   right: a,
-  of comparable: Comparable(a, v),
-) -> Condition(v) {
-  let right = comparable.to_node(right)
-
-  column
-  |> column.value
-  |> condition.lt(right)
+  of right_comparable: fn() -> condition.Comparable(a, v),
+) -> #(Condition, List(v)) {
+  column.lt(column, right, of: right_comparable)
 }
 
 pub fn gt_eq(
   column: Column,
   right: a,
-  of comparable: Comparable(a, v),
-) -> Condition(v) {
-  let right = comparable.to_node(right)
-
-  column
-  |> column.value
-  |> condition.gt_eq(right)
+  of right_comparable: fn() -> condition.Comparable(a, v),
+) -> #(Condition, List(v)) {
+  column.gt_eq(column, right, of: right_comparable)
 }
 
 pub fn lt_eq(
   column: Column,
   right: a,
-  of comparable: Comparable(a, v),
-) -> Condition(v) {
-  let right = comparable.to_node(right)
-
-  column
-  |> column.value
-  |> condition.lt_eq(right)
+  of right_comparable: fn() -> condition.Comparable(a, v),
+) -> #(Condition, List(v)) {
+  column.lt_eq(column, right, of: right_comparable)
 }
 
 pub fn not_eq(
   column: Column,
   right: a,
-  of comparable: Comparable(a, v),
-) -> Condition(v) {
-  let right = comparable.to_node(right)
-
-  column
-  |> column.value
-  |> condition.not_eq(right)
+  of right_comparable: fn() -> condition.Comparable(a, v),
+) -> #(Condition, List(v)) {
+  column.not_eq(column, right, of: right_comparable)
 }
 
 pub fn between(
   column: Column,
   start: a,
   end: a,
-  of comparable: Comparable(a, v),
-) -> Condition(v) {
-  let end = comparable.to_node(end)
-  let start = comparable.to_node(start)
-
-  column
-  |> column.value
-  |> condition.between(start, end)
+  of right_comparable: fn() -> condition.Comparable(a, v),
+) -> #(Condition, List(v)) {
+  column.between(column, start, end, of: right_comparable)
 }
 
-pub fn like(column: Column, val: String) -> Condition(v) {
-  let right = condition.text(val)
-
-  column
-  |> column.value
-  |> condition.like(right)
+pub fn like(column: Column, val: String) -> #(Condition, List(v)) {
+  column.like(column, val)
 }
 
-pub fn not_like(column: Column, val: String) -> Condition(v) {
-  let right = condition.text(val)
-
-  column
-  |> column.value
-  |> condition.not_like(right)
+pub fn not_like(column: Column, val: String) -> #(Condition, List(v)) {
+  column.not_like(column, val)
 }
 
 pub fn in(
   column: Column,
   right: a,
-  of kind: fn(a) -> condition.Node(v),
-) -> Condition(v) {
-  let right = kind(right)
-
-  column
-  |> column.value
-  |> condition.in(right)
+  of right_comparable: fn() -> condition.Comparable(a, v),
+) -> #(Condition, List(v)) {
+  column.in(column, right, of: right_comparable)
 }
 
-pub fn is(column: Column, right: Bool) -> Condition(v) {
+pub fn is(column: Column, right: Bool) -> Condition {
   column
   |> column.value
   |> condition.is(right)
 }
 
-pub fn is_null(column: Column) -> Condition(v) {
-  column
-  |> column.value
-  |> condition.is_null(True)
+pub fn is_null(column: Column) -> #(Condition, List(v)) {
+  column.is_null(column)
 }
 
-pub fn is_not_null(column: Column) -> Condition(v) {
+pub fn is_not_null(column: Column) -> Condition {
   column
   |> column.value
   |> condition.is_null(False)
 }
 
-pub fn or(left: Condition(v), right: Condition(v)) -> Condition(v) {
-  condition.or(left, right)
+pub fn or(
+  left: #(Condition, List(v)),
+  right: #(Condition, List(v)),
+) -> #(Condition, List(v)) {
+  let condition = condition.or(left.0, right.0)
+  let values = list.flatten([left.1, right.1])
+
+  #(condition, values)
 }
 
-pub fn not(condition: Condition(v)) -> Condition(v) {
-  condition.not(condition)
+pub fn not(condition: #(Condition, List(v))) -> #(Condition, List(v)) {
+  #(condition.not(condition.0), condition.1)
 }
 
-pub fn raw(sql: String) -> Condition(v) {
-  condition.raw(sql)
+pub fn raw(sql: String) -> #(Condition, List(v)) {
+  #(condition.raw(sql), [])
 }
 
 // ---------- Join ---------- //
@@ -201,24 +172,24 @@ pub type JoinType {
   FullJoin
 }
 
-pub type Join(v) {
-  Join(type_: JoinType, table: table.Table, exprs: List(Condition(v)))
+pub type Join {
+  Join(type_: JoinType, table: table.Table, conditions: List(Condition))
 }
 
-pub fn inner_join(table: table.Table, exprs: List(Condition(v))) -> Join(v) {
-  Join(InnerJoin, table, exprs)
+pub fn inner_join(table: table.Table, conditions: List(Condition)) -> Join {
+  Join(InnerJoin, table, conditions)
 }
 
-pub fn left_join(table: table.Table, exprs: List(Condition(v))) -> Join(v) {
-  Join(LeftJoin, table, exprs)
+pub fn left_join(table: table.Table, conditions: List(Condition)) -> Join {
+  Join(LeftJoin, table, conditions)
 }
 
-pub fn right_join(table: table.Table, exprs: List(Condition(v))) -> Join(v) {
-  Join(RightJoin, table, exprs)
+pub fn right_join(table: table.Table, conditions: List(Condition)) -> Join {
+  Join(RightJoin, table, conditions)
 }
 
-pub fn full_join(table: table.Table, exprs: List(Condition(v))) -> Join(v) {
-  Join(FullJoin, table, exprs)
+pub fn full_join(table: table.Table, conditions: List(Condition)) -> Join {
+  Join(FullJoin, table, conditions)
 }
 
 // -------------------------- //
@@ -228,16 +199,25 @@ pub type Order {
   Desc
 }
 
-pub fn list(vals: List(a), of kind: fn(a) -> v) -> condition.Node(v) {
-  vals
-  |> list.map(kind)
-  |> condition.values
+pub fn list(of kind: fn(a) -> v) -> fn() -> condition.Comparable(List(a), v) {
+  fn() {
+    condition.comparable(fn(vals: List(a)) {
+      let node =
+        vals
+        |> list.length
+        |> condition.values
+
+      let vals = list.map(vals, kind)
+
+      #(node, vals)
+    })
+  }
 }
 
 pub fn nullable(
   value: Option(a),
-  inner_type: fn(a) -> condition.Node(v),
-) -> condition.Node(v) {
+  inner_type: fn(a) -> condition.Node,
+) -> condition.Node {
   case value {
     Some(term) -> inner_type(term)
     None -> condition.null

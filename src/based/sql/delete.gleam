@@ -32,7 +32,7 @@ pub opaque type Delete(v) {
   Delete(
     repo: based.Repo(v),
     table: table.Table,
-    where: List(List(Condition(v))),
+    where: List(List(Condition)),
     returning: List(String),
     values: List(List(v)),
   )
@@ -44,17 +44,30 @@ pub fn from(repo: based.Repo(v), table: table.Table) -> Delete(v) {
 }
 
 /// Add WHERE conditions to a DELETE query.
-pub fn where(delete: Delete(v), conditions: List(Condition(v))) -> Delete(v) {
-  let values =
+pub fn where(
+  delete: Delete(v),
+  conditions: List(#(Condition, List(v))),
+) -> Delete(v) {
+  let conds =
     conditions
-    |> list.flat_map(condition.to_values(_, delete.repo.text_to_value))
+    |> list.map(fn(cond) { cond.0 })
 
-  Delete(..delete, where: [conditions]) |> prepend_values(values)
+  let vals =
+    conditions
+    |> list.flat_map(fn(cond) { cond.1 })
+
+  let where = list.prepend(delete.where, conds)
+
+  Delete(..delete, where:) |> prepend_values(vals)
 }
 
 /// Add negated WHERE conditions to a DELETE query.
-pub fn where_not(delete: Delete(v), exprs: List(Condition(v))) -> Delete(v) {
-  let negated_exprs = list.map(exprs, sql.not)
+pub fn where_not(
+  delete: Delete(v),
+  conditions: List(#(Condition, List(v))),
+) -> Delete(v) {
+  let negated_exprs = list.map(conditions, sql.not)
+
   where(delete, negated_exprs)
 }
 
