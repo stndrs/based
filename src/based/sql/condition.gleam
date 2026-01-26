@@ -101,13 +101,8 @@ pub fn node_to_string(node: Node, fmt: fmt.Fmt(v)) -> String {
 
 fn node_to_values(node: Node, text_to_value: fn(String) -> v) -> List(v) {
   case node {
-    Aggregate(..) -> []
-    Column(..) -> []
     Text(value:) -> [text_to_value(value)]
-    Subquery(sql: _, values: _) -> []
-    Value -> []
-    Values(_) -> []
-    Null -> []
+    _ -> []
   }
 }
 
