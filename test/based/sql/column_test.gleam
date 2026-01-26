@@ -148,20 +148,18 @@ pub fn like_test() {
   assert [value.text("%John%")] == condition.to_values(condition, value.text)
 }
 
-// pub fn in_test() {
-//   let values = [1, 2, 3]
-// 
-//   let #(condition, values) =
-//     column.new("id")
-//     |> column.in(values, of: sql.list(_, value.int))
-// 
-//   let expected = "id IN (:param, :param, :param)"
-// 
-//   assert expected
-//     == condition.to_string(condition, fmt.to_identifier(fmt.new(), _))
-//   assert [value.int(1), value.int(2), value.int(3)]
-//     == condition.to_values(condition, value.text)
-// }
+pub fn in_test() {
+  let values = [1, 2, 3]
+
+  let #(condition, values) =
+    column.new("id")
+    |> column.in(values, of: sql.list(value.int))
+
+  let expected = "id IN (:param, :param, :param)"
+
+  assert expected == condition.to_string(condition, fmt.new())
+  assert [value.int(1), value.int(2), value.int(3)] == values
+}
 
 pub fn is_test() {
   let #(condition, values) =

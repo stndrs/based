@@ -18,25 +18,20 @@ pub opaque type Node {
   Null
 }
 
-@internal
 pub fn text(value: String) -> Node {
   Text(value:)
 }
 
-@internal
 pub const value = Value
 
-@internal
 pub fn values(count: Int) -> Node {
   Values(count:)
 }
 
-@internal
 pub fn subquery(sql: String, values: Int) -> Node {
   Subquery(sql:, values:)
 }
 
-@internal
 pub fn column(
   name: String,
   alias: Option(String),
@@ -45,7 +40,6 @@ pub fn column(
   Column(name:, alias:, table:)
 }
 
-@internal
 pub fn aggregate(
   fun: fn(String) -> String,
   column: String,
@@ -55,7 +49,6 @@ pub fn aggregate(
   Aggregate(fun:, column:, table:, alias:)
 }
 
-@internal
 pub const null = Null
 
 @internal
@@ -106,8 +99,7 @@ pub fn node_to_string(node: Node, fmt: fmt.Fmt(v)) -> String {
   }
 }
 
-@internal
-pub fn node_to_values(node: Node, text_to_value: fn(String) -> v) -> List(v) {
+fn node_to_values(node: Node, text_to_value: fn(String) -> v) -> List(v) {
   case node {
     Aggregate(..) -> []
     Column(..) -> []
@@ -121,6 +113,7 @@ pub fn node_to_values(node: Node, text_to_value: fn(String) -> v) -> List(v) {
 
 pub opaque type Condition {
   Compare(left: Node, right: Node, operator: Operator)
+  Between(left: Node, start: Node, end: Node)
   Is(left: Node, right: Bool)
   IsNull(left: Node, right: Bool)
   Or(left: Condition, right: Condition)
@@ -134,11 +127,18 @@ pub fn to_values(
   text_to_value: fn(String) -> v,
 ) -> List(v) {
   case condition {
-    Compare(left:, right:, operator:) -> {
+    Compare(left:, right:, operator: _) -> {
       [
         node_to_values(left, text_to_value),
         node_to_values(right, text_to_value),
-        operator_to_value(operator, text_to_value),
+      ]
+      |> list.flatten
+    }
+    Between(left:, start:, end:) -> {
+      [
+        node_to_values(left, text_to_value),
+        node_to_values(start, text_to_value),
+        node_to_values(end, text_to_value),
       ]
       |> list.flatten
     }
@@ -164,7 +164,6 @@ type Operator {
   GtEq
   LtEq
   NotEq
-  Between(Node)
   In
   Like
   NotLike
@@ -284,10 +283,10 @@ pub fn between(
   and between_comparable: fn() -> Comparable(b, v),
 ) -> #(Condition, List(v)) {
   let #(left, left_values) = left_comparable().function(left)
-  let #(right, start_values) = between_comparable().function(start)
+  let #(start, start_values) = between_comparable().function(start)
   let #(end, end_values) = between_comparable().function(end)
 
-  let condition = Compare(left:, right:, operator: Between(end))
+  let condition = Between(left:, start:, end:)
 
   let values = list.flatten([left_values, start_values, end_values])
 
@@ -367,9 +366,16 @@ pub fn to_string(cond: Condition, fmt: fmt.Fmt(v)) -> String {
       let left = node_to_string(left, fmt)
       let right = node_to_string(right, fmt)
 
-      let fmt = operator_to_fmt(operator, fmt)
+      let fmt = operator_to_fmt(operator)
 
       fmt(left, right)
+    }
+    Between(left:, start:, end:) -> {
+      let left = node_to_string(left, fmt)
+      let start = node_to_string(start, fmt)
+      let end = node_to_string(end, fmt)
+
+      fmt.between(left, start, end)
     }
     Is(left:, right:) -> {
       let left = node_to_string(left, fmt)
@@ -401,10 +407,7 @@ pub fn to_string(cond: Condition, fmt: fmt.Fmt(v)) -> String {
   }
 }
 
-fn operator_to_fmt(
-  operator: Operator,
-  fmt: fmt.Fmt(v),
-) -> fn(String, String) -> String {
+fn operator_to_fmt(operator: Operator) -> fn(String, String) -> String {
   case operator {
     Eq -> fmt.eq
     Gt -> fmt.gt
@@ -414,21 +417,6 @@ fn operator_to_fmt(
     NotEq -> fmt.not_eq
     Like -> fmt.like
     In -> fmt.in
-    Between(end) -> fn(left, start) {
-      let end = node_to_string(end, fmt)
-
-      fmt.between(left, start, end)
-    }
     NotLike -> fmt.not_like
-  }
-}
-
-fn operator_to_value(
-  operator: Operator,
-  text_to_value: fn(String) -> v,
-) -> List(v) {
-  case operator {
-    Between(end) -> node_to_values(end, text_to_value)
-    _ -> []
   }
 }
