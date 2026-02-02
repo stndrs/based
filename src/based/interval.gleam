@@ -1,4 +1,5 @@
 import gleam/bool
+import gleam/dynamic/decode.{type Decoder}
 import gleam/int
 import gleam/string
 
@@ -118,4 +119,15 @@ fn microsecond_digits(n: Int, position: Int, acc: String) -> String {
       microsecond_digits(n / 10, position + 1, acc)
     }
   }
+}
+
+pub fn decoder() -> Decoder(Interval) {
+  use months <- decode.field(0, decode.int)
+  use days <- decode.field(1, decode.int)
+  use microseconds <- decode.field(2, decode.int)
+
+  let #(seconds, microseconds) = to_seconds_and_microseconds(microseconds)
+
+  Interval(months:, days:, seconds:, microseconds:)
+  |> decode.success
 }
