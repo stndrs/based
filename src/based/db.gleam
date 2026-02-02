@@ -244,11 +244,11 @@ pub type TxHandler(conn, t, error) =
   fn(conn, fn(conn) -> Result(t, error)) -> Result(t, TransactionError(error))
 
 pub fn transaction(
-  conn: conn,
+  db: Db(v, conn),
   handler: TxHandler(conn, t, error),
-  next: fn(conn) -> Result(t, error),
+  next: fn(Db(v, conn)) -> Result(t, error),
 ) -> Result(t, TransactionError(error)) {
-  handler(conn, next)
+  handler(db.conn, fn(conn) { Db(..db, conn:) |> next })
 }
 
 // Querying
@@ -262,36 +262,72 @@ pub type ExecuteHandler(conn) =
 pub type BatchQueryHandler(v, conn) =
   fn(List(Query(v)), conn) -> Result(List(Queried), DbError)
 
+pub type Db(v, conn) {
+  Db(conn: conn, driver: Driver(v, conn))
+}
+
+pub fn new(driver: Driver(v, conn), conn: conn) -> Db(v, conn) {
+  Db(conn:, driver:)
+}
+
+pub opaque type Driver(v, conn) {
+  Driver(
+    handle_query: QueryHandler(v, conn),
+    handle_execute: ExecuteHandler(conn),
+    handle_batch: BatchQueryHandler(v, conn),
+  )
+}
+
+pub fn driver() -> Driver(v, conn) {
+  Driver(
+    handle_query: fn(_, _) { panic },
+    handle_execute: fn(_, _) { panic },
+    handle_batch: fn(_, _) { panic },
+  )
+}
+
+pub fn on_query(
+  db: Driver(v, conn),
+  handle_query: QueryHandler(v, conn),
+) -> Driver(v, conn) {
+  Driver(..db, handle_query:)
+}
+
+pub fn on_execute(
+  db: Driver(v, conn),
+  handle_execute: ExecuteHandler(conn),
+) -> Driver(v, conn) {
+  Driver(..db, handle_execute:)
+}
+
+pub fn on_batch(
+  db: Driver(v, conn),
+  handle_batch: BatchQueryHandler(v, conn),
+) -> Driver(v, conn) {
+  Driver(..db, handle_batch:)
+}
+
 /// Accepts a `Query`, connection, and query handler function from an adapter
 /// package.
 /// This function currently only passes the `Query` and connection right back
 /// to the handler.
-pub fn query(
-  query: Query(v),
-  conn: conn,
-  handler: QueryHandler(v, conn),
-) -> Result(Queried, DbError) {
-  handler(query, conn)
+pub fn query(query: Query(v), db: Db(v, conn)) -> Result(Queried, DbError) {
+  db.driver.handle_query(query, db.conn)
 }
 
 /// Accepts a SQL string, connection, and query handler function from an
 /// adapter package.
 /// This function currently only passes the SQL string and connection right
 /// back to the handler.
-pub fn execute(
-  sql: String,
-  conn: conn,
-  handler: ExecuteHandler(conn),
-) -> Result(Int, DbError) {
-  handler(sql, conn)
+pub fn execute(sql: String, db: Db(v, conn)) -> Result(Int, DbError) {
+  db.driver.handle_execute(sql, db.conn)
 }
 
 pub fn batch(
   queries: List(Query(v)),
-  conn: conn,
-  handler: BatchQueryHandler(v, conn),
+  db: Db(v, conn),
 ) -> Result(List(Queried), DbError) {
-  handler(queries, conn)
+  db.driver.handle_batch(queries, db.conn)
 }
 
 /// Accepts a `Query`, connection, decoder, and query handler function from
@@ -300,13 +336,14 @@ pub fn batch(
 /// runs the provided decoder using `db.decode`.
 pub fn all(
   query: Query(v),
-  conn: conn,
+  db: Db(v, conn),
   decoder: decode.Decoder(a),
-  handler: QueryHandler(v, conn),
-) -> Result(Returning(a), DbError) {
-  use queried <- result.try(handler(query, conn))
+) -> Result(List(a), DbError) {
+  use queried <- result.try(db.driver.handle_query(query, db.conn))
 
-  decode(queried, decoder)
+  use returning <- result.map(decode(queried, decoder))
+
+  returning.rows
 }
 
 /// Accepts a `Query`, connection, decoder, and query handler function from
@@ -321,11 +358,10 @@ pub fn all(
 /// losing all but the first.
 pub fn one(
   query: Query(v),
-  conn: conn,
+  db: Db(v, conn),
   decoder: decode.Decoder(a),
-  handler: QueryHandler(v, conn),
 ) -> Result(a, DbError) {
-  use queried <- result.try(handler(query, conn))
+  use queried <- result.try(db.driver.handle_query(query, db.conn))
   use returning <- result.try(decode(queried, decoder))
 
   returning.rows

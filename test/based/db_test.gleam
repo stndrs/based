@@ -31,7 +31,7 @@ pub fn query_test() {
   let assert Ok(_) =
     db.sql(sql)
     |> db.params([db.int(1)])
-    |> db.query(Conn, query_handler(returning:))
+    |> db.query(query_handler(returning:))
 }
 
 pub fn query_error_test() {
@@ -42,13 +42,13 @@ pub fn query_error_test() {
   let assert Error(_) =
     db.sql(sql)
     |> db.params([db.int(1)])
-    |> db.query(Conn, query_handler(returning:))
+    |> db.query(query_handler(returning:))
 }
 
 pub fn execute_test() {
   let sql = "INSERT INTO users (id, name) VALUES (2, 'William')"
 
-  let assert Ok(1) = db.execute(sql, Conn, execute_handler(returning: Ok(1)))
+  let assert Ok(1) = db.execute(sql, execute_handler(returning: Ok(1)))
 }
 
 pub fn execute_error_test() {
@@ -56,7 +56,7 @@ pub fn execute_error_test() {
 
   let returning = Error(db.DbError("something failed"))
 
-  let assert Error(_) = db.execute(sql, Conn, execute_handler(returning:))
+  let assert Error(_) = db.execute(sql, execute_handler(returning:))
 }
 
 pub fn all_test() {
@@ -65,10 +65,10 @@ pub fn all_test() {
 
   let returning = Ok(db.Queried(count: 1, fields: ["id", "name"], rows:))
 
-  let assert Ok(db.Returning(count: 1, rows: [#(1, "Steve")])) =
+  let assert Ok([#(1, "Steve")]) =
     db.sql(sql)
     |> db.params([db.int(1)])
-    |> db.all(Conn, user_decoder(), query_handler(returning:))
+    |> db.all(query_handler(returning:), user_decoder())
 }
 
 pub fn all_error_test() {
@@ -79,7 +79,7 @@ pub fn all_error_test() {
   let assert Error(_) =
     db.sql(sql)
     |> db.params([db.int(1)])
-    |> db.all(Conn, user_decoder(), query_handler(returning:))
+    |> db.all(query_handler(returning:), user_decoder())
 }
 
 pub fn one_test() {
@@ -91,7 +91,7 @@ pub fn one_test() {
   let assert Ok(#(1, "Steve")) =
     db.sql(sql)
     |> db.params([db.int(1)])
-    |> db.one(Conn, user_decoder(), query_handler(returning:))
+    |> db.one(query_handler(returning:), user_decoder())
 }
 
 pub fn one_error_test() {
@@ -102,20 +102,24 @@ pub fn one_error_test() {
   let assert Error(_) =
     db.sql(sql)
     |> db.params([db.int(1)])
-    |> db.one(Conn, user_decoder(), query_handler(returning:))
+    |> db.one(query_handler(returning:), user_decoder())
 }
 
 pub fn transaction_test() {
+  let db = db.driver() |> db.new(Conn)
+
   let assert Ok("success") = {
-    use _tx <- db.transaction(Conn, tx_handler)
+    use _tx <- db.transaction(db, tx_handler)
 
     Ok("success")
   }
 }
 
 pub fn transaction_error_test() {
+  let db = db.driver() |> db.new(Conn)
+
   let assert Error(db.Rollback("failure")) = {
-    use _tx <- db.transaction(Conn, tx_handler)
+    use _tx <- db.transaction(db, tx_handler)
 
     Error("failure")
   }
@@ -134,14 +138,18 @@ fn user_decoder() -> decode.Decoder(#(Int, String)) {
 
 fn query_handler(
   returning queried: Result(db.Queried, db.DbError),
-) -> db.QueryHandler(v, Conn) {
-  fn(_: db.Query(v), _conn) { queried }
+) -> db.Db(v, Conn) {
+  db.driver()
+  |> db.on_query(fn(_, _) { queried })
+  |> db.new(Conn)
 }
 
 fn execute_handler(
   returning executed: Result(Int, db.DbError),
-) -> db.ExecuteHandler(Conn) {
-  fn(_sql: String, _conn) { executed }
+) -> db.Db(v, Conn) {
+  db.driver()
+  |> db.on_execute(fn(_, _) { executed })
+  |> db.new(Conn)
 }
 
 fn tx_handler(
