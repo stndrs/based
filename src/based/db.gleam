@@ -5,11 +5,138 @@
 //// handlers defined by the database adapter of their choice, or mock
 //// handler functions for tests that shouldn't hit a real database.
 
+import based/interval
 import gleam/dynamic.{type Dynamic}
 import gleam/dynamic/decode
 import gleam/list
+import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string
+import gleam/time/calendar
+import gleam/time/timestamp
+
+/// Values
+/// `Offset` represents a UTC offset. `Timestamptz` is composed
+/// of a [`gleam/time/timestamp.Timestamp`][1] and `Offset`. The offset will be
+/// applied to the timestamp when being encoded.
+///
+/// A timestamp with a positive offset represents some time in
+/// the future, relative to UTC.
+/// A timestamp with a negative offset represents some time in
+/// the past, relative to UTC.
+///
+/// `Offset`s will be subtracted from the `gleam/time/timestamp.Timestamp`
+/// so the encoded value is a UTC timestamp.
+///
+/// [1]: https://hexdocs.pm/gleam_time/gleam/time/timestamp.html
+pub type Offset {
+  Offset(hours: Int, minutes: Int)
+}
+
+/// Returns an Offset with the provided hours and 0 minutes.
+pub fn offset(hours: Int) -> Offset {
+  Offset(hours:, minutes: 0)
+}
+
+/// Applies some number of minutes to the Offset
+pub fn minutes(offset: Offset, minutes: Int) -> Offset {
+  Offset(..offset, minutes:)
+}
+
+/// The `Value` type represents PostgreSQL data types. Values can be encoded
+/// to PostgreSQL's binary format. `Value`s can be used when interacting with
+/// PostgreSQL databases through client libraries like [pgl][1].
+///
+/// [1]: https://github.com/stndrs/pgl
+pub type Value {
+  Null
+  Bool(Bool)
+  Int(Int)
+  Float(Float)
+  Text(String)
+  Bytea(BitArray)
+  Date(calendar.Date)
+  Time(calendar.TimeOfDay)
+  Datetime(calendar.Date, calendar.TimeOfDay)
+  Timestamp(timestamp.Timestamp)
+  Timestamptz(timestamp.Timestamp, Offset)
+  Interval(interval.Interval)
+  Array(List(Value))
+}
+
+pub const null = Null
+
+pub const true = Bool(True)
+
+pub const false = Bool(False)
+
+pub fn bool(bool: Bool) -> Value {
+  Bool(bool)
+}
+
+pub fn int(int: Int) -> Value {
+  Int(int)
+}
+
+pub fn float(float: Float) -> Value {
+  Float(float)
+}
+
+pub fn text(text: String) -> Value {
+  Text(text)
+}
+
+pub fn bytea(bytea: BitArray) -> Value {
+  Bytea(bytea)
+}
+
+pub fn date(date: calendar.Date) -> Value {
+  Date(date)
+}
+
+pub fn time(time_of_day: calendar.TimeOfDay) -> Value {
+  Time(time_of_day)
+}
+
+pub fn datetime(date: calendar.Date, time: calendar.TimeOfDay) -> Value {
+  Datetime(date, time)
+}
+
+pub fn timestamp(timestamp: timestamp.Timestamp) -> Value {
+  Timestamp(timestamp)
+}
+
+pub fn timestamptz(timestamp: timestamp.Timestamp, offset: Offset) -> Value {
+  Timestamptz(timestamp, offset)
+}
+
+pub fn interval(interval: interval.Interval) -> Value {
+  Interval(interval)
+}
+
+pub fn array(elements: List(a), of kind: fn(a) -> Value) -> Value {
+  elements
+  |> list.map(kind)
+  |> Array
+}
+
+/// Checks if the provided value is `option.Some` or `option.None`. If
+/// `None` then the value returned is `value.Null`. If `Some` value is
+/// provided then it is passed to the `inner_type` function.
+///
+/// Example:
+///
+/// ```gleam
+///   let int = pg_value.nullable(pg_value.int, Some(10))
+///
+///   let null = pg_value.nullable(pg_value.int, None)
+/// ```
+pub fn nullable(inner_type: fn(a) -> Value, optional: Option(a)) -> Value {
+  case optional {
+    Some(term) -> inner_type(term)
+    None -> Null
+  }
+}
 
 /// Error types covering database-specific errors, decoding failures,
 /// and application-level errors.

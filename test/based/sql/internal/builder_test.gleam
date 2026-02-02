@@ -1,16 +1,16 @@
+import based/db
 import based/sql
 import based/sql/column
 import based/sql/internal/builder
 import based/sql/internal/fmt
-import based/value
 import gleam/int
 import gleam/option.{None, Some}
 
 pub fn to_string_test() {
   let format_value = fn(v) {
     case v {
-      value.Text(s) -> "'" <> s <> "'"
-      value.Int(i) -> ":" <> int.to_string(i)
+      db.Text(s) -> "'" <> s <> "'"
+      db.Int(i) -> ":" <> int.to_string(i)
       _ -> ""
     }
   }
@@ -26,7 +26,7 @@ pub fn to_string_test() {
   assert "SELECT * FROM users" == result
 
   let sql = "SELECT * FROM users WHERE id = :param AND name = :param"
-  let values = [value.Int(1), value.Text("John")]
+  let values = [db.Int(1), db.Text("John")]
   let result = builder.to_string(sql, values, format)
 
   assert "SELECT * FROM users WHERE id = :1 AND name = 'John'" == result
@@ -52,14 +52,14 @@ pub fn append_where_test() {
     |> fmt.on_placeholder(fn(i) { "$" <> int.to_string(i) })
     |> fmt.on_value(fn(v) {
       case v {
-        value.Int(i) -> int.to_string(i)
-        value.Text(s) -> "'" <> s <> "'"
+        db.Int(i) -> int.to_string(i)
+        db.Text(s) -> "'" <> s <> "'"
         _ -> ""
       }
     })
 
   let left_node = column.new("id")
-  let right_node = value.int(1)
+  let right_node = db.int(1)
   let #(condition, _values) = sql.eq(left_node, right_node, of: sql.val)
 
   let result = builder.append_where(st, [[condition]], format)
@@ -92,13 +92,13 @@ pub fn append_having_test() {
     |> fmt.on_placeholder(fn(i) { "$" <> int.to_string(i) })
     |> fmt.on_value(fn(v) {
       case v {
-        value.Int(i) -> int.to_string(i)
+        db.Int(i) -> int.to_string(i)
         _ -> ""
       }
     })
 
   let count_node = column.new("COUNT(*)")
-  let value_node = value.int(5)
+  let value_node = db.int(5)
   let #(condition, _values) = sql.gt(count_node, value_node, of: sql.val)
 
   let result = builder.append_having(st, [[condition]], format)

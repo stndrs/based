@@ -18,8 +18,8 @@
 ////   |> update.to_query
 //// ```
 
-import based
 import based/db
+import based/repo.{type Repo}
 import based/sql
 import based/sql/column.{type Column}
 import based/sql/condition.{type Condition}
@@ -31,7 +31,7 @@ import gleam/option.{type Option, None}
 
 pub opaque type Update(v) {
   Update(
-    repo: based.Repo(v),
+    repo: Repo(v),
     table: table.Table,
     sets: List(#(String, condition.Node)),
     where: List(List(Condition)),
@@ -45,7 +45,7 @@ pub opaque type Update(v) {
 }
 
 /// Create a new UPDATE query for the specified table
-pub fn table(repo: based.Repo(v), table: table.Table) -> Update(v) {
+pub fn table(repo: Repo(v), table: table.Table) -> Update(v) {
   Update(
     repo:,
     table:,

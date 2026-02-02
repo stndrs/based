@@ -1,8 +1,9 @@
+import based
+import based/db
 import based/sql
 import based/sql/column
 import based/sql/select
 import based/sql/union
-import based/value
 import gleeunit/should
 
 pub fn union_test() {
@@ -11,7 +12,7 @@ pub fn union_test() {
   let users = sql.table("users")
   let employees = sql.table("employees")
   let users_query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
@@ -20,12 +21,12 @@ pub fn union_test() {
     ])
 
   let employees_query =
-    value.repo()
+    based.default()
     |> select.from(employees)
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
       sql.column("department")
-      |> sql.eq(value.text("Engineering"), of: sql.val),
+      |> sql.eq(db.text("Engineering"), of: sql.val),
     ])
 
   let query =
@@ -33,7 +34,7 @@ pub fn union_test() {
     |> union.to_query
 
   query.sql |> should.equal(expected)
-  query.values |> should.equal([value.text("Engineering")])
+  query.values |> should.equal([db.text("Engineering")])
 }
 
 pub fn union_all_test() {
@@ -42,7 +43,7 @@ pub fn union_all_test() {
   let users = sql.table("users")
   let employees = sql.table("employees")
   let users_query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
@@ -51,12 +52,12 @@ pub fn union_all_test() {
     ])
 
   let employees_query =
-    value.repo()
+    based.default()
     |> select.from(employees)
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
       sql.column("department")
-      |> sql.eq(value.text("Engineering"), of: sql.val),
+      |> sql.eq(db.text("Engineering"), of: sql.val),
     ])
 
   let query =
@@ -64,7 +65,7 @@ pub fn union_all_test() {
     |> union.to_query
 
   query.sql |> should.equal(expected)
-  query.values |> should.equal([value.text("Engineering")])
+  query.values |> should.equal([db.text("Engineering")])
 }
 
 pub fn union_to_string_test() {
@@ -73,7 +74,7 @@ pub fn union_to_string_test() {
   let users = sql.table("users")
   let employees = sql.table("employees")
   let users_query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
@@ -82,12 +83,12 @@ pub fn union_to_string_test() {
     ])
 
   let employees_query =
-    value.repo()
+    based.default()
     |> select.from(employees)
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
       sql.column("department")
-      |> sql.eq(value.text("Engineering"), of: sql.val),
+      |> sql.eq(db.text("Engineering"), of: sql.val),
     ])
 
   let result =
@@ -103,7 +104,7 @@ pub fn union_all_to_string_test() {
   let users = sql.table("users")
   let employees = sql.table("employees")
   let users_query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
@@ -112,12 +113,12 @@ pub fn union_all_to_string_test() {
     ])
 
   let employees_query =
-    value.repo()
+    based.default()
     |> select.from(employees)
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
       sql.column("department")
-      |> sql.eq(value.text("Engineering"), of: sql.val),
+      |> sql.eq(db.text("Engineering"), of: sql.val),
     ])
 
   let result =
@@ -134,7 +135,7 @@ pub fn multi_union_to_string_test() {
   let employees = sql.table("employees")
   let contractors = sql.table("contractors")
   let users_query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
@@ -143,21 +144,21 @@ pub fn multi_union_to_string_test() {
     ])
 
   let employees_query =
-    value.repo()
+    based.default()
     |> select.from(employees)
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
       sql.column("department")
-      |> sql.eq(value.text("Engineering"), of: sql.val),
+      |> sql.eq(db.text("Engineering"), of: sql.val),
     ])
 
   let contractors_query =
-    value.repo()
+    based.default()
     |> select.from(contractors)
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
       sql.column("status")
-      |> sql.eq(value.text("available"), of: sql.val),
+      |> sql.eq(db.text("available"), of: sql.val),
     ])
 
   let result =

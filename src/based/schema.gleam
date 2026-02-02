@@ -1,5 +1,5 @@
-import based
 import based/db
+import based/repo.{type Repo}
 import based/sql/column
 import based/sql/delete
 import based/sql/insert
@@ -24,7 +24,7 @@ pub type Field {
 
 pub type Schema(a, v) {
   Schema(
-    repo: based.Repo(v),
+    repo: Repo(v),
     table: table.Table,
     fields: Dict(String, Field),
     decoder: fn() -> Decoder(a),
@@ -32,9 +32,9 @@ pub type Schema(a, v) {
 }
 
 pub fn new(
-  repo: based.Repo(v),
+  repo: Repo(v),
   name: String,
-  decoder: fn(based.Repo(v)) -> Decoder(a),
+  decoder: fn(Repo(v)) -> Decoder(a),
 ) -> Schema(a, v) {
   let table = table.new(name)
   let fields = dict.new()

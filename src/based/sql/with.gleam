@@ -1,7 +1,7 @@
 //// A builder for constructing Common Table Expressions
 
-import based
 import based/db
+import based/repo.{type Repo}
 import based/sql/internal/builder
 import based/sql/internal/fmt
 import gleam/list
@@ -9,12 +9,7 @@ import gleam/string
 
 /// A WITH clause with recursive flag and CTEs.
 pub opaque type With(v) {
-  With(
-    repo: based.Repo(v),
-    recursive: Bool,
-    ctes: List(Cte(v)),
-    query: db.Query(v),
-  )
+  With(repo: Repo(v), recursive: Bool, ctes: List(Cte(v)), query: db.Query(v))
 }
 
 /// A Common Table Expression (CTE) with name, columns, and query.
@@ -23,7 +18,7 @@ pub opaque type Cte(v) {
 }
 
 /// Create a new WITH clause with the given CTEs.
-pub fn new(repo: based.Repo(v), ctes: List(Cte(v))) -> With(v) {
+pub fn new(repo: Repo(v), ctes: List(Cte(v))) -> With(v) {
   With(repo:, recursive: False, ctes:, query: db.sql(""))
 }
 
@@ -43,10 +38,7 @@ pub fn columns(cte: Cte(v), columns: List(String)) -> Cte(v) {
 }
 
 /// Set or modify the main query of a WITH clause.
-pub fn query(
-  with: With(v),
-  building: fn(based.Repo(v)) -> db.Query(v),
-) -> With(v) {
+pub fn query(with: With(v), building: fn(Repo(v)) -> db.Query(v)) -> With(v) {
   let query = building(with.repo)
 
   With(..with, query:)

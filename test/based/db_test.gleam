@@ -1,5 +1,4 @@
 import based/db
-import based/value
 import gleam/dynamic
 import gleam/dynamic/decode
 import gleam/list
@@ -17,7 +16,7 @@ pub fn sql_with_values_test() {
   let sql = "SELECT * FROM users WHERE id=$1;"
   let query =
     db.sql(sql)
-    |> db.params([value.int(1)])
+    |> db.params([db.int(1)])
 
   let assert True = query.sql == sql
   let assert True = query.values |> list.length == 1
@@ -31,7 +30,7 @@ pub fn query_test() {
 
   let assert Ok(_) =
     db.sql(sql)
-    |> db.params([value.int(1)])
+    |> db.params([db.int(1)])
     |> db.query(Conn, query_handler(returning:))
 }
 
@@ -42,7 +41,7 @@ pub fn query_error_test() {
 
   let assert Error(_) =
     db.sql(sql)
-    |> db.params([value.int(1)])
+    |> db.params([db.int(1)])
     |> db.query(Conn, query_handler(returning:))
 }
 
@@ -68,7 +67,7 @@ pub fn all_test() {
 
   let assert Ok(db.Returning(count: 1, rows: [#(1, "Steve")])) =
     db.sql(sql)
-    |> db.params([value.int(1)])
+    |> db.params([db.int(1)])
     |> db.all(Conn, user_decoder, query_handler(returning:))
 }
 
@@ -79,7 +78,7 @@ pub fn all_error_test() {
 
   let assert Error(_) =
     db.sql(sql)
-    |> db.params([value.int(1)])
+    |> db.params([db.int(1)])
     |> db.all(Conn, user_decoder, query_handler(returning:))
 }
 
@@ -91,7 +90,7 @@ pub fn one_test() {
 
   let assert Ok(#(1, "Steve")) =
     db.sql(sql)
-    |> db.params([value.int(1)])
+    |> db.params([db.int(1)])
     |> db.one(Conn, user_decoder, query_handler(returning:))
 }
 
@@ -102,7 +101,7 @@ pub fn one_error_test() {
 
   let assert Error(_) =
     db.sql(sql)
-    |> db.params([value.int(1)])
+    |> db.params([db.int(1)])
     |> db.one(Conn, user_decoder, query_handler(returning:))
 }
 

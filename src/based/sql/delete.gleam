@@ -18,8 +18,8 @@
 ////   |> delete.to_query
 //// ```
 
-import based
 import based/db
+import based/repo.{type Repo}
 import based/sql
 import based/sql/column.{type Column}
 import based/sql/condition.{type Condition}
@@ -31,7 +31,7 @@ import gleam/list
 /// A DELETE query with table, WHERE conditions, RETURNING columns, and values.
 pub opaque type Delete(v) {
   Delete(
-    repo: based.Repo(v),
+    repo: Repo(v),
     table: table.Table,
     where: List(List(Condition)),
     returning: List(Column),
@@ -40,7 +40,7 @@ pub opaque type Delete(v) {
 }
 
 /// Set the table for a DELETE query.
-pub fn from(repo: based.Repo(v), table: table.Table) -> Delete(v) {
+pub fn from(repo: Repo(v), table: table.Table) -> Delete(v) {
   Delete(repo: repo, table:, where: [], returning: [], values: [])
 }
 

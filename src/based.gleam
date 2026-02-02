@@ -1,122 +1,142 @@
-import based/sql/internal/fmt
-import based/sql/internal/value
-import gleam/dynamic/decode
+import based/db
+import based/interval
+import based/repo.{type Repo}
+import gleam/bit_array
+import gleam/float
+import gleam/function
+import gleam/int
+import gleam/list
+import gleam/string
 import gleam/time/calendar
+import gleam/time/duration
 import gleam/time/timestamp
 
-/// Repo must be configured by adapter packages.
-///
-/// Example:
-///
-/// A PostgreSQL adapter might configure `Repo` like this:
-///
-/// ```gleam
-/// let repo = based.repo()
-///   |> based.on_placeholder(fn(index) { "$" <> int.to_string(index) })
-///   |> based.on_identifier(function.identity)
-///   |> based.on_value(value.to_string)
-/// ```
-/// A MariaDB adapter might configure `Repo` like this:
-///
-/// ```gleam
-/// let repo = based.repo()
-///   |> based.on_placeholder(fn(_index) { "?" })
-///   |> based.on_identifier(fn(ident) { "`" <> ident <> "`" })
-///   |> based.on_value(value.to_string)
-/// ```
-///
-pub type Repo(v) {
-  Repo(decode: Decode, value_mapper: value.ValueMapper(v), fmt: fmt.Fmt(v))
+pub fn default() -> Repo(db.Value) {
+  repo.new()
+  |> repo.on_placeholder(fn(_) { "?" })
+  |> repo.on_identifier(function.identity)
+  |> repo.on_value(value_to_string)
+  |> repo.on_text(db.text)
+  |> repo.on_null(fn() { db.null })
 }
 
-pub type Decode {
-  Decode(
-    time: fn() -> decode.Decoder(calendar.TimeOfDay),
-    timestamp: fn() -> decode.Decoder(timestamp.Timestamp),
-    date: fn() -> decode.Decoder(calendar.Date),
-  )
+fn value_to_string(value: db.Value) -> String {
+  case value {
+    db.Null -> "NULL"
+    db.Bool(val) -> bool_to_string(val)
+    db.Int(val) -> int.to_string(val)
+    db.Float(val) -> float.to_string(val)
+    db.Text(val) -> text_to_string(val)
+    db.Bytea(val) -> bytea_to_string(val)
+    db.Time(val) -> time_to_string(val)
+    db.Date(val) -> date_to_string(val)
+    db.Datetime(date, time) -> datetime_to_string(date, time)
+    db.Timestamp(val) -> timestamp_to_string(val)
+    db.Timestamptz(ts, offset) -> timestamptz_to_string(ts, offset)
+    db.Interval(val) -> interval.to_iso8601_string(val)
+    db.Array(val) -> array_to_string(val)
+  }
 }
 
-fn decode() -> Decode {
-  Decode(
-    time: fn() { panic as "based.Decode time not configured" },
-    timestamp: fn() { panic as "based.Decode timestamp not configured" },
-    date: fn() { panic as "based.Decode date not configured" },
-  )
+fn array_to_string(array: List(db.Value)) -> String {
+  let elems = case array {
+    [] -> ""
+    [val] -> value_to_string(val)
+    vals -> {
+      vals
+      |> list.map(value_to_string)
+      |> string.join(", ")
+    }
+  }
+
+  "[" <> elems <> "]"
 }
 
-// Decoders
-// Value mappers
-// query functions
-// Formatting
+fn text_to_string(val: String) -> String {
+  let val = string.replace(in: val, each: "'", with: "\\'")
 
-pub fn repo() -> Repo(v) {
-  Repo(decode: decode(), value_mapper: value.new(), fmt: fmt.new())
+  single_quote(val)
 }
 
-/// Sets the placeholder formatting function.
-pub fn on_placeholder(
-  repo: Repo(v),
-  handle_placeholder: fn(Int) -> String,
-) -> Repo(v) {
-  let fmt = fmt.on_placeholder(repo.fmt, handle_placeholder)
-
-  Repo(..repo, fmt:)
+fn bool_to_string(val: Bool) -> String {
+  case val {
+    True -> "TRUE"
+    False -> "FALSE"
+  }
 }
 
-/// Set the identifier formatting function.
-pub fn on_identifier(
-  repo: Repo(v),
-  handle_identifier: fn(String) -> String,
-) -> Repo(v) {
-  let fmt = fmt.on_identifier(repo.fmt, handle_identifier)
+fn bytea_to_string(val: BitArray) -> String {
+  let val = "\\x" <> bit_array.base16_encode(val)
 
-  Repo(..repo, fmt:)
+  single_quote(val)
 }
 
-/// Set the value formatting function.
-pub fn on_value(repo: Repo(v), handle_value: fn(v) -> String) -> Repo(v) {
-  let fmt = fmt.on_value(repo.fmt, handle_value)
+fn date_to_string(date: calendar.Date) -> String {
+  let year = int.to_string(date.year)
+  let month = calendar.month_to_int(date.month) |> pad_zero
+  let day = pad_zero(date.day)
 
-  Repo(..repo, fmt:)
+  let date = year <> "-" <> month <> "-" <> day
+
+  single_quote(date)
 }
 
-/// Set the text to value function.
-pub fn on_text(repo: Repo(v), handle_text: fn(String) -> v) -> Repo(v) {
-  let value_mapper = value.on_text(repo.value_mapper, handle_text)
-
-  Repo(..repo, value_mapper:)
+fn datetime_to_string(dt: calendar.Date, tod: calendar.TimeOfDay) -> String {
+  date_to_string(dt) <> " " <> time_to_string(tod)
 }
 
-pub fn on_null(repo: Repo(v), handle_null: fn() -> v) -> Repo(v) {
-  let value_mapper = value.on_null(repo.value_mapper, handle_null)
+fn time_to_string(tod: calendar.TimeOfDay) -> String {
+  let hours = pad_zero(tod.hours)
+  let minutes = pad_zero(tod.minutes)
+  let seconds = pad_zero(tod.seconds)
+  let milliseconds = tod.nanoseconds / 1_000_000
 
-  Repo(..repo, value_mapper:)
+  let msecs = case milliseconds < 100 {
+    True if milliseconds == 0 -> ""
+    True if milliseconds < 10 -> ".00" <> int.to_string(milliseconds)
+    True -> ".0" <> int.to_string(milliseconds)
+    False -> "." <> int.to_string(milliseconds)
+  }
+
+  let time = hours <> ":" <> minutes <> ":" <> seconds <> msecs
+
+  single_quote(time)
 }
 
-pub fn time_decoder(
-  repo: Repo(v),
-  time: fn() -> decode.Decoder(calendar.TimeOfDay),
-) -> Repo(v) {
-  let decode = Decode(..repo.decode, time:)
-
-  Repo(..repo, decode:)
+fn timestamp_to_string(ts: timestamp.Timestamp) -> String {
+  timestamp.to_rfc3339(ts, calendar.utc_offset)
+  |> single_quote
 }
 
-pub fn timestamp_decoder(
-  repo: Repo(v),
-  timestamp: fn() -> decode.Decoder(timestamp.Timestamp),
-) -> Repo(v) {
-  let decode = Decode(..repo.decode, timestamp:)
-
-  Repo(..repo, decode:)
+fn timestamptz_to_string(
+  timestamp: timestamp.Timestamp,
+  offset: db.Offset,
+) -> String {
+  offset_to_duration(offset)
+  |> timestamp.add(timestamp, _)
+  |> timestamp_to_string
 }
 
-pub fn date_decoder(
-  repo: Repo(v),
-  date: fn() -> decode.Decoder(calendar.Date),
-) -> Repo(v) {
-  let decode = Decode(..repo.decode, date:)
+fn offset_to_duration(offset: db.Offset) -> duration.Duration {
+  let sign = case offset.hours < 0 {
+    True -> 1
+    False -> -1
+  }
 
-  Repo(..repo, decode:)
+  int.absolute_value(offset.hours)
+  |> int.multiply(60)
+  |> int.add(offset.minutes)
+  |> int.multiply(sign)
+  |> duration.minutes
+}
+
+fn single_quote(val: String) -> String {
+  "'" <> val <> "'"
+}
+
+fn pad_zero(n: Int) -> String {
+  case n < 10 {
+    True -> "0" <> int.to_string(n)
+    False -> int.to_string(n)
+  }
 }

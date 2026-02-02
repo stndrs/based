@@ -1,6 +1,7 @@
+import based
+import based/db
 import based/sql
 import based/sql/delete
-import based/value
 import gleeunit/should
 
 pub fn basic_delete_test() {
@@ -8,16 +9,16 @@ pub fn basic_delete_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> delete.from(users)
     |> delete.where([
       sql.column("id")
-      |> sql.eq(value.int(1), of: sql.val),
+      |> sql.eq(db.int(1), of: sql.val),
     ])
     |> delete.to_query
 
   query.sql |> should.equal(expected)
-  query.values |> should.equal([value.int(1)])
+  query.values |> should.equal([db.int(1)])
 }
 
 pub fn delete_with_where_not_test() {
@@ -25,16 +26,16 @@ pub fn delete_with_where_not_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> delete.from(users)
     |> delete.where_not([
       sql.column("id")
-      |> sql.eq(value.int(1), of: sql.val),
+      |> sql.eq(db.int(1), of: sql.val),
     ])
     |> delete.to_query
 
   query.sql |> should.equal(expected)
-  query.values |> should.equal([value.int(1)])
+  query.values |> should.equal([db.int(1)])
 }
 
 pub fn delete_with_multiple_conditions_test() {
@@ -42,19 +43,19 @@ pub fn delete_with_multiple_conditions_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> delete.from(users)
     |> delete.where([
       sql.column("id")
-        |> sql.eq(value.int(1), of: sql.val),
+        |> sql.eq(db.int(1), of: sql.val),
       sql.column("created_at")
-        |> sql.lt(value.text("2024-01-01"), of: sql.val),
+        |> sql.lt(db.text("2024-01-01"), of: sql.val),
     ])
     |> delete.to_query
 
   query.sql |> should.equal(expected)
   query.values
-  |> should.equal([value.int(1), value.text("2024-01-01")])
+  |> should.equal([db.int(1), db.text("2024-01-01")])
 }
 
 pub fn delete_returning_test() {
@@ -62,17 +63,17 @@ pub fn delete_returning_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> delete.from(users)
     |> delete.where([
       sql.column("id")
-      |> sql.eq(value.int(1), of: sql.val),
+      |> sql.eq(db.int(1), of: sql.val),
     ])
     |> delete.returning([sql.column("id"), sql.column("name")])
     |> delete.to_query
 
   query.sql |> should.equal(expected)
-  query.values |> should.equal([value.int(1)])
+  query.values |> should.equal([db.int(1)])
 }
 
 pub fn delete_to_string_test() {
@@ -80,13 +81,13 @@ pub fn delete_to_string_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> delete.from(users)
     |> delete.where([
       sql.column("id")
-        |> sql.eq(value.int(1), of: sql.val),
+        |> sql.eq(db.int(1), of: sql.val),
       sql.column("created_at")
-        |> sql.lt(value.text("2024-01-01"), of: sql.val),
+        |> sql.lt(db.text("2024-01-01"), of: sql.val),
     ])
 
   delete.to_string(query) |> should.equal(expected)

@@ -1,5 +1,5 @@
-import based
 import based/db
+import based/repo.{type Repo}
 import based/sql/column.{type Column}
 import based/sql/internal/builder
 import based/sql/internal/fmt
@@ -9,7 +9,7 @@ import gleam/string
 
 pub opaque type Insert(v) {
   Insert(
-    repo: based.Repo(v),
+    repo: Repo(v),
     table: table.Table,
     columns: List(String),
     returning: List(Column),
@@ -17,7 +17,7 @@ pub opaque type Insert(v) {
   )
 }
 
-pub fn into(repo: based.Repo(v), table: table.Table) -> Insert(v) {
+pub fn into(repo: Repo(v), table: table.Table) -> Insert(v) {
   Insert(repo:, table:, columns: [], returning: [], values: [])
 }
 

@@ -1,5 +1,5 @@
-import based
 import based/db
+import based/repo.{type Repo}
 import based/sql
 import based/sql/column.{type Column}
 import based/sql/condition.{type Condition}
@@ -21,7 +21,7 @@ type TableOrSubquery(v) {
 
 pub opaque type Select(v) {
   Select(
-    repo: based.Repo(v),
+    repo: Repo(v),
     table: Option(TableOrSubquery(v)),
     columns: List(Column),
     distinct: Bool,
@@ -47,7 +47,7 @@ pub fn distinct(select: Select(v)) -> Select(v) {
   Select(..select, distinct: True)
 }
 
-pub fn new(repo: based.Repo(v)) -> Select(v) {
+pub fn new(repo: Repo(v)) -> Select(v) {
   Select(
     repo:,
     table: None,
@@ -68,7 +68,7 @@ pub fn new(repo: based.Repo(v)) -> Select(v) {
 
 // From
 
-pub fn from(repo: based.Repo(v), table: table.Table) -> Select(v) {
+pub fn from(repo: Repo(v), table: table.Table) -> Select(v) {
   Select(
     repo:,
     table: Some(Table(table)),
@@ -87,7 +87,7 @@ pub fn from(repo: based.Repo(v), table: table.Table) -> Select(v) {
   )
 }
 
-pub fn from_query(repo: based.Repo(v), query: db.Query(v)) -> Select(v) {
+pub fn from_query(repo: Repo(v), query: db.Query(v)) -> Select(v) {
   Select(
     repo:,
     table: Some(Subquery(query)),

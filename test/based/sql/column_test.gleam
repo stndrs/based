@@ -1,8 +1,9 @@
+import based
+import based/db
 import based/sql
 import based/sql/column
 import based/sql/condition
 import based/sql/internal/fmt
-import based/value
 import gleam/list
 
 pub fn column_test() {
@@ -10,7 +11,7 @@ pub fn column_test() {
 
   let expected = "id"
 
-  assert expected == column.to_string(col, value.repo())
+  assert expected == column.to_string(col, based.default())
 }
 
 pub fn column_alias_test() {
@@ -18,7 +19,7 @@ pub fn column_alias_test() {
 
   let expected = "user_id AS id"
 
-  assert expected == column.to_string(col, value.repo())
+  assert expected == column.to_string(col, based.default())
 }
 
 pub fn column_with_table_test() {
@@ -30,7 +31,7 @@ pub fn column_with_table_test() {
 
   let expected = "users.id"
 
-  assert expected == column.to_string(col, value.repo())
+  assert expected == column.to_string(col, based.default())
 }
 
 pub fn table_and_alias_test() {
@@ -43,7 +44,7 @@ pub fn table_and_alias_test() {
 
   let expected = "users.user_id AS id"
 
-  assert expected == column.to_string(col, value.repo())
+  assert expected == column.to_string(col, based.default())
 }
 
 fn value_comp() -> condition.Comparable(v, v) {
@@ -51,7 +52,7 @@ fn value_comp() -> condition.Comparable(v, v) {
 }
 
 pub fn eq_test() {
-  let val = value.int(1)
+  let val = db.int(1)
 
   let #(condition, values) =
     column.new("id")
@@ -60,11 +61,11 @@ pub fn eq_test() {
   let expected = "id = :param"
 
   assert expected == condition.to_string(condition, fmt.new())
-  assert [value.int(1)] == values
+  assert [db.int(1)] == values
 }
 
 pub fn greater_than_test() {
-  let val = value.int(18)
+  let val = db.int(18)
 
   let #(condition, values) =
     column.new("age")
@@ -73,11 +74,11 @@ pub fn greater_than_test() {
   let expected = "age > :param"
 
   assert expected == condition.to_string(condition, fmt.new())
-  assert [value.int(18)] == values
+  assert [db.int(18)] == values
 }
 
 pub fn less_than_test() {
-  let val = value.int(65)
+  let val = db.int(65)
 
   let #(condition, values) =
     column.new("age")
@@ -86,11 +87,11 @@ pub fn less_than_test() {
   let expected = "age < :param"
 
   assert expected == condition.to_string(condition, fmt.new())
-  assert [value.int(65)] == values
+  assert [db.int(65)] == values
 }
 
 pub fn greater_than_equal_test() {
-  let val = value.int(18)
+  let val = db.int(18)
 
   let #(condition, values) =
     column.new("age")
@@ -99,11 +100,11 @@ pub fn greater_than_equal_test() {
   let expected = "age >= :param"
 
   assert expected == condition.to_string(condition, fmt.new())
-  assert [value.int(18)] == values
+  assert [db.int(18)] == values
 }
 
 pub fn less_than_equal_test() {
-  let val = value.int(65)
+  let val = db.int(65)
 
   let #(condition, values) =
     column.new("age")
@@ -112,11 +113,11 @@ pub fn less_than_equal_test() {
   let expected = "age <= :param"
 
   assert expected == condition.to_string(condition, fmt.new())
-  assert [value.int(65)] == values
+  assert [db.int(65)] == values
 }
 
 pub fn not_equal_test() {
-  let val = value.text("inactive")
+  let val = db.text("inactive")
 
   let #(condition, values) =
     column.new("status")
@@ -125,12 +126,12 @@ pub fn not_equal_test() {
   let expected = "status <> :param"
 
   assert expected == condition.to_string(condition, fmt.new())
-  assert [value.text("inactive")] == values
+  assert [db.text("inactive")] == values
 }
 
 pub fn between_test() {
-  let start = value.float(10.0)
-  let end = value.float(50.0)
+  let start = db.float(10.0)
+  let end = db.float(50.0)
 
   let #(condition, values) =
     column.new("price")
@@ -139,7 +140,7 @@ pub fn between_test() {
   let expected = "price BETWEEN :param AND :param"
 
   assert expected == condition.to_string(condition, fmt.new())
-  assert [value.float(10.0), value.float(50.0)] == values
+  assert [db.float(10.0), db.float(50.0)] == values
 }
 
 pub fn like_test() {
@@ -150,7 +151,7 @@ pub fn like_test() {
   let expected = "name LIKE :param"
 
   assert expected == condition.to_string(condition, fmt.new())
-  assert [value.text("%John%")] == condition.to_values(condition, value.text)
+  assert [db.text("%John%")] == condition.to_values(condition, db.text)
 }
 
 pub fn in_test() {
@@ -173,12 +174,12 @@ pub fn in_test() {
 
   let #(condition, values) =
     column.new("id")
-    |> column.in(values, of: list_comp(value.int))
+    |> column.in(values, of: list_comp(db.int))
 
   let expected = "id IN (:param, :param, :param)"
 
   assert expected == condition.to_string(condition, fmt.new())
-  assert [value.int(1), value.int(2), value.int(3)] == values
+  assert [db.int(1), db.int(2), db.int(3)] == values
 }
 
 pub fn is_test() {
@@ -202,11 +203,11 @@ pub fn not_like_test() {
 
   assert expected == condition.to_string(condition, fmt.new())
 
-  assert [value.text("%admin%")] == condition.to_values(condition, value.text)
+  assert [db.text("%admin%")] == condition.to_values(condition, db.text)
 }
 
 pub fn avg_test() {
-  let repo = value.repo()
+  let repo = based.default()
 
   let avg =
     column.avg("number")
@@ -216,7 +217,7 @@ pub fn avg_test() {
 }
 
 pub fn count_test() {
-  let repo = value.repo()
+  let repo = based.default()
 
   let count =
     column.count("number")
@@ -226,7 +227,7 @@ pub fn count_test() {
 }
 
 pub fn max_test() {
-  let repo = value.repo()
+  let repo = based.default()
 
   let max =
     column.max("number")
@@ -236,7 +237,7 @@ pub fn max_test() {
 }
 
 pub fn min_test() {
-  let repo = value.repo()
+  let repo = based.default()
 
   let min =
     column.min("number")
@@ -246,7 +247,7 @@ pub fn min_test() {
 }
 
 pub fn sum_test() {
-  let repo = value.repo()
+  let repo = based.default()
 
   let sum =
     column.sum("number")
@@ -256,7 +257,7 @@ pub fn sum_test() {
 }
 
 pub fn avg_alias_test() {
-  let repo = value.repo()
+  let repo = based.default()
 
   let avg =
     column.avg("number")
@@ -267,7 +268,7 @@ pub fn avg_alias_test() {
 }
 
 pub fn count_alias_test() {
-  let repo = value.repo()
+  let repo = based.default()
 
   let count =
     column.count("number")
@@ -278,7 +279,7 @@ pub fn count_alias_test() {
 }
 
 pub fn max_alias_test() {
-  let repo = value.repo()
+  let repo = based.default()
 
   let max =
     column.max("number")
@@ -289,7 +290,7 @@ pub fn max_alias_test() {
 }
 
 pub fn min_alias_test() {
-  let repo = value.repo()
+  let repo = based.default()
 
   let min =
     column.min("number")
@@ -300,7 +301,7 @@ pub fn min_alias_test() {
 }
 
 pub fn sum_alias_test() {
-  let repo = value.repo()
+  let repo = based.default()
 
   let sum =
     column.sum("number")

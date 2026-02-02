@@ -1,4 +1,4 @@
-import based
+import based/repo.{type Repo}
 import based/sql/condition.{type Condition}
 import based/sql/internal/fmt
 import based/sql/table
@@ -65,7 +65,7 @@ const asterisk = "*"
 pub const all = Column(name: asterisk, alias: None, table: None, func: None)
 
 @internal
-pub fn to_string(column: Column, repo: based.Repo(v)) -> String {
+pub fn to_string(column: Column, repo: Repo(v)) -> String {
   let Column(name:, alias:, table:, func:) = column
 
   let col = case func {

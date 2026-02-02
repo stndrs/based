@@ -1,11 +1,12 @@
 import based
+import based/db
+import based/interval
+import based/repo
 import based/sql
 import based/sql/column
 import based/sql/select
-import based/value
 import gleam/int
 import gleam/time/calendar
-import gleam/time/duration
 import gleam/time/timestamp
 
 pub fn select_test() {
@@ -14,7 +15,7 @@ pub fn select_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.to_query
@@ -28,7 +29,7 @@ pub fn select_alias_test() {
   let user_posts = sql.table("user_posts")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(user_posts)
     |> select.columns([
       sql.column("user_id")
@@ -44,7 +45,7 @@ pub fn select_distincts_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.distinct
@@ -60,20 +61,20 @@ pub fn select_where_test() {
   let users = sql.table("posts")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.columns([sql.column("title")])
     |> select.where([
       sql.column("created_at")
-        |> sql.gt(value.text("2024-01-01"), of: sql.val),
+        |> sql.gt(db.text("2024-01-01"), of: sql.val),
 
       sql.column("user_id")
-        |> sql.eq(value.int(10), of: sql.val),
+        |> sql.eq(db.int(10), of: sql.val),
     ])
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.text("2024-01-01"), value.int(10)] == query.values
+  assert [db.text("2024-01-01"), db.int(10)] == query.values
 }
 
 pub fn select_subquery_test() {
@@ -83,28 +84,28 @@ pub fn select_subquery_test() {
   let posts = sql.table("posts")
 
   let subquery =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.columns([sql.column("id")])
     |> select.where([
       sql.column("name")
-      |> sql.eq(value.text("Human Person"), of: sql.val),
+      |> sql.eq(db.text("Human Person"), of: sql.val),
     ])
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(posts)
     |> select.columns([sql.column("title")])
     |> select.where([
       sql.column("created_at")
-        |> sql.gt(value.text("2024-01-01"), of: sql.val),
+        |> sql.gt(db.text("2024-01-01"), of: sql.val),
       sql.column("user_id")
         |> sql.eq(subquery, of: select.subquery),
     ])
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.text("2024-01-01"), value.text("Human Person")] == query.values
+  assert [db.text("2024-01-01"), db.text("Human Person")] == query.values
 }
 
 pub fn select_or_test() {
@@ -112,22 +113,22 @@ pub fn select_or_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.where([
       sql.column("name")
-      |> sql.eq(value.text("Human Person"), of: sql.val)
+      |> sql.eq(db.text("Human Person"), of: sql.val)
       |> sql.or(
         sql.column("email")
-        |> sql.eq(value.text("human.person@example.com"), of: sql.val),
+        |> sql.eq(db.text("human.person@example.com"), of: sql.val),
       ),
     ])
     |> select.to_query
 
   assert expected == query.sql
   assert [
-      value.text("Human Person"),
-      value.text("human.person@example.com"),
+      db.text("Human Person"),
+      db.text("human.person@example.com"),
     ]
     == query.values
 }
@@ -137,16 +138,16 @@ pub fn select_where_not_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.where_not([
       sql.column("email")
-      |> sql.eq(value.text("Human Person"), of: sql.val),
+      |> sql.eq(db.text("Human Person"), of: sql.val),
     ])
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.text("Human Person")] == query.values
+  assert [db.text("Human Person")] == query.values
 }
 
 pub fn select_where_not_like_test() {
@@ -154,7 +155,7 @@ pub fn select_where_not_like_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.where([
       sql.column("email")
@@ -163,7 +164,7 @@ pub fn select_where_not_like_test() {
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.text("Human Person")] == query.values
+  assert [db.text("Human Person")] == query.values
 }
 
 pub fn select_distinct_test() {
@@ -171,7 +172,7 @@ pub fn select_distinct_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.columns([sql.column("value")])
     |> select.distinct
@@ -189,7 +190,7 @@ pub fn select_with_join_test() {
   let posts = sql.table("posts")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.join(posts, on: [
       sql.column("users.id")
@@ -200,7 +201,7 @@ pub fn select_with_join_test() {
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.text("%gleam%")] == query.values
+  assert [db.text("%gleam%")] == query.values
 }
 
 pub fn select_with_multiple_joins_test() {
@@ -214,7 +215,7 @@ pub fn select_with_multiple_joins_test() {
   let followers = sql.table("followers")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.join(posts, on: [
       sql.column("users.id")
@@ -237,7 +238,7 @@ pub fn select_with_multiple_joins_test() {
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.text("%gleam%")] == query.values
+  assert [db.text("%gleam%")] == query.values
 }
 
 pub fn select_with_in_test() {
@@ -245,16 +246,16 @@ pub fn select_with_in_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.where([
       sql.column("id")
-      |> sql.in([1, 2, 3], of: sql.list(of: value.int)),
+      |> sql.in([1, 2, 3], of: sql.list(of: db.int)),
     ])
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.int(1), value.int(2), value.int(3)] == query.values
+  assert [db.int(1), db.int(2), db.int(3)] == query.values
 }
 
 // pub fn select_with_in_tuples_test() {
@@ -263,15 +264,15 @@ pub fn select_with_in_test() {
 //   let posts = sql.table("posts")
 // 
 //   let query =
-//     value.repo()
+//     based.default()
 //     |> select.from(posts)
 //     |> select.where([
 //       sql.columns(["id", "user_id"])
 //       |> sql.in(
 //         sql.tuples([
-//           [sql.val(value.int(1)), sql.val(value.int(10))],
-//           [sql.val(value.int(2)), sql.val(value.int(10))],
-//           [sql.val(value.int(3)), sql.val(value.int(10))],
+//           [sql.val(db.int(1)), sql.val(db.int(10))],
+//           [sql.val(db.int(2)), sql.val(db.int(10))],
+//           [sql.val(db.int(3)), sql.val(db.int(10))],
 //         ]),
 //       ),
 //     ])
@@ -279,12 +280,12 @@ pub fn select_with_in_test() {
 // 
 //   assert expected == query.sql
 //   assert [
-//       value.int(1),
-//       value.int(10),
-//       value.int(2),
-//       value.int(10),
-//       value.int(3),
-//       value.int(10),
+//       db.int(1),
+//       db.int(10),
+//       db.int(2),
+//       db.int(10),
+//       db.int(3),
+//       db.int(10),
 //     ]
 //     == query.values
 // }
@@ -294,7 +295,7 @@ pub fn select_with_is_null_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.where([sql.column("deleted_at") |> sql.is_null])
     |> select.to_query
@@ -308,7 +309,7 @@ pub fn select_with_is_true_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.where([sql.column("deleted_at") |> column.is(True)])
     |> select.to_query
@@ -322,7 +323,7 @@ pub fn select_with_is_not_null_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.where([sql.column("active") |> column.is_not_null])
     |> select.to_query
@@ -336,7 +337,7 @@ pub fn select_wildcard_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.to_query
 
@@ -349,16 +350,16 @@ pub fn where_lt_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.where([
       sql.column("age")
-      |> sql.lt(value.int(65), of: sql.val),
+      |> sql.lt(db.int(65), of: sql.val),
     ])
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.int(65)] == query.values
+  assert [db.int(65)] == query.values
 }
 
 pub fn where_lt_eq_test() {
@@ -366,16 +367,16 @@ pub fn where_lt_eq_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.where([
       sql.column("age")
-      |> sql.lt_eq(value.int(65), of: sql.val),
+      |> sql.lt_eq(db.int(65), of: sql.val),
     ])
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.int(65)] == query.values
+  assert [db.int(65)] == query.values
 }
 
 pub fn where_not_eq_test() {
@@ -383,16 +384,16 @@ pub fn where_not_eq_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.where([
       sql.column("status")
-      |> sql.not_eq(value.text("inactive"), of: sql.val),
+      |> sql.not_eq(db.text("inactive"), of: sql.val),
     ])
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.text("inactive")] == query.values
+  assert [db.text("inactive")] == query.values
 }
 
 pub fn multiple_where_test() {
@@ -400,18 +401,18 @@ pub fn multiple_where_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.where([
       sql.column("age")
-        |> sql.gt(value.int(18), of: sql.val),
+        |> sql.gt(db.int(18), of: sql.val),
       sql.column("status")
-        |> sql.eq(value.text("active"), of: sql.val),
+        |> sql.eq(db.text("active"), of: sql.val),
     ])
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.int(18), value.text("active")] == query.values
+  assert [db.int(18), db.text("active")] == query.values
 }
 
 pub fn join_with_multiple_conditions_to_string_test() {
@@ -422,19 +423,19 @@ pub fn join_with_multiple_conditions_to_string_test() {
   let orders = sql.table("orders")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.join(orders, on: [
       sql.column("users.id")
         |> sql.eq(sql.column("orders.user_id"), of: sql.col),
       sql.column("orders.status")
-        |> sql.eq(value.text("completed"), of: sql.val),
+        |> sql.eq(db.text("completed"), of: sql.val),
     ])
     |> select.where([
       sql.column("users.age")
-        |> sql.gt(value.int(20), of: sql.val),
+        |> sql.gt(db.int(20), of: sql.val),
       sql.column("users.active")
-        |> sql.eq(value.bool(True), of: sql.val),
+        |> sql.eq(db.bool(True), of: sql.val),
     ])
     |> select.to_string
 
@@ -446,13 +447,13 @@ pub fn select_with_limit_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
-    |> select.limit(10, of: value.int)
+    |> select.limit(10, of: db.int)
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.int(10)] == query.values
+  assert [db.int(10)] == query.values
 }
 
 pub fn select_with_limit_and_offset_test() {
@@ -460,14 +461,14 @@ pub fn select_with_limit_and_offset_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
-    |> select.limit(20, of: value.int)
-    |> select.offset(10, of: value.int)
+    |> select.limit(20, of: db.int)
+    |> select.offset(10, of: db.int)
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.int(20), value.int(10)] == query.values
+  assert [db.int(20), db.int(10)] == query.values
 }
 
 pub fn select_with_offset_test() {
@@ -475,14 +476,14 @@ pub fn select_with_offset_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
-    |> select.limit(100, of: value.int)
-    |> select.offset(50, of: value.int)
+    |> select.limit(100, of: db.int)
+    |> select.offset(50, of: db.int)
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.int(100), value.int(50)] == query.values
+  assert [db.int(100), db.int(50)] == query.values
 }
 
 pub fn group_by_test() {
@@ -491,7 +492,7 @@ pub fn group_by_test() {
   let employees = sql.table("employees")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(employees)
     |> select.columns([sql.column("department"), sql.count("*")])
     |> select.group_by(["department"])
@@ -507,7 +508,7 @@ pub fn multiple_group_by_test() {
   let employees = sql.table("employees")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(employees)
     |> select.columns([
       sql.column("department"),
@@ -527,18 +528,18 @@ pub fn having_test() {
   let employees = sql.table("employees")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(employees)
     |> select.columns([sql.column("department"), sql.count("*")])
     |> select.group_by(["department"])
     |> select.having([
       sql.count("*")
-      |> sql.gt(value.int(5), of: sql.val),
+      |> sql.gt(db.int(5), of: sql.val),
     ])
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.int(5)] == query.values
+  assert [db.int(5)] == query.values
 }
 
 pub fn multiple_having_test() {
@@ -547,20 +548,20 @@ pub fn multiple_having_test() {
   let employees = sql.table("employees")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(employees)
     |> select.columns([sql.column("department"), sql.avg("salary")])
     |> select.group_by(["department"])
     |> select.having([
       sql.count("*")
-        |> sql.gt(value.int(5), of: sql.val),
+        |> sql.gt(db.int(5), of: sql.val),
       sql.avg("salary")
-        |> sql.gt(value.float(50_000.0), of: sql.val),
+        |> sql.gt(db.float(50_000.0), of: sql.val),
     ])
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.int(5), value.float(50_000.0)] == query.values
+  assert [db.int(5), db.float(50_000.0)] == query.values
 }
 
 pub fn order_by_with_asc_test() {
@@ -568,7 +569,7 @@ pub fn order_by_with_asc_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.order_by(["name"])
     |> select.asc
@@ -583,7 +584,7 @@ pub fn order_by_with_desc_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.order_by(["created_at"])
     |> select.desc
@@ -598,7 +599,7 @@ pub fn multiple_order_by_columns_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.order_by(["department", "name"])
     |> select.asc
@@ -614,7 +615,7 @@ pub fn complex_query_with_order_by_test() {
   let employees = sql.table("employees")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(employees)
     |> select.columns([
       sql.column("department"),
@@ -622,21 +623,21 @@ pub fn complex_query_with_order_by_test() {
     ])
     |> select.where([
       sql.column("active")
-      |> sql.eq(value.bool(True), of: sql.val),
+      |> sql.eq(db.bool(True), of: sql.val),
     ])
     |> select.group_by(["department"])
     |> select.having([
       sql.count("*")
-      |> sql.gt(value.int(10), of: sql.val),
+      |> sql.gt(db.int(10), of: sql.val),
     ])
     |> select.order_by(["COUNT(*)"])
     |> select.desc
-    |> select.limit(5, of: value.int)
-    |> select.offset(0, of: value.int)
+    |> select.limit(5, of: db.int)
+    |> select.offset(0, of: db.int)
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.true, value.int(10), value.int(5), value.int(0)] == query.values
+  assert [db.true, db.int(10), db.int(5), db.int(0)] == query.values
 }
 
 pub fn from_subquery_test() {
@@ -645,7 +646,7 @@ pub fn from_subquery_test() {
   let employees = sql.table("employees")
 
   let employees_query =
-    value.repo()
+    based.default()
     |> select.from(employees)
     |> select.columns([
       sql.column("id"),
@@ -654,12 +655,12 @@ pub fn from_subquery_test() {
     ])
     |> select.where([
       sql.column("active")
-      |> sql.eq(value.bool(True), of: sql.val),
+      |> sql.eq(db.bool(True), of: sql.val),
     ])
     |> select.to_query
 
   let query =
-    value.repo()
+    based.default()
     |> select.from_query(employees_query)
     |> select.columns([
       sql.column("name"),
@@ -672,7 +673,7 @@ pub fn from_subquery_test() {
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.true, value.text("%John%")] == query.values
+  assert [db.true, db.text("%John%")] == query.values
 }
 
 pub fn complex_queried_with_aggregation_test() {
@@ -681,7 +682,7 @@ pub fn complex_queried_with_aggregation_test() {
   let employees = sql.table("employees")
 
   let department_stats_query =
-    value.repo()
+    based.default()
     |> select.from(employees)
     |> select.columns([
       sql.column("department"),
@@ -690,12 +691,12 @@ pub fn complex_queried_with_aggregation_test() {
     |> select.group_by(["department"])
     |> select.having([
       sql.count("*")
-      |> sql.gt(value.int(10), of: sql.val),
+      |> sql.gt(db.int(10), of: sql.val),
     ])
     |> select.to_query
 
   let query =
-    value.repo()
+    based.default()
     |> select.from_query(department_stats_query)
     |> select.columns([
       sql.column("department"),
@@ -703,12 +704,12 @@ pub fn complex_queried_with_aggregation_test() {
     ])
     |> select.where([
       sql.column("total_salary")
-      |> sql.gt(value.float(1_000_000.0), of: sql.val),
+      |> sql.gt(db.float(1_000_000.0), of: sql.val),
     ])
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.int(10), value.float(1_000_000.0)] == query.values
+  assert [db.int(10), db.float(1_000_000.0)] == query.values
 }
 
 pub fn for_update_test() {
@@ -716,17 +717,17 @@ pub fn for_update_test() {
   let users = sql.table("users")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.where([
       sql.column("id")
-      |> sql.eq(value.int(1), of: sql.val),
+      |> sql.eq(db.int(1), of: sql.val),
     ])
     |> select.for_update
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.int(1)] == query.values
+  assert [db.int(1)] == query.values
 }
 
 pub fn complex_for_update_test() {
@@ -735,7 +736,7 @@ pub fn complex_for_update_test() {
   let accounts = sql.table("accounts")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(accounts)
     |> select.columns([
       sql.column("id"),
@@ -744,24 +745,24 @@ pub fn complex_for_update_test() {
     ])
     |> select.where([
       sql.column("user_id")
-        |> sql.eq(value.int(5), of: sql.val),
+        |> sql.eq(db.int(5), of: sql.val),
       sql.column("balance")
-        |> sql.gt_eq(value.float(1000.0), of: sql.val),
+        |> sql.gt_eq(db.float(1000.0), of: sql.val),
     ])
     |> select.order_by(["balance"])
     |> select.desc
-    |> select.limit(3, of: value.int)
+    |> select.limit(3, of: db.int)
     |> select.for_update
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.int(5), value.float(1000.0), value.int(3)] == query.values
+  assert [db.int(5), db.float(1000.0), db.int(3)] == query.values
 }
 
 pub fn format_placeholders_test() {
   let fmt =
-    value.repo()
-    |> based.on_placeholder(fn(idx) { "$" <> int.to_string(idx) })
+    based.default()
+    |> repo.on_placeholder(fn(idx) { "$" <> int.to_string(idx) })
 
   let expected = "SELECT * FROM users WHERE id = $1 AND name = $2"
   let users = sql.table("users")
@@ -771,20 +772,20 @@ pub fn format_placeholders_test() {
     |> select.from(users)
     |> select.where([
       sql.column("id")
-        |> sql.eq(value.int(1), of: sql.val),
+        |> sql.eq(db.int(1), of: sql.val),
       sql.column("name")
-        |> sql.eq(value.text("John"), of: sql.val),
+        |> sql.eq(db.text("John"), of: sql.val),
     ])
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.int(1), value.text("John")] == query.values
+  assert [db.int(1), db.text("John")] == query.values
 }
 
 pub fn format_identifier_test() {
   let repo =
-    value.repo()
-    |> based.on_identifier({ fn(val) { "\"" <> val <> "\"" } })
+    based.default()
+    |> repo.on_identifier({ fn(val) { "\"" <> val <> "\"" } })
 
   let expected = "SELECT * FROM \"users\" WHERE \"id\" = ? AND \"name\" = ?"
   let users = sql.table("users")
@@ -794,14 +795,14 @@ pub fn format_identifier_test() {
     |> select.from(users)
     |> select.where([
       sql.column("id")
-        |> sql.eq(value.int(1), of: sql.val),
+        |> sql.eq(db.int(1), of: sql.val),
       sql.column("name")
-        |> sql.eq(value.text("John"), of: sql.val),
+        |> sql.eq(db.text("John"), of: sql.val),
     ])
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.int(1), value.text("John")] == query.values
+  assert [db.int(1), db.text("John")] == query.values
 }
 
 pub fn for_update_with_join_test() {
@@ -811,7 +812,7 @@ pub fn for_update_with_join_test() {
   let orders = sql.table("orders")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(orders)
     |> select.columns([
       sql.column("id") |> column.for(orders),
@@ -824,13 +825,13 @@ pub fn for_update_with_join_test() {
     ])
     |> select.where([
       sql.column("orders.status")
-      |> sql.eq(value.text("pending"), of: sql.val),
+      |> sql.eq(db.text("pending"), of: sql.val),
     ])
     |> select.for_update
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.text("pending")] == query.values
+  assert [db.text("pending")] == query.values
 }
 
 pub fn date_time_types_test() {
@@ -839,17 +840,17 @@ pub fn date_time_types_test() {
   let events = sql.table("events")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(events)
     |> select.where([
       sql.column("event_date")
-        |> sql.eq(value.date(date), of: sql.val),
+        |> sql.eq(db.date(date), of: sql.val),
       sql.column("event_timestamp")
-        |> sql.eq(value.timestamp(time), of: sql.val),
+        |> sql.eq(db.timestamp(time), of: sql.val),
     ])
     |> select.to_query
 
-  assert [value.date(date), value.timestamp(time)] == query.values
+  assert [db.date(date), db.timestamp(time)] == query.values
 }
 
 pub fn time_type_test() {
@@ -863,53 +864,52 @@ pub fn time_type_test() {
   let events = sql.table("events")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(events)
     |> select.where([
       sql.column("event_time")
-      |> sql.eq(value.time(time_of_day), of: sql.val),
+      |> sql.eq(db.time(time_of_day), of: sql.val),
     ])
     |> select.to_query
 
-  assert [value.time(time_of_day)] == query.values
+  assert [db.time(time_of_day)] == query.values
 }
 
 pub fn duration_type_test() {
-  let dur = duration.seconds(3661)
+  let interval = interval.seconds(3661)
   let events = sql.table("events")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(events)
     |> select.where([
       sql.column("event_duration")
-      |> sql.eq(value.interval(dur), of: sql.val),
+      |> sql.eq(db.interval(interval), of: sql.val),
     ])
     |> select.to_query
 
-  assert [value.interval(dur)] == query.values
+  assert [db.interval(interval)] == query.values
 }
 
 pub fn different_value_types_test() {
   let products = sql.table("products")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(products)
     |> select.where([
       sql.column("id")
-        |> sql.eq(value.int(123), of: sql.val),
+        |> sql.eq(db.int(123), of: sql.val),
       sql.column("price")
-        |> sql.gt(value.float(19.99), of: sql.val),
+        |> sql.gt(db.float(19.99), of: sql.val),
       sql.column("is_active")
-        |> sql.eq(value.bool(True), of: sql.val),
+        |> sql.eq(db.bool(True), of: sql.val),
       sql.column("description")
-        |> sql.eq(value.null, of: sql.val),
+        |> sql.eq(db.null, of: sql.val),
     ])
     |> select.to_query
 
-  assert [value.int(123), value.float(19.99), value.true, value.null]
-    == query.values
+  assert [db.int(123), db.float(19.99), db.true, db.null] == query.values
 }
 
 pub fn between_test() {
@@ -917,16 +917,16 @@ pub fn between_test() {
   let products = sql.table("products")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(products)
     |> select.where([
       sql.column("price")
-      |> sql.between(value.float(10.0), value.float(50.0), of: sql.val),
+      |> sql.between(db.float(10.0), db.float(50.0), of: sql.val),
     ])
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.float(10.0), value.float(50.0)] == query.values
+  assert [db.float(10.0), db.float(50.0)] == query.values
 }
 
 pub fn complex_between_test() {
@@ -938,29 +938,25 @@ pub fn complex_between_test() {
   let orders = sql.table("orders")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(orders)
     |> select.where([
       sql.column("total")
-        |> sql.between(value.float(100.0), value.float(1000.0), of: sql.val),
+        |> sql.between(db.float(100.0), db.float(1000.0), of: sql.val),
       sql.column("created_at")
-        |> sql.between(
-          value.date(date_start),
-          value.date(date_end),
-          of: sql.val,
-        ),
+        |> sql.between(db.date(date_start), db.date(date_end), of: sql.val),
       sql.column("status")
-        |> sql.eq(value.text("completed"), of: sql.val),
+        |> sql.eq(db.text("completed"), of: sql.val),
     ])
     |> select.to_query
 
   assert expected == query.sql
   assert [
-      value.float(100.0),
-      value.float(1000.0),
-      value.date(date_start),
-      value.date(date_end),
-      value.text("completed"),
+      db.float(100.0),
+      db.float(1000.0),
+      db.date(date_start),
+      db.date(date_end),
+      db.text("completed"),
     ]
     == query.values
 }
@@ -970,18 +966,18 @@ pub fn not_between_test() {
   let products = sql.table("products")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(products)
     |> select.where([
       sql.not(
         sql.column("price")
-        |> sql.between(value.float(10.0), value.float(50.0), of: sql.val),
+        |> sql.between(db.float(10.0), db.float(50.0), of: sql.val),
       ),
     ])
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.float(10.0), value.float(50.0)] == query.values
+  assert [db.float(10.0), db.float(50.0)] == query.values
 }
 
 pub fn raw_sql_where_test() {
@@ -990,19 +986,19 @@ pub fn raw_sql_where_test() {
   let products = sql.table("products")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(products)
     |> select.where([
       sql.raw("id = 10"),
       sql.not(
         sql.column("price")
-        |> sql.between(value.float(10.0), value.float(50.0), of: sql.val),
+        |> sql.between(db.float(10.0), db.float(50.0), of: sql.val),
       ),
     ])
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.float(10.0), value.float(50.0)] == query.values
+  assert [db.float(10.0), db.float(50.0)] == query.values
 }
 
 pub fn raw_sql_join_test() {
@@ -1013,7 +1009,7 @@ pub fn raw_sql_join_test() {
   let posts = sql.table("posts")
 
   let query =
-    value.repo()
+    based.default()
     |> select.from(users)
     |> select.join(posts, on: [
       sql.raw("users.id = posts.user_id"),
@@ -1023,5 +1019,5 @@ pub fn raw_sql_join_test() {
     |> select.to_query
 
   assert expected == query.sql
-  assert [value.text("%gleam%")] == query.values
+  assert [db.text("%gleam%")] == query.values
 }

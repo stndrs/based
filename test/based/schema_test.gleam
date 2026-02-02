@@ -1,5 +1,5 @@
-import based
 import based/db
+import based/repo
 import based/schema
 import based/sql
 import based/sql/column
@@ -7,13 +7,12 @@ import based/sql/delete
 import based/sql/insert
 import based/sql/select
 import based/sql/update
-import based/value
 import gleam/dynamic/decode
 
 pub fn schema_column_test() {
   let repo =
-    based.repo()
-    |> based.on_identifier(fn(ident) { "`" <> ident <> "`" })
+    repo.new()
+    |> repo.on_identifier(fn(ident) { "`" <> ident <> "`" })
 
   let users = schema.new(repo, "users", fn(_) { decode.dynamic })
 
@@ -24,7 +23,7 @@ pub fn schema_column_test() {
 }
 
 pub fn schema_select_test() {
-  let repo = based.repo()
+  let repo = repo.new()
 
   let users = schema.new(repo, "users", fn(_) { decode.dynamic })
 
@@ -38,7 +37,7 @@ pub fn schema_select_test() {
 }
 
 pub fn schema_insert_test() {
-  let repo = based.repo()
+  let repo = repo.new()
 
   let users = schema.new(repo, "users", fn(_) { decode.dynamic })
 
@@ -46,15 +45,15 @@ pub fn schema_insert_test() {
     users
     |> schema.insert
     |> insert.columns(["id", "name"])
-    |> insert.values([[value.int(10), value.text("Richard")]])
+    |> insert.values([[db.int(10), db.text("Richard")]])
     |> insert.to_query
 
   assert "INSERT INTO users (id, name) VALUES (?, ?)" == sql
-  assert [value.int(10), value.text("Richard")] == values
+  assert [db.int(10), db.text("Richard")] == values
 }
 
 pub fn schema_delete_test() {
-  let repo = based.repo()
+  let repo = repo.new()
 
   let users = schema.new(repo, "users", fn(_) { decode.dynamic })
 
@@ -68,21 +67,21 @@ pub fn schema_delete_test() {
 }
 
 pub fn schema_update_test() {
-  let repo = based.repo()
+  let repo = repo.new()
 
   let users = schema.new(repo, "users", fn(_) { decode.dynamic })
 
   let db.Query(sql:, values:) =
     users
     |> schema.update
-    |> update.set("name", value.text("Dick"), of: sql.val)
+    |> update.set("name", db.text("Dick"), of: sql.val)
     |> update.where([
       users
       |> schema.column("id")
-      |> sql.eq(value.int(10), of: sql.val),
+      |> sql.eq(db.int(10), of: sql.val),
     ])
     |> update.to_query
 
   assert "UPDATE users SET name = ? WHERE users.id = ?" == sql
-  assert [value.text("Dick"), value.int(10)] == values
+  assert [db.text("Dick"), db.int(10)] == values
 }
