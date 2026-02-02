@@ -7,14 +7,13 @@ import based/sql/delete
 import based/sql/insert
 import based/sql/select
 import based/sql/update
-import gleam/dynamic/decode
 
 pub fn schema_column_test() {
   let repo =
     repo.new()
     |> repo.on_identifier(fn(ident) { "`" <> ident <> "`" })
 
-  let users = schema.new(repo, "users", fn(_) { decode.dynamic })
+  let users = schema.new(repo, "users")
 
   assert "`users`.`id`"
     == users
@@ -25,7 +24,7 @@ pub fn schema_column_test() {
 pub fn schema_select_test() {
   let repo = repo.new()
 
-  let users = schema.new(repo, "users", fn(_) { decode.dynamic })
+  let users = schema.new(repo, "users")
 
   let db.Query(sql:, values:) =
     users
@@ -39,7 +38,7 @@ pub fn schema_select_test() {
 pub fn schema_insert_test() {
   let repo = repo.new()
 
-  let users = schema.new(repo, "users", fn(_) { decode.dynamic })
+  let users = schema.new(repo, "users")
 
   let db.Query(sql:, values:) =
     users
@@ -55,7 +54,7 @@ pub fn schema_insert_test() {
 pub fn schema_delete_test() {
   let repo = repo.new()
 
-  let users = schema.new(repo, "users", fn(_) { decode.dynamic })
+  let users = schema.new(repo, "users")
 
   let db.Query(sql:, values:) =
     users
@@ -69,7 +68,7 @@ pub fn schema_delete_test() {
 pub fn schema_update_test() {
   let repo = repo.new()
 
-  let users = schema.new(repo, "users", fn(_) { decode.dynamic })
+  let users = schema.new(repo, "users")
 
   let db.Query(sql:, values:) =
     users

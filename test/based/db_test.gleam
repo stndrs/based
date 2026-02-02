@@ -68,7 +68,7 @@ pub fn all_test() {
   let assert Ok(db.Returning(count: 1, rows: [#(1, "Steve")])) =
     db.sql(sql)
     |> db.params([db.int(1)])
-    |> db.all(Conn, user_decoder, query_handler(returning:))
+    |> db.all(Conn, user_decoder(), query_handler(returning:))
 }
 
 pub fn all_error_test() {
@@ -79,7 +79,7 @@ pub fn all_error_test() {
   let assert Error(_) =
     db.sql(sql)
     |> db.params([db.int(1)])
-    |> db.all(Conn, user_decoder, query_handler(returning:))
+    |> db.all(Conn, user_decoder(), query_handler(returning:))
 }
 
 pub fn one_test() {
@@ -91,7 +91,7 @@ pub fn one_test() {
   let assert Ok(#(1, "Steve")) =
     db.sql(sql)
     |> db.params([db.int(1)])
-    |> db.one(Conn, user_decoder, query_handler(returning:))
+    |> db.one(Conn, user_decoder(), query_handler(returning:))
 }
 
 pub fn one_error_test() {
@@ -102,7 +102,7 @@ pub fn one_error_test() {
   let assert Error(_) =
     db.sql(sql)
     |> db.params([db.int(1)])
-    |> db.one(Conn, user_decoder, query_handler(returning:))
+    |> db.one(Conn, user_decoder(), query_handler(returning:))
 }
 
 pub fn transaction_test() {

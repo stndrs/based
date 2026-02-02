@@ -301,7 +301,7 @@ pub fn batch(
 pub fn all(
   query: Query(v),
   conn: conn,
-  decoder: fn() -> decode.Decoder(a),
+  decoder: decode.Decoder(a),
   handler: QueryHandler(v, conn),
 ) -> Result(Returning(a), DbError) {
   use queried <- result.try(handler(query, conn))
@@ -322,7 +322,7 @@ pub fn all(
 pub fn one(
   query: Query(v),
   conn: conn,
-  decoder: fn() -> decode.Decoder(a),
+  decoder: decode.Decoder(a),
   handler: QueryHandler(v, conn),
 ) -> Result(a, DbError) {
   use queried <- result.try(handler(query, conn))
@@ -337,10 +337,10 @@ pub fn one(
 /// `Returning` record with the decoded rows.
 pub fn decode(
   queried: Queried,
-  decoder: fn() -> decode.Decoder(a),
+  decoder: decode.Decoder(a),
 ) -> Result(Returning(a), DbError) {
   queried.rows
-  |> list.try_map(with: decode.run(_, decoder()))
+  |> list.try_map(with: decode.run(_, decoder))
   |> result.map_error(DecodeError)
   |> result.map(Returning(queried.count, _))
 }
