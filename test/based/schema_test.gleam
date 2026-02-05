@@ -13,7 +13,7 @@ pub fn schema_column_test() {
     repo.new()
     |> repo.on_identifier(fn(ident) { "`" <> ident <> "`" })
 
-  let users = schema.new(repo, "users")
+  let users = schema.new("users")
 
   assert "`users`.`id`"
     == users
@@ -21,14 +21,26 @@ pub fn schema_column_test() {
     |> column.to_string(repo)
 }
 
+pub fn schema_columns_test() {
+  let users =
+    schema.new("users")
+    |> schema.field("id", schema.Id)
+    |> schema.field("name", schema.Text)
+    |> schema.field("email", schema.Text)
+    |> schema.timestamps
+
+  assert ["id", "name", "email", "created_at", "updated_at"]
+    == schema.columns(users)
+}
+
 pub fn schema_select_test() {
   let repo = repo.new()
 
-  let users = schema.new(repo, "users")
+  let users = schema.new("users")
 
   let db.Query(sql:, values:) =
     users
-    |> schema.select
+    |> schema.select(repo)
     |> select.to_query
 
   assert "SELECT * FROM users" == sql
@@ -38,11 +50,11 @@ pub fn schema_select_test() {
 pub fn schema_insert_test() {
   let repo = repo.new()
 
-  let users = schema.new(repo, "users")
+  let users = schema.new("users")
 
   let db.Query(sql:, values:) =
     users
-    |> schema.insert
+    |> schema.insert(repo)
     |> insert.columns(["id", "name"])
     |> insert.values([[db.int(10), db.text("Richard")]])
     |> insert.to_query
@@ -54,11 +66,11 @@ pub fn schema_insert_test() {
 pub fn schema_delete_test() {
   let repo = repo.new()
 
-  let users = schema.new(repo, "users")
+  let users = schema.new("users")
 
   let db.Query(sql:, values:) =
     users
-    |> schema.delete
+    |> schema.delete(repo)
     |> delete.to_query
 
   assert "DELETE FROM users" == sql
@@ -68,11 +80,11 @@ pub fn schema_delete_test() {
 pub fn schema_update_test() {
   let repo = repo.new()
 
-  let users = schema.new(repo, "users")
+  let users = schema.new("users")
 
   let db.Query(sql:, values:) =
     users
-    |> schema.update
+    |> schema.update(repo)
     |> update.set("name", db.text("Dick"), of: sql.val)
     |> update.where([
       users
