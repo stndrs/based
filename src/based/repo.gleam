@@ -1,8 +1,5 @@
 import based/sql/internal/fmt
 import based/sql/internal/value
-import gleam/dynamic/decode
-import gleam/time/calendar
-import gleam/time/timestamp
 
 /// Repo must be configured by adapter packages.
 ///
@@ -26,23 +23,7 @@ import gleam/time/timestamp
 /// ```
 ///
 pub type Repo(v) {
-  Repo(decode: Decode, value_mapper: value.ValueMapper(v), fmt: fmt.Fmt(v))
-}
-
-pub type Decode {
-  Decode(
-    time: fn() -> decode.Decoder(calendar.TimeOfDay),
-    timestamp: fn() -> decode.Decoder(timestamp.Timestamp),
-    date: fn() -> decode.Decoder(calendar.Date),
-  )
-}
-
-fn decode() -> Decode {
-  Decode(
-    time: fn() { panic as "based.Decode time not configured" },
-    timestamp: fn() { panic as "based.Decode timestamp not configured" },
-    date: fn() { panic as "based.Decode date not configured" },
-  )
+  Repo(value_mapper: value.Mapper(v), fmt: fmt.Fmt(v))
 }
 
 // Decoders
@@ -51,7 +32,7 @@ fn decode() -> Decode {
 // Formatting
 
 pub fn new() -> Repo(v) {
-  Repo(decode: decode(), value_mapper: value.new(), fmt: fmt.new())
+  Repo(value_mapper: value.mapper(), fmt: fmt.new())
 }
 
 /// Sets the placeholder formatting function.
@@ -92,31 +73,4 @@ pub fn on_null(repo: Repo(v), handle_null: fn() -> v) -> Repo(v) {
   let value_mapper = value.on_null(repo.value_mapper, handle_null)
 
   Repo(..repo, value_mapper:)
-}
-
-pub fn time_decoder(
-  repo: Repo(v),
-  time: fn() -> decode.Decoder(calendar.TimeOfDay),
-) -> Repo(v) {
-  let decode = Decode(..repo.decode, time:)
-
-  Repo(..repo, decode:)
-}
-
-pub fn timestamp_decoder(
-  repo: Repo(v),
-  timestamp: fn() -> decode.Decoder(timestamp.Timestamp),
-) -> Repo(v) {
-  let decode = Decode(..repo.decode, timestamp:)
-
-  Repo(..repo, decode:)
-}
-
-pub fn date_decoder(
-  repo: Repo(v),
-  date: fn() -> decode.Decoder(calendar.Date),
-) -> Repo(v) {
-  let decode = Decode(..repo.decode, date:)
-
-  Repo(..repo, decode:)
 }

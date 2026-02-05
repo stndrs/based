@@ -332,9 +332,10 @@ pub fn raw(sql: String) -> Condition {
   Raw(sql:)
 }
 
+@internal
 pub fn split(
   conditions: List(#(Condition, List(v))),
-  value_mapper: value.ValueMapper(v),
+  value_mapper: value.Mapper(v),
 ) -> #(List(Condition), List(v)) {
   let empty: #(List(Condition), List(List(v))) = #([], [])
 
