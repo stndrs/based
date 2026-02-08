@@ -10,7 +10,7 @@ pub fn basic_update_test() {
   let users = sql.table("users")
 
   let query =
-    based.default()
+    based.repo()
     |> update.table(users)
     |> update.set("name", db.text("John"), of: sql.val)
     |> update.where([
@@ -28,7 +28,7 @@ pub fn update_multiple_columns_test() {
   let users = sql.table("users")
 
   let query =
-    based.default()
+    based.repo()
     |> update.table(users)
     |> update.set("name", db.text("John"), of: sql.val)
     |> update.set("email", db.text("john@example.com"), of: sql.val)
@@ -48,7 +48,7 @@ pub fn update_with_where_not_test() {
   let users = sql.table("users")
 
   let query =
-    based.default()
+    based.repo()
     |> update.table(users)
     |> update.set("active", db.true, of: sql.val)
     |> update.where_not([
@@ -66,7 +66,7 @@ pub fn update_returning_test() {
   let users = sql.table("users")
 
   let query =
-    based.default()
+    based.repo()
     |> update.table(users)
     |> update.set("name", db.text("John"), of: sql.val)
     |> update.where([
@@ -85,7 +85,7 @@ pub fn update_with_is_test() {
   let products = sql.table("products")
 
   let query =
-    based.default()
+    based.repo()
     |> update.table(products)
     |> update.set("price", db.float(19.99), of: sql.val)
     |> update.where([
@@ -105,7 +105,7 @@ pub fn update_set_from_subquery_test() {
   let prices = sql.table("prices")
 
   let price_id =
-    based.default()
+    based.repo()
     |> select.from(prices)
     |> select.columns([sql.column("price")])
     |> select.where([
@@ -114,7 +114,7 @@ pub fn update_set_from_subquery_test() {
     ])
 
   let query =
-    based.default()
+    based.repo()
     |> update.table(products)
     |> update.set("price", price_id, of: select.subquery)
     |> update.to_query
@@ -128,7 +128,7 @@ pub fn update_with_is_to_string_test() {
   let products = sql.table("products")
 
   let query =
-    based.default()
+    based.repo()
     |> update.table(products)
     |> update.set("price", db.float(19.99), of: sql.val)
     |> update.where([

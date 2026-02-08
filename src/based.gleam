@@ -12,7 +12,7 @@ import gleam/time/calendar
 import gleam/time/duration
 import gleam/time/timestamp
 
-pub fn default() -> Repo(db.Value) {
+pub fn repo() -> Repo(db.Value) {
   repo.new()
   |> repo.on_placeholder(fn(_) { "?" })
   |> repo.on_identifier(function.identity)

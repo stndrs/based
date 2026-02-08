@@ -10,7 +10,7 @@ pub fn basic_insert_test() {
   let users = sql.table("users")
 
   let query =
-    based.default()
+    based.repo()
     |> insert.into(users)
     |> insert.values([
       {
@@ -31,7 +31,7 @@ pub fn insert_multiple_columns_test() {
   let users = sql.table("users")
 
   let query =
-    based.default()
+    based.repo()
     |> insert.into(users)
     |> insert.values([
       {
@@ -58,7 +58,7 @@ pub fn insert_returning_test() {
   let users = sql.table("users")
 
   let query =
-    based.default()
+    based.repo()
     |> insert.into(users)
     |> insert.values([insert.final("name", db.text("John"))])
     |> insert.returning([sql.column("id"), sql.column("name")])
@@ -74,7 +74,7 @@ pub fn insert_to_string_test() {
   let users = sql.table("users")
 
   let query =
-    based.default()
+    based.repo()
     |> insert.into(users)
     |> insert.values([
       {
@@ -101,7 +101,7 @@ pub fn insert_multiple_rows_test() {
     })
 
   let query =
-    based.default()
+    based.repo()
     |> insert.into(users)
     |> insert.values(values)
     |> insert.to_query
@@ -121,7 +121,7 @@ pub fn insert_with_null_test() {
   let users = sql.table("users")
 
   let query =
-    based.default()
+    based.repo()
     |> insert.into(users)
     |> insert.values([
       {
@@ -141,7 +141,7 @@ pub fn insert_with_different_value_types_test() {
   let products = sql.table("products")
 
   let query =
-    based.default()
+    based.repo()
     |> insert.into(products)
     |> insert.values([
       {

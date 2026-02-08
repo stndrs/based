@@ -9,7 +9,7 @@ pub fn basic_delete_test() {
   let users = sql.table("users")
 
   let query =
-    based.default()
+    based.repo()
     |> delete.from(users)
     |> delete.where([
       sql.column("id")
@@ -26,7 +26,7 @@ pub fn delete_with_where_not_test() {
   let users = sql.table("users")
 
   let query =
-    based.default()
+    based.repo()
     |> delete.from(users)
     |> delete.where_not([
       sql.column("id")
@@ -43,7 +43,7 @@ pub fn delete_with_multiple_conditions_test() {
   let users = sql.table("users")
 
   let query =
-    based.default()
+    based.repo()
     |> delete.from(users)
     |> delete.where([
       sql.column("id")
@@ -63,7 +63,7 @@ pub fn delete_returning_test() {
   let users = sql.table("users")
 
   let query =
-    based.default()
+    based.repo()
     |> delete.from(users)
     |> delete.where([
       sql.column("id")
@@ -81,7 +81,7 @@ pub fn delete_to_string_test() {
   let users = sql.table("users")
 
   let query =
-    based.default()
+    based.repo()
     |> delete.from(users)
     |> delete.where([
       sql.column("id")

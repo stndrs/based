@@ -11,7 +11,7 @@ pub fn column_test() {
 
   let expected = "id"
 
-  assert expected == column.to_string(col, based.default())
+  assert expected == column.to_string(col, based.repo())
 }
 
 pub fn column_alias_test() {
@@ -19,7 +19,7 @@ pub fn column_alias_test() {
 
   let expected = "user_id AS id"
 
-  assert expected == column.to_string(col, based.default())
+  assert expected == column.to_string(col, based.repo())
 }
 
 pub fn column_with_table_test() {
@@ -31,7 +31,7 @@ pub fn column_with_table_test() {
 
   let expected = "users.id"
 
-  assert expected == column.to_string(col, based.default())
+  assert expected == column.to_string(col, based.repo())
 }
 
 pub fn table_and_alias_test() {
@@ -44,7 +44,7 @@ pub fn table_and_alias_test() {
 
   let expected = "users.user_id AS id"
 
-  assert expected == column.to_string(col, based.default())
+  assert expected == column.to_string(col, based.repo())
 }
 
 fn value_comp() -> condition.Comparable(v, v) {
@@ -207,7 +207,7 @@ pub fn not_like_test() {
 }
 
 pub fn avg_test() {
-  let repo = based.default()
+  let repo = based.repo()
 
   let avg =
     column.avg("number")
@@ -217,7 +217,7 @@ pub fn avg_test() {
 }
 
 pub fn count_test() {
-  let repo = based.default()
+  let repo = based.repo()
 
   let count =
     column.count("number")
@@ -227,7 +227,7 @@ pub fn count_test() {
 }
 
 pub fn max_test() {
-  let repo = based.default()
+  let repo = based.repo()
 
   let max =
     column.max("number")
@@ -237,7 +237,7 @@ pub fn max_test() {
 }
 
 pub fn min_test() {
-  let repo = based.default()
+  let repo = based.repo()
 
   let min =
     column.min("number")
@@ -247,7 +247,7 @@ pub fn min_test() {
 }
 
 pub fn sum_test() {
-  let repo = based.default()
+  let repo = based.repo()
 
   let sum =
     column.sum("number")
@@ -257,7 +257,7 @@ pub fn sum_test() {
 }
 
 pub fn avg_alias_test() {
-  let repo = based.default()
+  let repo = based.repo()
 
   let avg =
     column.avg("number")
@@ -268,7 +268,7 @@ pub fn avg_alias_test() {
 }
 
 pub fn count_alias_test() {
-  let repo = based.default()
+  let repo = based.repo()
 
   let count =
     column.count("number")
@@ -279,7 +279,7 @@ pub fn count_alias_test() {
 }
 
 pub fn max_alias_test() {
-  let repo = based.default()
+  let repo = based.repo()
 
   let max =
     column.max("number")
@@ -290,7 +290,7 @@ pub fn max_alias_test() {
 }
 
 pub fn min_alias_test() {
-  let repo = based.default()
+  let repo = based.repo()
 
   let min =
     column.min("number")
@@ -301,7 +301,7 @@ pub fn min_alias_test() {
 }
 
 pub fn sum_alias_test() {
-  let repo = based.default()
+  let repo = based.repo()
 
   let sum =
     column.sum("number")
