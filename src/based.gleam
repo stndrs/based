@@ -1,6 +1,7 @@
 import based/db
 import based/interval
 import based/repo.{type Repo}
+import based/uuid
 import gleam/bit_array
 import gleam/float
 import gleam/function
@@ -22,6 +23,7 @@ pub fn default() -> Repo(db.Value) {
 
 fn value_to_string(value: db.Value) -> String {
   case value {
+    db.Uuid(val) -> uuid.to_string(val)
     db.Null -> "NULL"
     db.Bool(val) -> bool_to_string(val)
     db.Int(val) -> int.to_string(val)

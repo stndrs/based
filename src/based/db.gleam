@@ -6,6 +6,7 @@
 //// handler functions for tests that shouldn't hit a real database.
 
 import based/interval
+import based/uuid
 import gleam/dynamic.{type Dynamic}
 import gleam/dynamic/decode
 import gleam/list
@@ -49,6 +50,7 @@ pub fn minutes(offset: Offset, minutes: Int) -> Offset {
 ///
 /// [1]: https://github.com/stndrs/pgl
 pub type Value {
+  Uuid(uuid.Uuid)
   Null
   Bool(Bool)
   Int(Int)
@@ -62,6 +64,10 @@ pub type Value {
   Timestamptz(timestamp.Timestamp, Offset)
   Interval(interval.Interval)
   Array(List(Value))
+}
+
+pub fn uuid(uuid: uuid.Uuid) -> Value {
+  Uuid(uuid)
 }
 
 pub const null = Null
