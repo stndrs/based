@@ -12,6 +12,13 @@ import gleam/time/calendar
 import gleam/time/duration
 import gleam/time/timestamp
 
+/// Returns a `Repo` with preset defaults. See `based/repo` for configuration
+/// options. This `Repo` is configured to handle `db.Value` values. Use the
+/// `based/repo` module to configure a `Repo` for use with custom value types.
+///
+/// The `Repo` returned by this function uses "?" as a placeholder in generated
+/// SQL. It does not escape identifiers. Adapter packages likely need to
+/// specify their desired identifier formatting and placeholders.
 pub fn repo() -> Repo(db.Value) {
   repo.new()
   |> repo.on_placeholder(fn(_) { "?" })

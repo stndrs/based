@@ -8,18 +8,18 @@ import based/sql/internal/value
 /// A PostgreSQL adapter might configure `Repo` like this:
 ///
 /// ```gleam
-/// let repo = based.repo()
-///   |> based.on_placeholder(fn(index) { "$" <> int.to_string(index) })
-///   |> based.on_identifier(function.identity)
-///   |> based.on_value(value.to_string)
+/// let repo = repo.new()
+///   |> repo.on_placeholder(fn(index) { "$" <> int.to_string(index) })
+///   |> repo.on_identifier(function.identity)
+///   |> repo.on_value(value.to_string)
 /// ```
 /// A MariaDB adapter might configure `Repo` like this:
 ///
 /// ```gleam
-/// let repo = based.repo()
-///   |> based.on_placeholder(fn(_index) { "?" })
-///   |> based.on_identifier(fn(ident) { "`" <> ident <> "`" })
-///   |> based.on_value(value.to_string)
+/// let repo = repo.new()
+///   |> repo.on_placeholder(fn(_index) { "?" })
+///   |> repo.on_identifier(fn(ident) { "`" <> ident <> "`" })
+///   |> repo.on_value(value.to_string)
 /// ```
 ///
 pub type Repo(v) {
