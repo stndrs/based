@@ -2,6 +2,7 @@ import based
 import based/db
 import based/sql
 import based/sql/insert
+import gleam/list
 import gleeunit/should
 
 pub fn basic_insert_test() {
@@ -11,9 +12,11 @@ pub fn basic_insert_test() {
   let query =
     based.default()
     |> insert.into(users)
-    |> insert.columns(["name", "email"])
     |> insert.values([
-      [db.text("John"), db.text("john@example.com")],
+      {
+        use <- insert.value("name", db.text("John"))
+        insert.final("email", db.text("john@example.com"))
+      },
     ])
     |> insert.to_query
 
@@ -30,14 +33,13 @@ pub fn insert_multiple_columns_test() {
   let query =
     based.default()
     |> insert.into(users)
-    |> insert.columns(["name", "email", "age", "active"])
     |> insert.values([
-      [
-        db.text("John"),
-        db.text("john@example.com"),
-        db.int(30),
-        db.bool(True),
-      ],
+      {
+        use <- insert.value("name", db.text("John"))
+        use <- insert.value("email", db.text("john@example.com"))
+        use <- insert.value("age", db.int(30))
+        insert.final("active", db.bool(True))
+      },
     ])
     |> insert.to_query
 
@@ -58,8 +60,7 @@ pub fn insert_returning_test() {
   let query =
     based.default()
     |> insert.into(users)
-    |> insert.columns(["name"])
-    |> insert.values([[db.text("John")]])
+    |> insert.values([insert.final("name", db.text("John"))])
     |> insert.returning([sql.column("id"), sql.column("name")])
     |> insert.to_query
 
@@ -75,12 +76,11 @@ pub fn insert_to_string_test() {
   let query =
     based.default()
     |> insert.into(users)
-    |> insert.columns(["name", "email"])
     |> insert.values([
-      [
-        db.text("John"),
-        db.text("john@example.com"),
-      ],
+      {
+        use <- insert.value("name", db.text("John"))
+        insert.final("email", db.text("john@example.com"))
+      },
     ])
 
   insert.to_string(query) |> should.equal(expected)
@@ -90,20 +90,20 @@ pub fn insert_multiple_rows_test() {
   let expected = "INSERT INTO users (name, email) VALUES (?, ?), (?, ?)"
   let users = sql.table("users")
 
+  let values =
+    [
+      #("John", "john@example.com"),
+      #("Jane", "jane@example.com"),
+    ]
+    |> list.map(fn(user) {
+      use <- insert.value("name", db.text(user.0))
+      insert.final("email", db.text(user.1))
+    })
+
   let query =
     based.default()
     |> insert.into(users)
-    |> insert.columns(["name", "email"])
-    |> insert.values([
-      [
-        db.text("John"),
-        db.text("john@example.com"),
-      ],
-      [
-        db.text("Jane"),
-        db.text("jane@example.com"),
-      ],
-    ])
+    |> insert.values(values)
     |> insert.to_query
 
   query.sql |> should.equal(expected)
@@ -123,9 +123,11 @@ pub fn insert_with_null_test() {
   let query =
     based.default()
     |> insert.into(users)
-    |> insert.columns(["name", "middle_name"])
     |> insert.values([
-      [db.text("John"), db.null],
+      {
+        use <- insert.value("name", db.text("John"))
+        insert.final("middle_name", db.null)
+      },
     ])
     |> insert.to_query
 
@@ -141,14 +143,13 @@ pub fn insert_with_different_value_types_test() {
   let query =
     based.default()
     |> insert.into(products)
-    |> insert.columns(["id", "price", "is_active", "description"])
     |> insert.values([
-      [
-        db.int(123),
-        db.float(19.99),
-        db.true,
-        db.null,
-      ],
+      {
+        use <- insert.value("id", db.int(123))
+        use <- insert.value("price", db.float(19.99))
+        use <- insert.value("is_active", db.true)
+        insert.final("description", db.null)
+      },
     ])
     |> insert.to_query
 

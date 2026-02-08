@@ -55,8 +55,12 @@ pub fn schema_insert_test() {
   let db.Query(sql:, values:) =
     users
     |> schema.insert(repo)
-    |> insert.columns(["id", "name"])
-    |> insert.values([[db.int(10), db.text("Richard")]])
+    |> insert.values([
+      {
+        use <- insert.value("id", db.int(10))
+        insert.final("name", db.text("Richard"))
+      },
+    ])
     |> insert.to_query
 
   assert "INSERT INTO users (id, name) VALUES (?, ?)" == sql

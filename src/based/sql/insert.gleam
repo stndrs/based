@@ -5,6 +5,7 @@ import based/sql/internal/builder
 import based/sql/internal/fmt
 import based/sql/table
 import gleam/list
+import gleam/option.{type Option, None, Some}
 import gleam/string
 
 pub opaque type Insert(v) {
@@ -25,10 +26,44 @@ pub fn columns(insert: Insert(v), cols: List(String)) -> Insert(v) {
   Insert(..insert, columns: cols)
 }
 
-pub fn values(insert: Insert(v), vals: List(List(v))) -> Insert(v) {
-  let values = list.flatten(vals)
+pub opaque type Value(v) {
+  Value(column: String, value: v, next: Option(fn() -> Value(v)))
+}
 
-  Insert(..insert, values:)
+pub fn value(column: String, value: v, next: fn() -> Value(v)) -> Value(v) {
+  Value(column:, value:, next: Some(next))
+}
+
+pub fn final(column: String, value: v) -> Value(v) {
+  Value(column:, value:, next: None)
+}
+
+fn to_columns_and_values(value: Value(v)) -> #(List(String), List(v)) {
+  case value.next {
+    Some(next) -> {
+      let #(columns, values) = next() |> to_columns_and_values
+
+      #([value.column, ..columns], [value.value, ..values])
+    }
+    None -> #([value.column], [value.value])
+  }
+}
+
+pub fn values(insert: Insert(v), values: List(Value(v))) -> Insert(v) {
+  let #(columns, values) =
+    values
+    |> list.fold(from: #([], [[]]), with: fn(acc, value) {
+      let #(columns, values) = to_columns_and_values(value)
+
+      #(columns, [values, ..acc.1])
+    })
+
+  let values =
+    values
+    |> list.reverse
+    |> list.flatten
+
+  Insert(..insert, columns:, values:)
 }
 
 pub fn returning(insert: Insert(v), cols: List(Column)) -> Insert(v) {
