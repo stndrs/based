@@ -133,6 +133,16 @@ pub fn where_not(
   |> where(select, _)
 }
 
+pub fn where_exists(select: Select(v), subquery: Select(v)) -> Select(v) {
+  let query = to_query(subquery)
+  let count = list.length(query.values)
+  let exists = condition.exists(query.sql, count)
+
+  let where = list.prepend(select.where, [exists])
+
+  Select(..select, where:) |> prepend_values(query.values)
+}
+
 // Joins
 
 pub fn join(

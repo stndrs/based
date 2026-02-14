@@ -114,6 +114,7 @@ pub opaque type Condition {
   IsNull(left: Node, right: Bool)
   Or(left: Condition, right: Condition)
   Not(condition: Condition)
+  Exists(subquery: Node)
   Raw(sql: String)
 }
 
@@ -149,6 +150,7 @@ pub fn to_values(
       |> list.flatten
     }
     Not(condition:) -> to_values(condition, text_to_value)
+    Exists(subquery:) -> node_to_values(subquery, text_to_value)
     Raw(sql: _) -> []
   }
 }
@@ -328,6 +330,10 @@ pub fn not(condition: Condition) -> Condition {
   Not(condition:)
 }
 
+pub fn exists(sql: String, values: Int) -> Condition {
+  subquery(sql, values) |> Exists
+}
+
 pub fn raw(sql: String) -> Condition {
   Raw(sql:)
 }
@@ -400,6 +406,11 @@ pub fn to_string(cond: Condition, fmt: fmt.Fmt(v)) -> String {
       condition
       |> to_string(fmt)
       |> fmt.not
+    }
+    Exists(subquery:) -> {
+      subquery
+      |> node_to_string(fmt)
+      |> fmt.exists
     }
     Raw(sql:) -> sql
   }

@@ -1021,3 +1021,29 @@ pub fn raw_sql_join_test() {
   assert expected == query.sql
   assert [db.text("%gleam%")] == query.values
 }
+
+pub fn exists_test() {
+  let expected =
+    "SELECT id, username FROM users WHERE EXISTS (SELECT 1 FROM posts WHERE users.id = posts.user_id)"
+
+  let users = sql.table("users")
+  let posts = sql.table("posts")
+
+  let query =
+    based.repo()
+    |> select.from(users)
+    |> select.columns([sql.column("id"), sql.column("username")])
+    |> select.where_exists({
+      based.repo()
+      |> select.from(posts)
+      |> select.columns([sql.column("1")])
+      |> select.where([
+        sql.column("users.id")
+        |> sql.eq(sql.column("posts.user_id"), sql.col),
+      ])
+    })
+    |> select.to_query
+
+  assert expected == query.sql
+  assert [] == query.values
+}
