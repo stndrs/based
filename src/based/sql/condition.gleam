@@ -130,11 +130,7 @@ pub opaque type Condition {
   Raw(sql: String)
 }
 
-@internal
-pub fn to_values(
-  condition: Condition,
-  text_to_value: fn(String) -> v,
-) -> List(v) {
+fn to_values(condition: Condition, text_to_value: fn(String) -> v) -> List(v) {
   case condition {
     Compare(left:, right:, operator: _) -> {
       [

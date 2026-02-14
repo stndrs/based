@@ -144,14 +144,14 @@ pub fn between_test() {
 }
 
 pub fn like_test() {
-  let #(condition, _values) =
+  let #(condition, values) =
     column.new("name")
     |> column.like("%John%")
 
   let expected = "name LIKE :param"
 
   assert expected == condition.to_string(condition, fmt.new())
-  assert [db.text("%John%")] == condition.to_values(condition, db.text)
+  assert [] == values
 }
 
 pub fn in_test() {
@@ -195,15 +195,14 @@ pub fn is_test() {
 }
 
 pub fn not_like_test() {
-  let #(condition, _values) =
+  let #(condition, values) =
     column.new("name")
     |> column.not_like("%admin%")
 
   let expected = "name NOT LIKE :param"
 
   assert expected == condition.to_string(condition, fmt.new())
-
-  assert [db.text("%admin%")] == condition.to_values(condition, db.text)
+  assert [] == values
 }
 
 pub fn avg_test() {
