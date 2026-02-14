@@ -1,6 +1,7 @@
 import based/db
 import based/repo.{type Repo}
 import based/sql/column.{type Column}
+import based/sql/condition.{type Condition}
 import based/sql/internal/builder
 import based/sql/internal/fmt
 import based/sql/table
@@ -13,13 +14,21 @@ pub opaque type Insert(v) {
     repo: Repo(v),
     table: table.Table,
     columns: List(String),
+    on_conflict: Option(OnConflict(v)),
     returning: List(Column),
     values: List(v),
   )
 }
 
 pub fn into(repo: Repo(v), table: table.Table) -> Insert(v) {
-  Insert(repo:, table:, columns: [], returning: [], values: [])
+  Insert(
+    repo:,
+    table:,
+    columns: [],
+    on_conflict: None,
+    returning: [],
+    values: [],
+  )
 }
 
 pub fn columns(insert: Insert(v), cols: List(String)) -> Insert(v) {
@@ -66,6 +75,42 @@ pub fn values(insert: Insert(v), values: List(Value(v))) -> Insert(v) {
   Insert(..insert, columns:, values:)
 }
 
+pub opaque type OnConflict(v) {
+  OnConflict(target: String, action: Action, where: List(#(Condition, List(v))))
+}
+
+pub opaque type Action {
+  Nothing
+  Update(sets: List(Set))
+}
+
+pub opaque type Set {
+  Set(column: String, value: String)
+}
+
+pub fn on_conflict(
+  insert: Insert(v),
+  target: String,
+  do action: Action,
+  where conditions: List(#(Condition, List(v))),
+) -> Insert(v) {
+  let conflict = OnConflict(target:, action:, where: conditions)
+
+  Insert(..insert, on_conflict: Some(conflict))
+}
+
+pub const nothing = Nothing
+
+pub fn update(sets: List(Set)) -> Action {
+  Update(sets:)
+}
+
+pub fn set(column: String, value: String) -> Set {
+  Set(column:, value:)
+}
+
+// pub fn set(update: Update(v), column: String, value: a, of kind: sql.Kind(v)) {
+
 pub fn returning(insert: Insert(v), cols: List(Column)) -> Insert(v) {
   Insert(..insert, returning: cols)
 }
@@ -101,6 +146,25 @@ fn build(insert: Insert(v)) -> String {
 
   let returning = list.map(insert.returning, column.to_string(_, insert.repo))
 
+  let on_conflict = fn(sql) {
+    insert.on_conflict
+    |> option.map(fn(conflict) {
+      let action = case conflict.action {
+        Nothing -> fmt.do_nothing
+        Update(sets:) -> fn(st) {
+          let sets = list.map(sets, fn(s) { fmt.eq(s.column, s.value) })
+
+          fmt.do_update(st, sets)
+        }
+      }
+
+      sql
+      |> builder.append_on_conflict(conflict.target, action)
+    })
+    |> option.unwrap(sql)
+  }
+
   fmt.insert(insert.columns, into:, values:)
+  |> on_conflict
   |> builder.append_returning(returning)
 }

@@ -2,6 +2,7 @@ import based
 import based/db
 import based/sql
 import based/sql/insert
+import based/uuid
 import gleam/list
 import gleeunit/should
 
@@ -163,4 +164,80 @@ pub fn insert_with_different_value_types_test() {
     db.true,
     db.null,
   ])
+}
+
+pub fn insert_on_conflict_test() {
+  let expected =
+    "INSERT INTO counts (id, identifier, quantity) VALUES (?, ?, ?) ON CONFLICT (identifier) DO UPDATE SET quantity = excluded.quantity"
+
+  let counts = sql.table("counts")
+
+  let identifier = uuid.v4()
+
+  let query =
+    based.repo()
+    |> insert.into(counts)
+    |> insert.values([
+      {
+        use <- insert.value("id", db.int(123))
+        use <- insert.value("identifier", db.uuid(identifier))
+        insert.final("quantity", db.int(10))
+      },
+    ])
+    |> insert.on_conflict(
+      "identifier",
+      do: insert.update([insert.set("quantity", "excluded.quantity")]),
+      where: [],
+    )
+    |> insert.to_query
+
+  assert expected == query.sql
+  assert [db.int(123), db.uuid(identifier), db.int(10)] == query.values
+}
+
+pub fn insert_on_conflict_do_nothing_test() {
+  let expected =
+    "INSERT INTO counts (id, identifier, quantity) VALUES (?, ?, ?) ON CONFLICT (identifier) DO NOTHING"
+
+  let counts = sql.table("counts")
+
+  let identifier = uuid.v4()
+
+  let query =
+    based.repo()
+    |> insert.into(counts)
+    |> insert.values([
+      {
+        use <- insert.value("id", db.int(123))
+        use <- insert.value("identifier", db.uuid(identifier))
+        insert.final("quantity", db.int(10))
+      },
+    ])
+    |> insert.on_conflict("identifier", do: insert.nothing, where: [])
+    |> insert.to_query
+
+  assert expected == query.sql
+  assert [db.int(123), db.uuid(identifier), db.int(10)] == query.values
+}
+
+pub fn insert_on_conflict_returning_test() {
+  let expected =
+    "INSERT INTO counts (id, quantity) VALUES (?, ?) ON CONFLICT (id) DO NOTHING RETURNING id"
+
+  let counts = sql.table("counts")
+
+  let query =
+    based.repo()
+    |> insert.into(counts)
+    |> insert.values([
+      {
+        use <- insert.value("id", db.int(123))
+        insert.final("quantity", db.int(10))
+      },
+    ])
+    |> insert.on_conflict("id", do: insert.nothing, where: [])
+    |> insert.returning([sql.column("id")])
+    |> insert.to_query
+
+  assert expected == query.sql
 }

@@ -69,6 +69,8 @@ pub const true = "TRUE"
 
 pub const false = "FALSE"
 
+pub const nothing = "NOTHING"
+
 // Statements
 
 pub fn insert(
@@ -86,6 +88,25 @@ pub fn insert(
   )
   |> string.append(" VALUES ")
   |> string.append(values |> string.join(", "))
+}
+
+pub fn on_conflict(st: String, target: String) -> String {
+  st
+  |> string.append(" ON CONFLICT ")
+  |> string.append(enclose(target))
+}
+
+pub fn do_update(st: String, updates: List(String)) -> String {
+  let updates = string.join(updates, ", ")
+
+  st
+  |> string.append(" DO UPDATE SET ")
+  |> string.append(updates)
+}
+
+pub fn do_nothing(st: String) -> String {
+  st
+  |> string.append(" DO NOTHING")
 }
 
 pub fn update(table: String) -> String {

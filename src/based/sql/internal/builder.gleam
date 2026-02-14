@@ -168,3 +168,13 @@ pub fn append_returning(st: String, cols: List(String)) -> String {
     cols -> fmt.returning(st, cols)
   }
 }
+
+pub fn append_on_conflict(
+  st: String,
+  target: String,
+  action: fn(String) -> String,
+) -> String {
+  st
+  |> fmt.on_conflict(target)
+  |> action
+}
