@@ -13,6 +13,7 @@ pub opaque type Node {
   )
   Subquery(sql: String, values: Int)
   Any(sql: String, values: Int)
+  All(sql: String, values: Int)
   Column(name: String, alias: Option(String), table: Option(String))
   Text(value: String)
   Value
@@ -36,6 +37,10 @@ pub fn subquery(sql: String, values: Int) -> Node {
 
 pub fn any(sql: String, values: Int) -> Node {
   Any(sql:, values:)
+}
+
+pub fn all(sql: String, values: Int) -> Node {
+  All(sql:, values:)
 }
 
 pub fn column(
@@ -94,6 +99,7 @@ pub fn node_to_string(node: Node, fmt: fmt.Fmt(v)) -> String {
     }
     Subquery(sql:, values: _) -> fmt.enclose(sql)
     Any(sql:, values: _) -> fmt.enclose(sql) |> fmt.any
+    All(sql:, values: _) -> fmt.enclose(sql) |> fmt.all
     Text(..) -> fmt.placeholder
     Value(..) -> fmt.placeholder
     Values(count:) -> {

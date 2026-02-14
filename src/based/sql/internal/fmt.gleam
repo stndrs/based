@@ -218,10 +218,8 @@ pub fn any(subquery: String) -> String {
   "ANY " |> string.append(subquery)
 }
 
-pub fn all(st: String, subquery: String) -> String {
-  st
-  |> string.append(" ALL ")
-  |> string.append(subquery)
+pub fn all(subquery: String) -> String {
+  "ALL " |> string.append(subquery)
 }
 
 pub fn some(st: String, subquery: String) -> String {

@@ -1079,3 +1079,30 @@ pub fn any_test() {
   assert expected == query.sql
   assert [feb_1_2026] == query.values
 }
+
+pub fn all_test() {
+  let expected =
+    "SELECT * FROM posts WHERE views > ALL (SELECT views FROM posts WHERE category = ?)"
+
+  let posts = sql.table("posts")
+
+  let users_subquery =
+    based.repo()
+    |> select.from(posts)
+    |> select.columns([sql.column("views")])
+    |> select.where([
+      sql.column("category") |> sql.eq(db.text("Gleam"), sql.val),
+    ])
+
+  let query =
+    based.repo()
+    |> select.from(posts)
+    |> select.columns([sql.all])
+    |> select.where([
+      sql.column("views") |> sql.gt(users_subquery, of: select.all),
+    ])
+    |> select.to_query
+
+  assert expected == query.sql
+  assert [db.text("Gleam")] == query.values
+}

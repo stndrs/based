@@ -274,6 +274,8 @@ fn subquery_comp() -> condition.Comparable(Select(v), v) {
 
 pub const any = sql.Kind(comparable: any_comp)
 
+pub const all = sql.Kind(comparable: all_comp)
+
 fn any_comp() -> condition.Comparable(Select(v), v) {
   condition.comparable(fn(select: Select(v)) {
     let query = to_query(select)
@@ -281,6 +283,18 @@ fn any_comp() -> condition.Comparable(Select(v), v) {
     let count = list.length(query.values)
 
     let node = condition.any(query.sql, count)
+
+    #(node, query.values)
+  })
+}
+
+fn all_comp() -> condition.Comparable(Select(v), v) {
+  condition.comparable(fn(select: Select(v)) {
+    let query = to_query(select)
+
+    let count = list.length(query.values)
+
+    let node = condition.all(query.sql, count)
 
     #(node, query.values)
   })
