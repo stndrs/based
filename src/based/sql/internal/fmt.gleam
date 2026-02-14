@@ -214,10 +214,8 @@ pub fn between(st: String, val1: String, val2: String) -> String {
   |> append(" AND ", val2)
 }
 
-pub fn any(st: String, subquery: String) -> String {
-  st
-  |> string.append(" ANY ")
-  |> string.append(subquery)
+pub fn any(subquery: String) -> String {
+  "ANY " |> string.append(subquery)
 }
 
 pub fn all(st: String, subquery: String) -> String {

@@ -1047,3 +1047,35 @@ pub fn exists_test() {
   assert expected == query.sql
   assert [] == query.values
 }
+
+pub fn any_test() {
+  let expected =
+    "SELECT title FROM posts WHERE user_id = ANY (SELECT id FROM users WHERE created_at > ?)"
+
+  let users = sql.table("users")
+  let posts = sql.table("posts")
+
+  let feb_1_2026 =
+    calendar.Date(year: 2026, month: calendar.February, day: 1)
+    |> db.date
+
+  let users_subquery =
+    based.repo()
+    |> select.from(users)
+    |> select.columns([sql.column("id")])
+    |> select.where([
+      sql.column("created_at") |> sql.gt(feb_1_2026, sql.val),
+    ])
+
+  let query =
+    based.repo()
+    |> select.from(posts)
+    |> select.columns([sql.column("title")])
+    |> select.where([
+      sql.column("user_id") |> sql.eq(users_subquery, of: select.any),
+    ])
+    |> select.to_query
+
+  assert expected == query.sql
+  assert [feb_1_2026] == query.values
+}

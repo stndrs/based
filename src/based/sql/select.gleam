@@ -272,6 +272,20 @@ fn subquery_comp() -> condition.Comparable(Select(v), v) {
   })
 }
 
+pub const any = sql.Kind(comparable: any_comp)
+
+fn any_comp() -> condition.Comparable(Select(v), v) {
+  condition.comparable(fn(select: Select(v)) {
+    let query = to_query(select)
+
+    let count = list.length(query.values)
+
+    let node = condition.any(query.sql, count)
+
+    #(node, query.values)
+  })
+}
+
 pub fn to_string(select: Select(v)) -> String {
   let values = select.values |> list.reverse |> list.flatten
 
