@@ -11,9 +11,9 @@ pub opaque type Node {
     table: Option(String),
     alias: Option(String),
   )
-  Subquery(sql: String, values: Int)
-  Any(sql: String, values: Int)
-  All(sql: String, values: Int)
+  Subquery(sql: String)
+  Any(sql: String)
+  All(sql: String)
   Column(name: String, alias: Option(String), table: Option(String))
   Text(value: String)
   Value
@@ -31,16 +31,16 @@ pub fn values(count: Int) -> Node {
   Values(count:)
 }
 
-pub fn subquery(sql: String, values: Int) -> Node {
-  Subquery(sql:, values:)
+pub fn subquery(sql: String) -> Node {
+  Subquery(sql:)
 }
 
-pub fn any(sql: String, values: Int) -> Node {
-  Any(sql:, values:)
+pub fn any(sql: String) -> Node {
+  Any(sql:)
 }
 
-pub fn all(sql: String, values: Int) -> Node {
-  All(sql:, values:)
+pub fn all(sql: String) -> Node {
+  All(sql:)
 }
 
 pub fn column(
@@ -97,9 +97,9 @@ pub fn node_to_string(node: Node, fmt: fmt.Fmt(v)) -> String {
         None -> col
       }
     }
-    Subquery(sql:, values: _) -> fmt.enclose(sql)
-    Any(sql:, values: _) -> fmt.enclose(sql) |> fmt.any
-    All(sql:, values: _) -> fmt.enclose(sql) |> fmt.all
+    Subquery(sql:) -> fmt.enclose(sql)
+    Any(sql:) -> fmt.enclose(sql) |> fmt.any
+    All(sql:) -> fmt.enclose(sql) |> fmt.all
     Text(..) -> fmt.placeholder
     Value(..) -> fmt.placeholder
     Values(count:) -> {
@@ -342,8 +342,8 @@ pub fn not(condition: Condition) -> Condition {
   Not(condition:)
 }
 
-pub fn exists(sql: String, values: Int) -> Condition {
-  subquery(sql, values) |> Exists
+pub fn exists(sql: String) -> Condition {
+  subquery(sql) |> Exists
 }
 
 pub fn raw(sql: String) -> Condition {

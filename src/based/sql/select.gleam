@@ -135,8 +135,7 @@ pub fn where_not(
 
 pub fn where_exists(select: Select(v), subquery: Select(v)) -> Select(v) {
   let query = to_query(subquery)
-  let count = list.length(query.values)
-  let exists = condition.exists(query.sql, count)
+  let exists = condition.exists(query.sql)
 
   let where = list.prepend(select.where, [exists])
 
@@ -263,10 +262,7 @@ pub const subquery = sql.Kind(comparable: subquery_comp)
 fn subquery_comp() -> condition.Comparable(Select(v), v) {
   condition.comparable(fn(select: Select(v)) {
     let query = to_query(select)
-
-    let count = list.length(query.values)
-
-    let node = condition.subquery(query.sql, count)
+    let node = condition.subquery(query.sql)
 
     #(node, query.values)
   })
@@ -279,10 +275,7 @@ pub const all = sql.Kind(comparable: all_comp)
 fn any_comp() -> condition.Comparable(Select(v), v) {
   condition.comparable(fn(select: Select(v)) {
     let query = to_query(select)
-
-    let count = list.length(query.values)
-
-    let node = condition.any(query.sql, count)
+    let node = condition.any(query.sql)
 
     #(node, query.values)
   })
@@ -291,10 +284,7 @@ fn any_comp() -> condition.Comparable(Select(v), v) {
 fn all_comp() -> condition.Comparable(Select(v), v) {
   condition.comparable(fn(select: Select(v)) {
     let query = to_query(select)
-
-    let count = list.length(query.values)
-
-    let node = condition.all(query.sql, count)
+    let node = condition.all(query.sql)
 
     #(node, query.values)
   })
