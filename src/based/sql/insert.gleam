@@ -14,7 +14,7 @@ pub opaque type Insert(v) {
     repo: Repo(v),
     table: table.Table,
     columns: List(String),
-    on_conflict: Option(OnConflict(v)),
+    on_conflict: Option(#(OnConflict, List(v))),
     returning: List(Column),
     values: List(v),
   )
@@ -75,8 +75,8 @@ pub fn values(insert: Insert(v), values: List(Value(v))) -> Insert(v) {
   Insert(..insert, columns:, values:)
 }
 
-pub opaque type OnConflict(v) {
-  OnConflict(target: String, action: Action, where: List(#(Condition, List(v))))
+pub opaque type OnConflict {
+  OnConflict(target: String, action: Action, where: List(Condition))
 }
 
 pub opaque type Action {
@@ -94,9 +94,12 @@ pub fn on_conflict(
   do action: Action,
   where conditions: List(#(Condition, List(v))),
 ) -> Insert(v) {
+  let #(conditions, values) =
+    condition.split(conditions, insert.repo.value_mapper)
+
   let conflict = OnConflict(target:, action:, where: conditions)
 
-  Insert(..insert, on_conflict: Some(conflict))
+  Insert(..insert, on_conflict: Some(#(conflict, values)))
 }
 
 pub const nothing = Nothing
@@ -109,8 +112,6 @@ pub fn set(column: String, value: String) -> Set {
   Set(column:, value:)
 }
 
-// pub fn set(update: Update(v), column: String, value: a, of kind: sql.Kind(v)) {
-
 pub fn returning(insert: Insert(v), cols: List(Column)) -> Insert(v) {
   Insert(..insert, returning: cols)
 }
@@ -118,10 +119,15 @@ pub fn returning(insert: Insert(v), cols: List(Column)) -> Insert(v) {
 pub fn to_query(insert: Insert(v)) -> db.Query(v) {
   let to_placeholder = fmt.to_placeholder(insert.repo.fmt, _)
 
+  let values = case insert.on_conflict {
+    Some(#(_, values)) -> list.flatten([insert.values, values])
+    None -> insert.values
+  }
+
   build(insert)
   |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
   |> db.sql
-  |> db.params(insert.values)
+  |> db.params(values)
 }
 
 pub fn to_string(insert: Insert(v)) -> String {
@@ -148,7 +154,9 @@ fn build(insert: Insert(v)) -> String {
 
   let on_conflict = fn(sql) {
     insert.on_conflict
-    |> option.map(fn(conflict) {
+    |> option.map(fn(on_conflict) {
+      let #(conflict, _values) = on_conflict
+
       let action = case conflict.action {
         Nothing -> fmt.do_nothing
         Update(sets:) -> fn(st) {
@@ -159,7 +167,12 @@ fn build(insert: Insert(v)) -> String {
       }
 
       sql
-      |> builder.append_on_conflict(conflict.target, action)
+      |> builder.append_on_conflict(
+        conflict.target,
+        conflict.where,
+        action,
+        insert.repo.fmt,
+      )
     })
     |> option.unwrap(sql)
   }

@@ -172,9 +172,12 @@ pub fn append_returning(st: String, cols: List(String)) -> String {
 pub fn append_on_conflict(
   st: String,
   target: String,
+  where: List(Condition),
   action: fn(String) -> String,
+  fmt: fmt.Fmt(v),
 ) -> String {
   st
   |> fmt.on_conflict(target)
   |> action
+  |> append_where([where], fmt)
 }

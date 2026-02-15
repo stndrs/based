@@ -241,3 +241,29 @@ pub fn insert_on_conflict_returning_test() {
 
   assert expected == query.sql
 }
+
+pub fn insert_on_conflict_where_test() {
+  let expected =
+    "INSERT INTO counts (id, quantity) VALUES (?, ?) ON CONFLICT (id) DO UPDATE SET quantity = excluded.quantity WHERE quantity > ?"
+
+  let counts = sql.table("counts")
+
+  let query =
+    based.repo()
+    |> insert.into(counts)
+    |> insert.values([
+      {
+        use <- insert.value("id", db.int(123))
+        insert.final("quantity", db.int(10))
+      },
+    ])
+    |> insert.on_conflict(
+      "id",
+      do: insert.update([insert.set("quantity", "excluded.quantity")]),
+      where: [sql.gt(sql.column("quantity"), db.int(5), of: sql.val)],
+    )
+    |> insert.to_query
+
+  query.sql |> should.equal(expected)
+  query.values |> should.equal([db.int(123), db.int(10), db.int(5)])
+}
