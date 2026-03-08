@@ -131,8 +131,13 @@ pub fn to_query(insert: Insert(v)) -> db.Query(v) {
 }
 
 pub fn to_string(insert: Insert(v)) -> String {
+  let values = case insert.on_conflict {
+    Some(#(_, values)) -> list.flatten([insert.values, values])
+    None -> insert.values
+  }
+
   build(insert)
-  |> builder.to_string(insert.values, insert.repo.fmt)
+  |> builder.to_string(values, insert.repo.fmt)
 }
 
 fn build(insert: Insert(v)) -> String {
