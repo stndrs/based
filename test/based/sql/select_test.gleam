@@ -1105,3 +1105,105 @@ pub fn all_test() {
   assert expected == query.sql
   assert [db.text("Gleam")] == query.values
 }
+
+pub fn date_to_string_test() {
+  let expected = "SELECT * FROM events WHERE event_date = '2023-12-31'"
+  let date = calendar.Date(2023, calendar.December, 31)
+  let events = sql.table("events")
+
+  let result =
+    repo.default()
+    |> select.from(events)
+    |> select.where([
+      sql.column("event_date")
+      |> sql.eq(db.date(date), of: sql.val),
+    ])
+    |> select.to_string
+
+  assert expected == result
+}
+
+pub fn time_to_string_test() {
+  let expected = "SELECT * FROM events WHERE event_time = '14:30:45.123'"
+  let time_of_day =
+    calendar.TimeOfDay(
+      hours: 14,
+      minutes: 30,
+      seconds: 45,
+      nanoseconds: 123_000_000,
+    )
+  let events = sql.table("events")
+
+  let result =
+    repo.default()
+    |> select.from(events)
+    |> select.where([
+      sql.column("event_time")
+      |> sql.eq(db.time(time_of_day), of: sql.val),
+    ])
+    |> select.to_string
+
+  assert expected == result
+}
+
+pub fn time_to_string_no_milliseconds_test() {
+  let expected = "SELECT * FROM events WHERE event_time = '08:05:00'"
+  let time_of_day =
+    calendar.TimeOfDay(hours: 8, minutes: 5, seconds: 0, nanoseconds: 0)
+  let events = sql.table("events")
+
+  let result =
+    repo.default()
+    |> select.from(events)
+    |> select.where([
+      sql.column("event_time")
+      |> sql.eq(db.time(time_of_day), of: sql.val),
+    ])
+    |> select.to_string
+
+  assert expected == result
+}
+
+pub fn datetime_to_string_test() {
+  let expected = "SELECT * FROM events WHERE created_at = '2023-12-31 14:30:45'"
+  let date = calendar.Date(2023, calendar.December, 31)
+  let time_of_day =
+    calendar.TimeOfDay(hours: 14, minutes: 30, seconds: 45, nanoseconds: 0)
+  let events = sql.table("events")
+
+  let result =
+    repo.default()
+    |> select.from(events)
+    |> select.where([
+      sql.column("created_at")
+      |> sql.eq(db.datetime(date, time_of_day), of: sql.val),
+    ])
+    |> select.to_string
+
+  assert expected == result
+}
+
+pub fn datetime_with_milliseconds_to_string_test() {
+  let expected =
+    "SELECT * FROM events WHERE created_at = '2023-01-15 09:05:03.042'"
+  let date = calendar.Date(2023, calendar.January, 15)
+  let time_of_day =
+    calendar.TimeOfDay(
+      hours: 9,
+      minutes: 5,
+      seconds: 3,
+      nanoseconds: 42_000_000,
+    )
+  let events = sql.table("events")
+
+  let result =
+    repo.default()
+    |> select.from(events)
+    |> select.where([
+      sql.column("created_at")
+      |> sql.eq(db.datetime(date, time_of_day), of: sql.val),
+    ])
+    |> select.to_string
+
+  assert expected == result
+}

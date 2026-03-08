@@ -151,20 +151,30 @@ fn bytea_to_string(val: BitArray) -> String {
 }
 
 fn date_to_string(date: calendar.Date) -> String {
+  format_date(date) |> single_quote
+}
+
+fn datetime_to_string(dt: calendar.Date, tod: calendar.TimeOfDay) -> String {
+  let date = format_date(dt)
+  let time = format_time(tod)
+
+  { date <> " " <> time }
+  |> single_quote
+}
+
+fn time_to_string(tod: calendar.TimeOfDay) -> String {
+  format_time(tod) |> single_quote
+}
+
+fn format_date(date: calendar.Date) -> String {
   let year = int.to_string(date.year)
   let month = calendar.month_to_int(date.month) |> pad_zero
   let day = pad_zero(date.day)
 
-  let date = year <> "-" <> month <> "-" <> day
-
-  single_quote(date)
+  year <> "-" <> month <> "-" <> day
 }
 
-fn datetime_to_string(dt: calendar.Date, tod: calendar.TimeOfDay) -> String {
-  date_to_string(dt) <> " " <> time_to_string(tod)
-}
-
-fn time_to_string(tod: calendar.TimeOfDay) -> String {
+fn format_time(tod: calendar.TimeOfDay) -> String {
   let hours = pad_zero(tod.hours)
   let minutes = pad_zero(tod.minutes)
   let seconds = pad_zero(tod.seconds)
@@ -177,9 +187,7 @@ fn time_to_string(tod: calendar.TimeOfDay) -> String {
     False -> "." <> int.to_string(milliseconds)
   }
 
-  let time = hours <> ":" <> minutes <> ":" <> seconds <> msecs
-
-  single_quote(time)
+  hours <> ":" <> minutes <> ":" <> seconds <> msecs
 }
 
 fn timestamp_to_string(ts: timestamp.Timestamp) -> String {
