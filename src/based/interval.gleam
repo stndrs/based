@@ -103,9 +103,12 @@ fn append_to_iso8601_string(iso8601: String, count: Int, unit: String) -> String
 
 fn to_seconds_and_microseconds(usecs: Int) -> #(Int, Int) {
   let seconds = usecs / 1_000_000
-  let usecs = usecs - { seconds * 1_000_000 }
+  let remainder = usecs - { seconds * 1_000_000 }
 
-  #(seconds, usecs)
+  case remainder < 0 {
+    True -> #(seconds - 1, remainder + 1_000_000)
+    False -> #(seconds, remainder)
+  }
 }
 
 fn microsecond_digits(n: Int, position: Int, acc: String) -> String {

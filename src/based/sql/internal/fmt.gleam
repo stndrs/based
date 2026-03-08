@@ -243,12 +243,6 @@ pub fn all(subquery: String) -> String {
   "ALL " |> string.append(subquery)
 }
 
-pub fn some(st: String, subquery: String) -> String {
-  st
-  |> string.append(" SOME ")
-  |> string.append(subquery)
-}
-
 pub fn exists(subquery: String) -> String {
   "EXISTS " |> string.append(subquery)
 }
@@ -327,19 +321,6 @@ pub fn asc(st: String) -> String {
 
 pub fn desc(st: String) -> String {
   string.append(st, " DESC")
-}
-
-// Union
-
-pub fn union(query_1: String, query_2: String, all all: Bool) -> String {
-  let keyword = case all {
-    True -> " UNION ALL "
-    False -> " UNION "
-  }
-
-  query_1
-  |> string.append(keyword)
-  |> string.append(query_2)
 }
 
 // CTEs

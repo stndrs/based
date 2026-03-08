@@ -257,38 +257,6 @@ pub fn select_with_in_test() {
   assert [db.int(1), db.int(2), db.int(3)] == query.values
 }
 
-// pub fn select_with_in_tuples_test() {
-//   let expected =
-//     "SELECT * FROM posts WHERE (id, user_id) IN ((?, ?), (?, ?), (?, ?))"
-//   let posts = sql.table("posts")
-// 
-//   let query =
-//     repo.default()
-//     |> select.from(posts)
-//     |> select.where([
-//       sql.columns(["id", "user_id"])
-//       |> sql.in(
-//         sql.tuples([
-//           [sql.val(db.int(1)), sql.val(db.int(10))],
-//           [sql.val(db.int(2)), sql.val(db.int(10))],
-//           [sql.val(db.int(3)), sql.val(db.int(10))],
-//         ]),
-//       ),
-//     ])
-//     |> select.to_query
-// 
-//   assert expected == query.sql
-//   assert [
-//       db.int(1),
-//       db.int(10),
-//       db.int(2),
-//       db.int(10),
-//       db.int(3),
-//       db.int(10),
-//     ]
-//     == query.values
-// }
-
 pub fn select_with_is_null_test() {
   let expected = "SELECT * FROM users WHERE deleted_at IS NULL"
   let users = sql.table("users")
