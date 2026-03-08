@@ -168,3 +168,46 @@ pub fn update_with_is_to_string_test() {
 
   assert expected == update.to_string(query)
 }
+
+pub fn update_with_chained_where_test() {
+  let expected = "UPDATE users SET name = ? WHERE id = ? AND active IS TRUE"
+  let users = sql.table("users")
+
+  let query =
+    repo.default()
+    |> update.table(users)
+    |> update.set("name", db.text("John"), of: sql.val)
+    |> update.where([
+      sql.column("id")
+      |> sql.eq(db.int(1), of: sql.val),
+    ])
+    |> update.where([
+      sql.column("active")
+      |> column.is(True),
+    ])
+    |> update.to_query
+
+  assert expected == query.sql
+  assert [db.text("John"), db.int(1)] == query.values
+}
+
+pub fn update_with_chained_where_to_string_test() {
+  let expected =
+    "UPDATE users SET name = 'John' WHERE id = 1 AND active IS TRUE"
+  let users = sql.table("users")
+
+  let query =
+    repo.default()
+    |> update.table(users)
+    |> update.set("name", db.text("John"), of: sql.val)
+    |> update.where([
+      sql.column("id")
+      |> sql.eq(db.int(1), of: sql.val),
+    ])
+    |> update.where([
+      sql.column("active")
+      |> column.is(True),
+    ])
+
+  assert expected == update.to_string(query)
+}

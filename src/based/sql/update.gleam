@@ -76,7 +76,9 @@ pub fn where(
 ) -> Update(v) {
   let #(conds, vals) = condition.split(conditions, update.repo.value_mapper)
 
-  Update(..update, where: [conds]) |> prepend_values(vals)
+  let where = list.prepend(update.where, conds)
+
+  Update(..update, where:) |> prepend_values(vals)
 }
 
 /// Add WHERE NOT conditions to the UPDATE statement
