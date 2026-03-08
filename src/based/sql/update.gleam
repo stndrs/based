@@ -74,13 +74,7 @@ pub fn where(
   update: Update(v),
   conditions: List(#(Condition, List(v))),
 ) -> Update(v) {
-  let conds =
-    conditions
-    |> list.map(fn(cond) { cond.0 })
-
-  let vals =
-    conditions
-    |> list.flat_map(fn(cond) { cond.1 })
+  let #(conds, vals) = condition.split(conditions, update.repo.value_mapper)
 
   Update(..update, where: [conds]) |> prepend_values(vals)
 }

@@ -123,6 +123,36 @@ pub fn update_set_from_subquery_test() {
   assert [db.int(1)] == query.values
 }
 
+pub fn update_with_like_test() {
+  let expected = "UPDATE users SET active = ? WHERE name LIKE ?"
+  let users = sql.table("users")
+
+  let query =
+    repo.default()
+    |> update.table(users)
+    |> update.set("active", db.true, of: sql.val)
+    |> update.where([sql.column("name") |> sql.like("%John%")])
+    |> update.to_query
+
+  assert expected == query.sql
+  assert [db.true, db.text("%John%")] == query.values
+}
+
+pub fn update_with_not_like_test() {
+  let expected = "UPDATE users SET active = ? WHERE name NOT LIKE ?"
+  let users = sql.table("users")
+
+  let query =
+    repo.default()
+    |> update.table(users)
+    |> update.set("active", db.true, of: sql.val)
+    |> update.where([sql.column("name") |> sql.not_like("%admin%")])
+    |> update.to_query
+
+  assert expected == query.sql
+  assert [db.true, db.text("%admin%")] == query.values
+}
+
 pub fn update_with_is_to_string_test() {
   let expected = "UPDATE products SET price = 19.99 WHERE is_deleted IS FALSE"
   let products = sql.table("products")

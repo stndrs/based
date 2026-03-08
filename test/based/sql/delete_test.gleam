@@ -76,6 +76,34 @@ pub fn delete_returning_test() {
   query.values |> should.equal([db.int(1)])
 }
 
+pub fn delete_with_like_test() {
+  let expected = "DELETE FROM users WHERE name LIKE ?"
+  let users = sql.table("users")
+
+  let query =
+    repo.default()
+    |> delete.from(users)
+    |> delete.where([sql.column("name") |> sql.like("%John%")])
+    |> delete.to_query
+
+  query.sql |> should.equal(expected)
+  query.values |> should.equal([db.text("%John%")])
+}
+
+pub fn delete_with_not_like_test() {
+  let expected = "DELETE FROM users WHERE name NOT LIKE ?"
+  let users = sql.table("users")
+
+  let query =
+    repo.default()
+    |> delete.from(users)
+    |> delete.where([sql.column("name") |> sql.not_like("%admin%")])
+    |> delete.to_query
+
+  query.sql |> should.equal(expected)
+  query.values |> should.equal([db.text("%admin%")])
+}
+
 pub fn delete_to_string_test() {
   let expected = "DELETE FROM users WHERE id = 1 AND created_at < '2024-01-01'"
   let users = sql.table("users")

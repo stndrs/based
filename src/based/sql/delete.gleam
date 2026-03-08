@@ -49,13 +49,7 @@ pub fn where(
   delete: Delete(v),
   conditions: List(#(Condition, List(v))),
 ) -> Delete(v) {
-  let conds =
-    conditions
-    |> list.map(fn(cond) { cond.0 })
-
-  let vals =
-    conditions
-    |> list.flat_map(fn(cond) { cond.1 })
+  let #(conds, vals) = condition.split(conditions, delete.repo.value_mapper)
 
   let where = list.prepend(delete.where, conds)
 
