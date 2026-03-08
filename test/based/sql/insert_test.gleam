@@ -1,5 +1,5 @@
-import based
 import based/db
+import based/repo
 import based/sql
 import based/sql/insert
 import based/uuid
@@ -11,7 +11,7 @@ pub fn basic_insert_test() {
   let users = sql.table("users")
 
   let query =
-    based.repo()
+    repo.default()
     |> insert.into(users)
     |> insert.values([
       {
@@ -32,7 +32,7 @@ pub fn insert_multiple_columns_test() {
   let users = sql.table("users")
 
   let query =
-    based.repo()
+    repo.default()
     |> insert.into(users)
     |> insert.values([
       {
@@ -59,7 +59,7 @@ pub fn insert_returning_test() {
   let users = sql.table("users")
 
   let query =
-    based.repo()
+    repo.default()
     |> insert.into(users)
     |> insert.values([insert.final("name", db.text("John"))])
     |> insert.returning([sql.column("id"), sql.column("name")])
@@ -75,7 +75,7 @@ pub fn insert_to_string_test() {
   let users = sql.table("users")
 
   let query =
-    based.repo()
+    repo.default()
     |> insert.into(users)
     |> insert.values([
       {
@@ -102,7 +102,7 @@ pub fn insert_multiple_rows_test() {
     })
 
   let query =
-    based.repo()
+    repo.default()
     |> insert.into(users)
     |> insert.values(values)
     |> insert.to_query
@@ -122,7 +122,7 @@ pub fn insert_with_null_test() {
   let users = sql.table("users")
 
   let query =
-    based.repo()
+    repo.default()
     |> insert.into(users)
     |> insert.values([
       {
@@ -142,7 +142,7 @@ pub fn insert_with_different_value_types_test() {
   let products = sql.table("products")
 
   let query =
-    based.repo()
+    repo.default()
     |> insert.into(products)
     |> insert.values([
       {
@@ -175,7 +175,7 @@ pub fn insert_on_conflict_test() {
   let identifier = uuid.v4()
 
   let query =
-    based.repo()
+    repo.default()
     |> insert.into(counts)
     |> insert.values([
       {
@@ -204,7 +204,7 @@ pub fn insert_on_conflict_do_nothing_test() {
   let identifier = uuid.v4()
 
   let query =
-    based.repo()
+    repo.default()
     |> insert.into(counts)
     |> insert.values([
       {
@@ -227,7 +227,7 @@ pub fn insert_on_conflict_returning_test() {
   let counts = sql.table("counts")
 
   let query =
-    based.repo()
+    repo.default()
     |> insert.into(counts)
     |> insert.values([
       {
@@ -249,7 +249,7 @@ pub fn insert_on_conflict_where_test() {
   let counts = sql.table("counts")
 
   let query =
-    based.repo()
+    repo.default()
     |> insert.into(counts)
     |> insert.values([
       {

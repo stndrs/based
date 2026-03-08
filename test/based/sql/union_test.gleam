@@ -1,5 +1,5 @@
-import based
 import based/db
+import based/repo
 import based/sql
 import based/sql/column
 import based/sql/select
@@ -12,7 +12,7 @@ pub fn union_test() {
   let users = sql.table("users")
   let employees = sql.table("employees")
   let users_query =
-    based.repo()
+    repo.default()
     |> select.from(users)
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
@@ -21,7 +21,7 @@ pub fn union_test() {
     ])
 
   let employees_query =
-    based.repo()
+    repo.default()
     |> select.from(employees)
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
@@ -43,7 +43,7 @@ pub fn union_all_test() {
   let users = sql.table("users")
   let employees = sql.table("employees")
   let users_query =
-    based.repo()
+    repo.default()
     |> select.from(users)
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
@@ -52,7 +52,7 @@ pub fn union_all_test() {
     ])
 
   let employees_query =
-    based.repo()
+    repo.default()
     |> select.from(employees)
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
@@ -74,7 +74,7 @@ pub fn union_to_string_test() {
   let users = sql.table("users")
   let employees = sql.table("employees")
   let users_query =
-    based.repo()
+    repo.default()
     |> select.from(users)
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
@@ -83,7 +83,7 @@ pub fn union_to_string_test() {
     ])
 
   let employees_query =
-    based.repo()
+    repo.default()
     |> select.from(employees)
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
@@ -104,7 +104,7 @@ pub fn union_all_to_string_test() {
   let users = sql.table("users")
   let employees = sql.table("employees")
   let users_query =
-    based.repo()
+    repo.default()
     |> select.from(users)
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
@@ -113,7 +113,7 @@ pub fn union_all_to_string_test() {
     ])
 
   let employees_query =
-    based.repo()
+    repo.default()
     |> select.from(employees)
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
@@ -135,7 +135,7 @@ pub fn multi_union_to_string_test() {
   let employees = sql.table("employees")
   let contractors = sql.table("contractors")
   let users_query =
-    based.repo()
+    repo.default()
     |> select.from(users)
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
@@ -144,7 +144,7 @@ pub fn multi_union_to_string_test() {
     ])
 
   let employees_query =
-    based.repo()
+    repo.default()
     |> select.from(employees)
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
@@ -153,7 +153,7 @@ pub fn multi_union_to_string_test() {
     ])
 
   let contractors_query =
-    based.repo()
+    repo.default()
     |> select.from(contractors)
     |> select.columns([sql.column("id"), sql.column("name")])
     |> select.where([
