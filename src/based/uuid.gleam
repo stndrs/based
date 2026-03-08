@@ -130,12 +130,10 @@ pub const nil: Uuid = Uuid(uuid: <<0:128>>)
 
 pub const nil_string: String = "00000000-0000-0000-0000-000000000000"
 
-pub fn version(uuid: Uuid) -> Version {
-  let assert <<_:48, ver:4, _:76>> = uuid.uuid
-
-  case ver {
-    4 -> V4
-    7 -> V7
-    _ -> panic as "unexpected Uuid version"
+pub fn version(uuid: Uuid) -> Result(Version, Nil) {
+  case uuid.uuid {
+    <<_:48, 4:4, _:76>> -> Ok(V4)
+    <<_:48, 7:4, _:76>> -> Ok(V7)
+    _ -> Error(Nil)
   }
 }
