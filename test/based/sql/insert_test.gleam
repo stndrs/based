@@ -313,3 +313,25 @@ pub fn insert_on_conflict_do_nothing_to_string_test() {
 
   result |> should.equal(expected)
 }
+
+pub fn insert_with_explicit_columns_test() {
+  let expected = "INSERT INTO users (id, name, email) VALUES (?, ?, ?)"
+  let users = sql.table("users")
+
+  let query =
+    repo.default()
+    |> insert.into(users)
+    |> insert.columns(["id", "name", "email"])
+    |> insert.values([
+      {
+        use <- insert.value("id", db.int(1))
+        use <- insert.value("name", db.text("John"))
+        insert.final("email", db.text("john@example.com"))
+      },
+    ])
+    |> insert.to_query
+
+  query.sql |> should.equal(expected)
+  query.values
+  |> should.equal([db.int(1), db.text("John"), db.text("john@example.com")])
+}

@@ -159,3 +159,114 @@ fn tx_handler(
   next(conn)
   |> result.map_error(db.Rollback)
 }
+
+// error_to_string tests
+
+pub fn error_to_string_connection_timeout_test() {
+  let result = db.error_to_string(db.ConnectionTimeout)
+
+  let assert True = result == "[based/db.ConnectionTimeout]"
+}
+
+pub fn error_to_string_connection_error_test() {
+  let result = db.error_to_string(db.ConnectionError("refused"))
+
+  let assert True = result == "[based/db.ConnectionError] refused"
+}
+
+pub fn error_to_string_database_error_test() {
+  let result =
+    db.error_to_string(db.DatabaseError(
+      code: "42P01",
+      name: "undefined_table",
+      message: "relation does not exist",
+    ))
+
+  let assert True =
+    result
+    == "[based/db.DatabaseError] code: 42P01, name: undefined_table, message: relation does not exist"
+}
+
+pub fn error_to_string_constraint_error_test() {
+  let result =
+    db.error_to_string(db.ConstraintError(
+      code: "23505",
+      name: "unique_violation",
+      message: "duplicate key",
+    ))
+
+  let assert True =
+    result
+    == "[based/db.ConstraintError] code: 23505, name: unique_violation, message: duplicate key"
+}
+
+pub fn error_to_string_syntax_error_test() {
+  let result =
+    db.error_to_string(db.SyntaxError(
+      code: "42601",
+      name: "syntax_error",
+      message: "unexpected token",
+    ))
+
+  let assert True =
+    result
+    == "[based/db.SyntaxError] code: 42601, name: syntax_error, message: unexpected token"
+}
+
+pub fn error_to_string_db_error_test() {
+  let result = db.error_to_string(db.DbError("something failed"))
+
+  let assert True = result == "[based/db.DbError] something failed"
+}
+
+pub fn error_to_string_not_found_test() {
+  let result = db.error_to_string(db.NotFound)
+
+  let assert True = result == "[based/db.NotFound]"
+}
+
+pub fn error_to_string_decode_error_test() {
+  let result =
+    db.error_to_string(
+      db.DecodeError([
+        decode.DecodeError(expected: "Int", found: "String", path: ["0"]),
+      ]),
+    )
+
+  let assert True =
+    result
+    == "[based/db.DecodeError] errors: [gleam/dynamic/decode.DecodeError] expected: Int, found: String, path: 0"
+}
+
+// batch tests
+
+pub fn batch_test() {
+  let rows = [dynamic.array([dynamic.int(1), dynamic.string("Steve")])]
+  let returning = Ok([db.Queried(count: 1, fields: ["id", "name"], rows:)])
+
+  let database =
+    db.driver()
+    |> db.on_batch(fn(_, _) { returning })
+    |> db.new(Conn)
+
+  let queries = [
+    db.sql("SELECT * FROM users WHERE id=$1;") |> db.params([db.int(1)]),
+    db.sql("SELECT * FROM users WHERE id=$1;") |> db.params([db.int(2)]),
+  ]
+
+  let assert Ok(results) = db.batch(queries, database)
+  let assert True = list.length(results) == 1
+}
+
+pub fn batch_error_test() {
+  let returning = Error(db.DbError("batch failed"))
+
+  let database =
+    db.driver()
+    |> db.on_batch(fn(_, _) { returning })
+    |> db.new(Conn)
+
+  let queries = [db.sql("SELECT 1;")]
+
+  let assert Error(_) = db.batch(queries, database)
+}

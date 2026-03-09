@@ -1217,3 +1217,24 @@ pub fn datetime_with_milliseconds_to_string_test() {
 
   assert expected == result
 }
+
+pub fn select_chained_where_test() {
+  let expected =
+    "SELECT * FROM users WHERE age > ? AND status = ? AND name LIKE ?"
+  let users = sql.table("users")
+
+  let query =
+    repo.default()
+    |> select.from(users)
+    |> select.where([
+      sql.column("age")
+        |> sql.gt(db.int(18), of: sql.val),
+      sql.column("status")
+        |> sql.eq(db.text("active"), of: sql.val),
+    ])
+    |> select.where([sql.column("name") |> sql.like("%John%")])
+    |> select.to_query
+
+  assert expected == query.sql
+  assert [db.int(18), db.text("active"), db.text("%John%")] == query.values
+}

@@ -120,3 +120,25 @@ pub fn delete_to_string_test() {
 
   delete.to_string(query) |> should.equal(expected)
 }
+
+pub fn delete_chained_where_test() {
+  let expected = "DELETE FROM users WHERE status = ? AND created_at < ?"
+  let users = sql.table("users")
+
+  let query =
+    repo.default()
+    |> delete.from(users)
+    |> delete.where([
+      sql.column("status")
+      |> sql.eq(db.text("inactive"), of: sql.val),
+    ])
+    |> delete.where([
+      sql.column("created_at")
+      |> sql.lt(db.text("2024-01-01"), of: sql.val),
+    ])
+    |> delete.to_query
+
+  query.sql |> should.equal(expected)
+  query.values
+  |> should.equal([db.text("inactive"), db.text("2024-01-01")])
+}

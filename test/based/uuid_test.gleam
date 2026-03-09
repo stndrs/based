@@ -1,4 +1,5 @@
 import based/uuid
+import gleam/bit_array
 import gleam/time/timestamp
 
 pub fn v4_test() {
@@ -49,4 +50,21 @@ pub fn version_unknown_test() {
 
 pub fn version_nil_test() {
   assert Error(Nil) == uuid.version(uuid.nil)
+}
+
+pub fn nil_to_string_test() {
+  assert uuid.nil_string == uuid.to_string(uuid.nil)
+}
+
+pub fn to_bit_array_round_trip_test() {
+  let id = uuid.v4()
+  let bits = uuid.to_bit_array(id)
+
+  // A UUID is 128 bits = 16 bytes
+  assert 16 == bit_array.byte_size(bits)
+
+  // Verify the string round-trip is consistent
+  let str = uuid.to_string(id)
+  let assert Ok(parsed) = uuid.from_string(str)
+  assert bits == uuid.to_bit_array(parsed)
 }

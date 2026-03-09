@@ -219,3 +219,37 @@ pub fn value_datetime_test() {
 
   assert "'2024-01-15 09:05:03'" == default_to_string(db.Datetime(date, time))
 }
+
+pub fn value_timestamptz_with_minutes_offset_test() {
+  // India's UTC+5:30 offset
+  let ts = timestamp.from_unix_seconds(1_705_318_200)
+  let offset = db.Offset(hours: 5, minutes: 30)
+  let result = default_to_string(db.Timestamptz(ts, offset))
+
+  // offset_to_duration: sign = -1 (positive hours), so subtract:
+  // (5 * 60 + 30) * -1 = -330 minutes
+  // 11:30:00 - 5:30:00 = 06:00:00
+  assert "'2024-01-15T06:00:00Z'" == result
+}
+
+pub fn value_time_nanosecond_truncation_test() {
+  // 123_456_789 nanoseconds -> 123 milliseconds (truncated, not rounded)
+  let time =
+    calendar.TimeOfDay(
+      hours: 12,
+      minutes: 0,
+      seconds: 0,
+      nanoseconds: 123_456_789,
+    )
+
+  assert "'12:00:00.123'" == default_to_string(db.Time(time))
+}
+
+pub fn value_time_sub_millisecond_nanoseconds_test() {
+  // 999_999 nanoseconds = 0.999999 ms, truncates to 0 ms
+  let time =
+    calendar.TimeOfDay(hours: 12, minutes: 0, seconds: 0, nanoseconds: 999_999)
+
+  // Less than 1 ms, so no fractional seconds shown
+  assert "'12:00:00'" == default_to_string(db.Time(time))
+}
