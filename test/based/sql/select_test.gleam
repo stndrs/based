@@ -458,7 +458,7 @@ pub fn select_with_limit_test() {
   let query =
     repo.default()
     |> select.from(users)
-    |> select.limit(10, of: db.int)
+    |> select.limit(10)
     |> select.to_query
 
   assert expected == query.sql
@@ -472,8 +472,8 @@ pub fn select_with_limit_and_offset_test() {
   let query =
     repo.default()
     |> select.from(users)
-    |> select.limit(20, of: db.int)
-    |> select.offset(10, of: db.int)
+    |> select.limit(20)
+    |> select.offset(10)
     |> select.to_query
 
   assert expected == query.sql
@@ -487,8 +487,8 @@ pub fn select_with_offset_test() {
   let query =
     repo.default()
     |> select.from(users)
-    |> select.limit(100, of: db.int)
-    |> select.offset(50, of: db.int)
+    |> select.limit(100)
+    |> select.offset(50)
     |> select.to_query
 
   assert expected == query.sql
@@ -641,8 +641,8 @@ pub fn complex_query_with_order_by_test() {
     ])
     |> select.order_by(["COUNT(*)"])
     |> select.desc
-    |> select.limit(5, of: db.int)
-    |> select.offset(0, of: db.int)
+    |> select.limit(5)
+    |> select.offset(0)
     |> select.to_query
 
   assert expected == query.sql
@@ -760,7 +760,7 @@ pub fn complex_for_update_test() {
     ])
     |> select.order_by(["balance"])
     |> select.desc
-    |> select.limit(3, of: db.int)
+    |> select.limit(3)
     |> select.for_update
     |> select.to_query
 

@@ -5,6 +5,7 @@ import based/sql/column.{type Column}
 import based/sql/condition.{type Condition}
 import based/sql/internal/builder
 import based/sql/internal/fmt
+import based/sql/internal/value
 import based/sql/table
 import gleam/function
 import gleam/list
@@ -224,18 +225,18 @@ pub fn desc(select: Select(v)) -> Select(v) {
 
 // Limit
 
-pub fn limit(select: Select(v), count: Int, of outer: fn(Int) -> v) -> Select(v) {
+pub fn limit(select: Select(v), count: Int) -> Select(v) {
+  let int_val = value.from_int(count, select.repo.value_mapper)
+
   Select(..select, limit: Some(count))
-  |> prepend_values([outer(count)])
+  |> prepend_values([int_val])
 }
 
-pub fn offset(
-  select: Select(v),
-  count: Int,
-  of outer: fn(Int) -> v,
-) -> Select(v) {
+pub fn offset(select: Select(v), count: Int) -> Select(v) {
+  let int_val = value.from_int(count, select.repo.value_mapper)
+
   Select(..select, offset: Some(count))
-  |> prepend_values([outer(count)])
+  |> prepend_values([int_val])
 }
 
 // For Update
