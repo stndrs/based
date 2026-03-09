@@ -299,6 +299,48 @@ pub fn select_with_is_not_null_test() {
   assert [] == query.values
 }
 
+pub fn select_with_sql_is_true_test() {
+  let expected = "SELECT * FROM users WHERE active IS TRUE"
+  let users = sql.table("users")
+
+  let query =
+    repo.default()
+    |> select.from(users)
+    |> select.where([sql.is(sql.column("active"), True)])
+    |> select.to_query
+
+  assert expected == query.sql
+  assert [] == query.values
+}
+
+pub fn select_with_sql_is_false_test() {
+  let expected = "SELECT * FROM users WHERE active IS FALSE"
+  let users = sql.table("users")
+
+  let query =
+    repo.default()
+    |> select.from(users)
+    |> select.where([sql.is(sql.column("active"), False)])
+    |> select.to_query
+
+  assert expected == query.sql
+  assert [] == query.values
+}
+
+pub fn select_with_sql_is_not_null_test() {
+  let expected = "SELECT * FROM users WHERE active IS NOT NULL"
+  let users = sql.table("users")
+
+  let query =
+    repo.default()
+    |> select.from(users)
+    |> select.where([sql.is_not_null(sql.column("active"))])
+    |> select.to_query
+
+  assert expected == query.sql
+  assert [] == query.values
+}
+
 pub fn select_wildcard_test() {
   let expected = "SELECT * FROM users"
   let users = sql.table("users")

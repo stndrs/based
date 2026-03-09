@@ -137,20 +137,16 @@ pub fn in(
   column.in(column, right, of: kind.comparable)
 }
 
-pub fn is(column: Column, right: Bool) -> Condition {
-  column
-  |> column.value
-  |> condition.is(right)
+pub fn is(column: Column, right: Bool) -> #(Condition, List(v)) {
+  column.is(column, right)
 }
 
 pub fn is_null(column: Column) -> #(Condition, List(v)) {
   column.is_null(column)
 }
 
-pub fn is_not_null(column: Column) -> Condition {
-  column
-  |> column.value
-  |> condition.is_null(False)
+pub fn is_not_null(column: Column) -> #(Condition, List(v)) {
+  column.is_not_null(column)
 }
 
 pub fn or(
