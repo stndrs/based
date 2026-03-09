@@ -130,6 +130,8 @@ pub fn with_column_names_test() {
 }
 
 pub fn recursive_with_test() {
+  let repo = repo.default()
+
   let expected =
     "WITH RECURSIVE numbers (n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM numbers WHERE n < ?) SELECT n FROM numbers;"
 
@@ -139,7 +141,7 @@ pub fn recursive_with_test() {
   let numbers = sql.table("numbers")
 
   let recursive_query =
-    repo.default()
+    repo
     |> select.from(numbers)
     |> select.columns([sql.column("n + 1")])
     |> select.where([
@@ -148,7 +150,7 @@ pub fn recursive_with_test() {
     ])
 
   let union_all =
-    union.all([base_query, recursive_query])
+    union.all(repo, [base_query, recursive_query])
     |> union.to_query
 
   let query =
@@ -167,6 +169,8 @@ pub fn recursive_with_test() {
 }
 
 pub fn with_union_test() {
+  let repo = repo.default()
+
   let expected =
     "WITH combined_data AS (SELECT id, name FROM users UNION SELECT id, username FROM accounts) SELECT * FROM combined_data ORDER BY id;"
   let users = sql.table("users")
@@ -184,7 +188,7 @@ pub fn with_union_test() {
     |> select.columns([sql.column("id"), sql.column("username")])
 
   let union_query =
-    union.new([users_select, accounts_select])
+    union.new(repo, [users_select, accounts_select])
     |> union.to_query
 
   let query =

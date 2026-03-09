@@ -247,6 +247,15 @@ pub fn for_update(select: Select(v)) -> Select(v) {
 
 // Query String Building
 
+@internal
+pub fn build_query(select: Select(v)) -> db.Query(v) {
+  let values = select.values |> list.reverse |> list.flatten
+
+  build(select)
+  |> db.sql
+  |> db.params(values)
+}
+
 pub fn to_query(select: Select(v)) -> db.Query(v) {
   let values = select.values |> list.reverse |> list.flatten
 

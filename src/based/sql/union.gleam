@@ -1,19 +1,22 @@
 import based/db
+import based/repo.{type Repo}
+import based/sql/internal/builder
+import based/sql/internal/fmt
 import based/sql/select.{type Select}
 import gleam/list
 import gleam/string
 
 pub opaque type Union(v) {
-  Union(selects: List(Select(v)))
-  UnionAll(selects: List(Select(v)))
+  Union(repo: Repo(v), selects: List(Select(v)))
+  UnionAll(repo: Repo(v), selects: List(Select(v)))
 }
 
-pub fn new(selects: List(Select(v))) -> Union(v) {
-  Union(selects)
+pub fn new(repo: Repo(v), selects: List(Select(v))) -> Union(v) {
+  Union(repo:, selects:)
 }
 
-pub fn all(selects: List(Select(v))) -> Union(v) {
-  UnionAll(selects)
+pub fn all(repo: Repo(v), selects: List(Select(v))) -> Union(v) {
+  UnionAll(repo:, selects:)
 }
 
 pub fn to_query(union: Union(v)) -> db.Query(v) {
@@ -23,8 +26,8 @@ pub fn to_query(union: Union(v)) -> db.Query(v) {
   }
 
   union.selects
-  |> list.map(select.to_query)
-  |> to_union_query(operator)
+  |> list.map(select.build_query)
+  |> to_union_query(union.repo, operator)
 }
 
 pub fn to_string(union: Union(v)) -> String {
@@ -38,7 +41,11 @@ pub fn to_string(union: Union(v)) -> String {
   |> string.join(operator)
 }
 
-fn to_union_query(selects: List(db.Query(v)), operator: String) -> db.Query(v) {
+fn to_union_query(
+  selects: List(db.Query(v)),
+  repo: Repo(v),
+  operator: String,
+) -> db.Query(v) {
   let #(vals, sql) =
     selects
     |> list.map_fold([], with: fn(vals, select) {
@@ -46,9 +53,11 @@ fn to_union_query(selects: List(db.Query(v)), operator: String) -> db.Query(v) {
     })
 
   let values = list.reverse(vals) |> list.flatten
+  let to_placeholder = fn(idx) { fmt.to_placeholder(repo.fmt, idx) }
 
   sql
   |> string.join(operator)
+  |> builder.placeholders(on: fmt.placeholder, with: to_placeholder)
   |> db.sql
   |> db.params(values)
 }
