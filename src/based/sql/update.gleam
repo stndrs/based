@@ -26,9 +26,10 @@ import based/sql/column.{type Column}
 import based/sql/condition.{type Condition}
 import based/sql/internal/builder
 import based/sql/internal/fmt
+import based/sql/internal/value
 import based/sql/table
 import gleam/list
-import gleam/option.{type Option, None}
+import gleam/option.{type Option, None, Some}
 
 pub opaque type Update(v) {
   Update(
@@ -98,6 +99,38 @@ pub fn returning(update: Update(v), columns: List(Column)) -> Update(v) {
   Update(..update, returning: columns)
 }
 
+/// Set the ORDER BY columns for the UPDATE statement. Supported by MySQL
+/// and MariaDB.
+pub fn order_by(update: Update(v), order_by: List(String)) -> Update(v) {
+  Update(..update, order_by:)
+}
+
+/// Set the ORDER BY direction to ASC.
+pub fn asc(update: Update(v)) -> Update(v) {
+  Update(..update, order: Some(sql.Asc))
+}
+
+/// Set the ORDER BY direction to DESC.
+pub fn desc(update: Update(v)) -> Update(v) {
+  Update(..update, order: Some(sql.Desc))
+}
+
+/// Set the LIMIT for the UPDATE statement. Supported by MySQL and MariaDB.
+pub fn limit(update: Update(v), count: Int) -> Update(v) {
+  let int_val = value.from_int(count, update.repo.value_mapper)
+
+  Update(..update, limit: Some(count))
+  |> prepend_values([int_val])
+}
+
+/// Set the OFFSET for the UPDATE statement.
+pub fn offset(update: Update(v), count: Int) -> Update(v) {
+  let int_val = value.from_int(count, update.repo.value_mapper)
+
+  Update(..update, offset: Some(count))
+  |> prepend_values([int_val])
+}
+
 /// Convert the UPDATE query to a database query with parameters
 pub fn to_query(update: Update(v)) -> db.Query(v) {
   let values = update.values |> list.reverse |> list.flatten
@@ -139,9 +172,9 @@ fn build(update: Update(v)) -> String {
   fmt.update(table)
   |> fmt.set(updates)
   |> builder.append_where(update.where, update.repo.fmt)
-  |> builder.append_returning(returning)
   |> builder.append_order_by(update.order_by, update.order)
   |> builder.append_limit(update.limit, update.offset)
+  |> builder.append_returning(returning)
 }
 
 fn prepend_values(update: Update(v), values: List(v)) -> Update(v) {

@@ -76,6 +76,12 @@ pub fn on_text(repo: Repo(v), handle_text: fn(String) -> v) -> Repo(v) {
   Repo(..repo, value_mapper:)
 }
 
+pub fn on_int(repo: Repo(v), handle_int: fn(Int) -> v) -> Repo(v) {
+  let value_mapper = value.on_int(repo.value_mapper, handle_int)
+
+  Repo(..repo, value_mapper:)
+}
+
 pub fn on_null(repo: Repo(v), handle_null: fn() -> v) -> Repo(v) {
   let value_mapper = value.on_null(repo.value_mapper, handle_null)
 
@@ -95,6 +101,7 @@ pub fn default() -> Repo(db.Value) {
   |> on_identifier(function.identity)
   |> on_value(value_to_string)
   |> on_text(db.text)
+  |> on_int(db.int)
   |> on_null(fn() { db.null })
 }
 

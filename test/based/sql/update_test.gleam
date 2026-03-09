@@ -211,3 +211,130 @@ pub fn update_with_chained_where_to_string_test() {
 
   assert expected == update.to_string(query)
 }
+
+pub fn update_with_order_by_asc_test() {
+  let expected =
+    "UPDATE users SET active = ? WHERE active IS TRUE ORDER BY id ASC"
+  let users = sql.table("users")
+
+  let query =
+    repo.default()
+    |> update.table(users)
+    |> update.set("active", db.false, of: sql.val)
+    |> update.where([sql.column("active") |> column.is(True)])
+    |> update.order_by(["id"])
+    |> update.asc
+    |> update.to_query
+
+  assert expected == query.sql
+  assert [db.false] == query.values
+}
+
+pub fn update_with_order_by_desc_test() {
+  let expected =
+    "UPDATE users SET active = ? WHERE active IS TRUE ORDER BY created_at DESC"
+  let users = sql.table("users")
+
+  let query =
+    repo.default()
+    |> update.table(users)
+    |> update.set("active", db.false, of: sql.val)
+    |> update.where([sql.column("active") |> column.is(True)])
+    |> update.order_by(["created_at"])
+    |> update.desc
+    |> update.to_query
+
+  assert expected == query.sql
+  assert [db.false] == query.values
+}
+
+pub fn update_with_limit_test() {
+  let expected = "UPDATE users SET active = ? WHERE active IS TRUE LIMIT ?"
+  let users = sql.table("users")
+
+  let query =
+    repo.default()
+    |> update.table(users)
+    |> update.set("active", db.false, of: sql.val)
+    |> update.where([sql.column("active") |> column.is(True)])
+    |> update.limit(10)
+    |> update.to_query
+
+  assert expected == query.sql
+  assert [db.false, db.int(10)] == query.values
+}
+
+pub fn update_with_order_by_and_limit_test() {
+  let expected =
+    "UPDATE users SET active = ? WHERE active IS TRUE ORDER BY id ASC LIMIT ?"
+  let users = sql.table("users")
+
+  let query =
+    repo.default()
+    |> update.table(users)
+    |> update.set("active", db.false, of: sql.val)
+    |> update.where([sql.column("active") |> column.is(True)])
+    |> update.order_by(["id"])
+    |> update.asc
+    |> update.limit(100)
+    |> update.to_query
+
+  assert expected == query.sql
+  assert [db.false, db.int(100)] == query.values
+}
+
+pub fn update_with_limit_and_offset_test() {
+  let expected =
+    "UPDATE users SET active = ? WHERE active IS TRUE LIMIT ? OFFSET ?"
+  let users = sql.table("users")
+
+  let query =
+    repo.default()
+    |> update.table(users)
+    |> update.set("active", db.false, of: sql.val)
+    |> update.where([sql.column("active") |> column.is(True)])
+    |> update.limit(10)
+    |> update.offset(20)
+    |> update.to_query
+
+  assert expected == query.sql
+  assert [db.false, db.int(10), db.int(20)] == query.values
+}
+
+pub fn update_with_order_by_limit_returning_test() {
+  let expected =
+    "UPDATE users SET active = ? WHERE active IS TRUE ORDER BY id ASC LIMIT ? RETURNING id"
+  let users = sql.table("users")
+
+  let query =
+    repo.default()
+    |> update.table(users)
+    |> update.set("active", db.false, of: sql.val)
+    |> update.where([sql.column("active") |> column.is(True)])
+    |> update.order_by(["id"])
+    |> update.asc
+    |> update.limit(5)
+    |> update.returning([sql.column("id")])
+    |> update.to_query
+
+  assert expected == query.sql
+  assert [db.false, db.int(5)] == query.values
+}
+
+pub fn update_with_limit_to_string_test() {
+  let expected =
+    "UPDATE users SET active = FALSE WHERE active IS TRUE ORDER BY id DESC LIMIT 10"
+  let users = sql.table("users")
+
+  let result =
+    repo.default()
+    |> update.table(users)
+    |> update.set("active", db.false, of: sql.val)
+    |> update.where([sql.column("active") |> column.is(True)])
+    |> update.order_by(["id"])
+    |> update.desc
+    |> update.limit(10)
+    |> update.to_string
+
+  assert expected == result
+}
