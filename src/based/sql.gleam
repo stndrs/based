@@ -167,6 +167,8 @@ pub fn not(condition: #(Condition, List(v))) -> #(Condition, List(v)) {
   #(condition.not(condition.0), condition.1)
 }
 
+/// Creates a raw SQL condition from an arbitrary SQL string. The SQL is
+/// included verbatim in the generated query with no parameterization.
 pub fn raw(sql: String) -> #(Condition, List(v)) {
   #(condition.raw(sql), [])
 }

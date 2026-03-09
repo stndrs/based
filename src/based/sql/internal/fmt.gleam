@@ -16,7 +16,7 @@ pub fn new() -> Fmt(v) {
   Fmt(
     handle_identifier: function.identity,
     handle_placeholder: fn(_) { "?" },
-    handle_value: fn(_) { panic as "based/format.Fmt not configured" },
+    handle_value: fn(_) { panic as "based/sql/internal/fmt.Fmt not configured" },
   )
 }
 

@@ -3,18 +3,19 @@
 //// ## Usage
 ////
 //// ```gleam
+//// import based/db
+//// import based/repo
+//// import based/sql
 //// import based/sql/update
-//// import database/value
 ////
 //// let users = sql.table("users")
-//// let sql = sql.new()
 ////
-//// let query = update.table(sql, users)
-////   |> update.set("name", sql.value("John", of: value.text))
-////   |> update.where([
-////     sql.name("id") |> sql.column |> expression.eq(sql.value(value.int(123)))
-////   ])
-////   |> update.returning(["id", "name"])
+//// let query =
+////   repo.default()
+////   |> update.table(users)
+////   |> update.set("name", db.text("John"), of: sql.val)
+////   |> update.where([sql.eq(sql.column("id"), db.int(1), of: sql.val)])
+////   |> update.returning([sql.column("id"), sql.column("name")])
 ////   |> update.to_query
 //// ```
 

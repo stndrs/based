@@ -1,6 +1,7 @@
 name = "based"
 version = "4.0.0"
 description = "gleam types and functions for database backends"
+gleam = ">= 1.11.0"
 
 repository = { type = "github", user = "stndrs", repo = "based" }
 internal_modules = [
@@ -8,7 +9,7 @@ internal_modules = [
 ]
 
 [dependencies]
-gleam_stdlib = ">= 0.38.0 and < 2.0.0"
+gleam_stdlib = ">= 0.44.0 and < 2.0.0"
 gleam_time = ">= 1.6.0 and < 2.0.0"
 gleam_crypto = ">= 1.5.1 and < 2.0.0"
 

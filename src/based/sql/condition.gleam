@@ -346,6 +346,9 @@ pub fn raw(sql: String) -> Condition {
   Raw(sql:)
 }
 
+/// Separates a list of condition-value tuples into a flat list of conditions
+/// and a flat list of values. Also extracts values from `Text` nodes within
+/// conditions (used by LIKE/NOT LIKE) using the provided value mapper.
 @internal
 pub fn split(
   conditions: List(#(Condition, List(v))),
