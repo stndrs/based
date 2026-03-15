@@ -1535,7 +1535,7 @@ fn array_to_string(array: List(Value)) -> String {
 }
 
 fn text_to_string(val: String) -> String {
-  let val = string.replace(in: val, each: "'", with: "\\'")
+  let val = string.replace(in: val, each: "'", with: "''")
 
   single_quote(val)
 }
