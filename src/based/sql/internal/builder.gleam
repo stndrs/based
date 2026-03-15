@@ -152,14 +152,15 @@ pub fn append_limit(
   limit: Option(Int),
   offset: Option(Int),
 ) -> String {
-  limit
-  |> option.map(fn(_) { fmt.limit(st, fmt.placeholder) })
-  |> option.map(fn(lim) {
-    offset
-    |> option.map(fn(_) { fmt.offset(lim, fmt.placeholder) })
-    |> option.unwrap(lim)
-  })
-  |> option.unwrap(st)
+  let st = case limit {
+    Some(_) -> fmt.limit(st, fmt.placeholder)
+    None -> st
+  }
+
+  case offset {
+    Some(_) -> fmt.offset(st, fmt.placeholder)
+    None -> st
+  }
 }
 
 pub fn append_returning(st: String, cols: List(String)) -> String {

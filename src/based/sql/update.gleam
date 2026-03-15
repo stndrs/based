@@ -117,23 +117,17 @@ pub fn desc(update: Update(v)) -> Update(v) {
 
 /// Set the LIMIT for the UPDATE statement. Supported by MySQL and MariaDB.
 pub fn limit(update: Update(v), count: Int) -> Update(v) {
-  let int_val = value.from_int(count, update.repo.value_mapper)
-
   Update(..update, limit: Some(count))
-  |> prepend_values([int_val])
 }
 
 /// Set the OFFSET for the UPDATE statement.
 pub fn offset(update: Update(v), count: Int) -> Update(v) {
-  let int_val = value.from_int(count, update.repo.value_mapper)
-
   Update(..update, offset: Some(count))
-  |> prepend_values([int_val])
 }
 
 /// Convert the UPDATE query to a database query with parameters
 pub fn to_query(update: Update(v)) -> db.Query(v) {
-  let values = update.values |> list.reverse |> list.flatten
+  let values = collect_values(update)
 
   let to_placeholder = fmt.to_placeholder(update.repo.fmt, _)
 
@@ -145,7 +139,7 @@ pub fn to_query(update: Update(v)) -> db.Query(v) {
 
 /// Convert the UPDATE query to a formatted SQL string
 pub fn to_string(update: Update(v)) -> String {
-  let values = update.values |> list.reverse |> list.flatten
+  let values = collect_values(update)
 
   build(update)
   |> builder.to_string(values, update.repo.fmt)
@@ -180,4 +174,26 @@ fn build(update: Update(v)) -> String {
 fn prepend_values(update: Update(v), values: List(v)) -> Update(v) {
   let values = list.prepend(update.values, values)
   Update(..update, values:)
+}
+
+fn collect_values(update: Update(v)) -> List(v) {
+  let values = update.values |> list.reverse |> list.flatten
+
+  let limit_offset_values = limit_offset_values(update)
+
+  list.append(values, limit_offset_values)
+}
+
+fn limit_offset_values(update: Update(v)) -> List(v) {
+  let mapper = update.repo.value_mapper
+
+  case update.limit, update.offset {
+    Some(lim), Some(off) -> [
+      value.from_int(lim, mapper),
+      value.from_int(off, mapper),
+    ]
+    Some(lim), None -> [value.from_int(lim, mapper)]
+    None, Some(off) -> [value.from_int(off, mapper)]
+    None, None -> []
+  }
 }

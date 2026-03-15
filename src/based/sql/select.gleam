@@ -226,17 +226,11 @@ pub fn desc(select: Select(v)) -> Select(v) {
 // Limit
 
 pub fn limit(select: Select(v), count: Int) -> Select(v) {
-  let int_val = value.from_int(count, select.repo.value_mapper)
-
   Select(..select, limit: Some(count))
-  |> prepend_values([int_val])
 }
 
 pub fn offset(select: Select(v), count: Int) -> Select(v) {
-  let int_val = value.from_int(count, select.repo.value_mapper)
-
   Select(..select, offset: Some(count))
-  |> prepend_values([int_val])
 }
 
 // For Update
@@ -249,7 +243,7 @@ pub fn for_update(select: Select(v)) -> Select(v) {
 
 @internal
 pub fn build_query(select: Select(v)) -> db.Query(v) {
-  let values = select.values |> list.reverse |> list.flatten
+  let values = collect_values(select)
 
   build(select)
   |> db.sql
@@ -257,7 +251,7 @@ pub fn build_query(select: Select(v)) -> db.Query(v) {
 }
 
 pub fn to_query(select: Select(v)) -> db.Query(v) {
-  let values = select.values |> list.reverse |> list.flatten
+  let values = collect_values(select)
 
   let to_placeholder = fmt.to_placeholder(select.repo.fmt, _)
 
@@ -301,10 +295,34 @@ fn all_comp() -> condition.Comparable(Select(v), v) {
 }
 
 pub fn to_string(select: Select(v)) -> String {
-  let values = select.values |> list.reverse |> list.flatten
+  let values = collect_values(select)
 
   build(select)
   |> builder.to_string(values, select.repo.fmt)
+}
+
+// Helpers
+
+fn collect_values(select: Select(v)) -> List(v) {
+  let values = select.values |> list.reverse |> list.flatten
+
+  let limit_offset_values = limit_offset_values(select)
+
+  list.append(values, limit_offset_values)
+}
+
+fn limit_offset_values(select: Select(v)) -> List(v) {
+  let mapper = select.repo.value_mapper
+
+  case select.limit, select.offset {
+    Some(lim), Some(off) -> [
+      value.from_int(lim, mapper),
+      value.from_int(off, mapper),
+    ]
+    Some(lim), None -> [value.from_int(lim, mapper)]
+    None, Some(off) -> [value.from_int(off, mapper)]
+    None, None -> []
+  }
 }
 
 // Builders

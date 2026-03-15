@@ -1238,3 +1238,60 @@ pub fn select_chained_where_test() {
   assert expected == query.sql
   assert [db.int(18), db.text("active"), db.text("%John%")] == query.values
 }
+
+pub fn select_offset_without_limit_test() {
+  let expected = "SELECT * FROM users OFFSET ?"
+  let users = sql.table("users")
+
+  let query =
+    repo.default()
+    |> select.from(users)
+    |> select.offset(10)
+    |> select.to_query
+
+  assert expected == query.sql
+  assert [db.int(10)] == query.values
+}
+
+pub fn select_offset_before_limit_test() {
+  let expected = "SELECT * FROM users LIMIT ? OFFSET ?"
+  let users = sql.table("users")
+
+  let query =
+    repo.default()
+    |> select.from(users)
+    |> select.offset(50)
+    |> select.limit(10)
+    |> select.to_query
+
+  assert expected == query.sql
+  assert [db.int(10), db.int(50)] == query.values
+}
+
+pub fn select_offset_without_limit_with_where_test() {
+  let expected = "SELECT * FROM users WHERE active IS TRUE OFFSET ?"
+  let users = sql.table("users")
+
+  let query =
+    repo.default()
+    |> select.from(users)
+    |> select.where([sql.column("active") |> column.is(True)])
+    |> select.offset(25)
+    |> select.to_query
+
+  assert expected == query.sql
+  assert [db.int(25)] == query.values
+}
+
+pub fn select_offset_without_limit_to_string_test() {
+  let expected = "SELECT * FROM users OFFSET 10"
+  let users = sql.table("users")
+
+  let result =
+    repo.default()
+    |> select.from(users)
+    |> select.offset(10)
+    |> select.to_string
+
+  assert expected == result
+}

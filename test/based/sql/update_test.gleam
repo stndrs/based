@@ -338,3 +338,37 @@ pub fn update_with_limit_to_string_test() {
 
   assert expected == result
 }
+
+pub fn update_offset_without_limit_test() {
+  let expected = "UPDATE users SET active = ? WHERE active IS TRUE OFFSET ?"
+  let users = sql.table("users")
+
+  let query =
+    repo.default()
+    |> update.table(users)
+    |> update.set("active", db.false, of: sql.val)
+    |> update.where([sql.column("active") |> column.is(True)])
+    |> update.offset(10)
+    |> update.to_query
+
+  assert expected == query.sql
+  assert [db.false, db.int(10)] == query.values
+}
+
+pub fn update_offset_before_limit_test() {
+  let expected =
+    "UPDATE users SET active = ? WHERE active IS TRUE LIMIT ? OFFSET ?"
+  let users = sql.table("users")
+
+  let query =
+    repo.default()
+    |> update.table(users)
+    |> update.set("active", db.false, of: sql.val)
+    |> update.where([sql.column("active") |> column.is(True)])
+    |> update.offset(50)
+    |> update.limit(10)
+    |> update.to_query
+
+  assert expected == query.sql
+  assert [db.false, db.int(10), db.int(50)] == query.values
+}
