@@ -516,39 +516,63 @@ pub opaque type Condition(v) {
 
 // ---- Join ----
 
-/// A JOIN clause for SELECT queries.
-///
-/// Created using `inner_join`, `left_join`, `right_join`, or `full_join`,
-/// and attached to a query with `join`.
-pub opaque type Join(v) {
+/// Internal representation of a JOIN clause.
+type Join(v) {
   InnerJoin(table: Table, on: List(Condition(v)))
   LeftJoin(table: Table, on: List(Condition(v)))
   RightJoin(table: Table, on: List(Condition(v)))
   FullJoin(table: Table, on: List(Condition(v)))
 }
 
-/// Creates an `INNER JOIN` clause.
+/// Adds an `INNER JOIN` clause to a SELECT query.
 /// Multiple conditions are combined with AND at render time.
-pub fn inner_join(table table: Table, on on: List(Condition(v))) -> Join(v) {
-  InnerJoin(table: table, on: on)
+pub fn inner_join(
+  query: QueryBuilder(Select, v),
+  table table: Table,
+  on on: List(Condition(v)),
+) -> QueryBuilder(Select, v) {
+  append_join(query, InnerJoin(table: table, on: on))
 }
 
-/// Creates a `LEFT JOIN` clause.
+/// Adds a `LEFT JOIN` clause to a SELECT query.
 /// Multiple conditions are combined with AND at render time.
-pub fn left_join(table table: Table, on on: List(Condition(v))) -> Join(v) {
-  LeftJoin(table: table, on: on)
+pub fn left_join(
+  query: QueryBuilder(Select, v),
+  table table: Table,
+  on on: List(Condition(v)),
+) -> QueryBuilder(Select, v) {
+  append_join(query, LeftJoin(table: table, on: on))
 }
 
-/// Creates a `RIGHT JOIN` clause.
+/// Adds a `RIGHT JOIN` clause to a SELECT query.
 /// Multiple conditions are combined with AND at render time.
-pub fn right_join(table table: Table, on on: List(Condition(v))) -> Join(v) {
-  RightJoin(table: table, on: on)
+pub fn right_join(
+  query: QueryBuilder(Select, v),
+  table table: Table,
+  on on: List(Condition(v)),
+) -> QueryBuilder(Select, v) {
+  append_join(query, RightJoin(table: table, on: on))
 }
 
-/// Creates a `FULL JOIN` clause.
+/// Adds a `FULL JOIN` clause to a SELECT query.
 /// Multiple conditions are combined with AND at render time.
-pub fn full_join(table table: Table, on on: List(Condition(v))) -> Join(v) {
-  FullJoin(table: table, on: on)
+pub fn full_join(
+  query: QueryBuilder(Select, v),
+  table table: Table,
+  on on: List(Condition(v)),
+) -> QueryBuilder(Select, v) {
+  append_join(query, FullJoin(table: table, on: on))
+}
+
+fn append_join(
+  query: QueryBuilder(Select, v),
+  j: Join(v),
+) -> QueryBuilder(Select, v) {
+  case query {
+    SelectBuilder(..) ->
+      SelectBuilder(..query, joins: list.append(query.joins, [j]))
+    _ -> query
+  }
 }
 
 // ---- Order ----
@@ -1081,31 +1105,6 @@ pub fn returning(
 }
 
 // ---- Query Builder Modifiers (Select-only) ----
-
-/// Adds a JOIN clause to a SELECT query.
-///
-/// ```gleam
-/// sql.from(users)
-/// |> sql.select([sql.col("name"), sql.col("title") |> sql.col_for("posts")])
-/// |> sql.join(sql.inner_join(
-///   table: sql.table("posts"),
-///   on: sql.eq(
-///     sql.col("id") |> sql.col_for("users"),
-///     sql.col("user_id") |> sql.col_for("posts"),
-///     of: sql.column,
-///   ),
-/// ))
-/// ```
-pub fn join(
-  query: QueryBuilder(Select, v),
-  j: Join(v),
-) -> QueryBuilder(Select, v) {
-  case query {
-    SelectBuilder(..) ->
-      SelectBuilder(..query, joins: list.append(query.joins, [j]))
-    _ -> query
-  }
-}
 
 /// Adds an ORDER BY clause. Can be called multiple times to sort by
 /// multiple columns. Applies to SELECT and UPDATE queries.

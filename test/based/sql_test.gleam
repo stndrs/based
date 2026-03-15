@@ -234,15 +234,13 @@ pub fn select_inner_join_test() {
   let q =
     sql.from(sql.table("users") |> sql.table_as("u"))
     |> sql.select([sql.col("name"), sql.col("total") |> sql.col_for("o")])
-    |> sql.join(
-      sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
+    |> sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
         sql.eq(
           sql.col("id") |> sql.col_for("u"),
           sql.col("user_id") |> sql.col_for("o"),
           of: sql.column,
         ),
-      ]),
-    )
+    ])
     |> sql.to_query(a())
 
   assert q.sql
@@ -254,15 +252,13 @@ pub fn select_left_join_test() {
   let q =
     sql.from(sql.table("users") |> sql.table_as("u"))
     |> sql.select([sql.star])
-    |> sql.join(
-      sql.left_join(table: sql.table("profiles") |> sql.table_as("p"), on: [
+    |> sql.left_join(table: sql.table("profiles") |> sql.table_as("p"), on: [
         sql.eq(
           sql.col("id") |> sql.col_for("u"),
           sql.col("user_id") |> sql.col_for("p"),
           of: sql.column,
         ),
-      ]),
-    )
+    ])
     |> sql.to_query(a())
 
   assert q.sql
@@ -612,15 +608,13 @@ pub fn double_quote_aliased_identifiers_test() {
       sql.col("name") |> sql.col_for("u"),
       sql.col("total") |> sql.col_for("o") |> sql.col_as("order_total"),
     ])
-    |> sql.join(
-      sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
+    |> sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
         sql.eq(
           sql.col("id") |> sql.col_for("u"),
           sql.col("user_id") |> sql.col_for("o"),
           of: sql.column,
         ),
-      ]),
-    )
+    ])
     |> sql.where(sql.eq(
       sql.col("active") |> sql.col_for("u"),
       sql.true,
@@ -710,15 +704,13 @@ pub fn complex_query_test() {
       sql.col("email") |> sql.col_for("u"),
       sql.col("total") |> sql.col_for("o") |> sql.col_as("order_total"),
     ])
-    |> sql.join(
-      sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
+    |> sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
         sql.eq(
           sql.col("id") |> sql.col_for("u"),
           sql.col("user_id") |> sql.col_for("o"),
           of: sql.column,
         ),
-      ]),
-    )
+    ])
     |> sql.where(sql.gt(
       sql.col("total") |> sql.col_for("o"),
       sql.float(50.0),
@@ -1350,15 +1342,13 @@ pub fn cte_multiple_test() {
   let q =
     sql.from(sql.table("active_users"))
     |> sql.select([sql.col("id"), sql.col("total")])
-    |> sql.join(
-      sql.inner_join(table: sql.table("recent_orders"), on: [
+    |> sql.inner_join(table: sql.table("recent_orders"), on: [
         sql.eq(
           sql.col("id") |> sql.col_for("active_users"),
           sql.col("user_id") |> sql.col_for("recent_orders"),
           of: sql.column,
         ),
-      ]),
-    )
+    ])
     |> sql.with(ctes: [active_users, recent_orders])
     |> sql.to_query(a())
 
@@ -1399,15 +1389,13 @@ pub fn cte_recursive_test() {
       sql.col("parent_id") |> sql.col_for("c"),
       sql.col("name") |> sql.col_for("c"),
     ])
-    |> sql.join(
-      sql.inner_join(table: sql.table_as(sql.table("category_tree"), "ct"), on: [
+    |> sql.inner_join(table: sql.table_as(sql.table("category_tree"), "ct"), on: [
         sql.eq(
           sql.col("parent_id") |> sql.col_for("c"),
           sql.col("id") |> sql.col_for("ct"),
           of: sql.column,
         ),
-      ]),
-    )
+    ])
 
   let category_tree =
     sql.cte(name: "category_tree", query: base |> sql.union(recursive_part))
@@ -1569,15 +1557,13 @@ pub fn for_update_with_join_test() {
       sql.col("id") |> sql.col_for("u"),
       sql.col("total") |> sql.col_for("o"),
     ])
-    |> sql.join(
-      sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
+    |> sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
         sql.eq(
           sql.col("id") |> sql.col_for("u"),
           sql.col("user_id") |> sql.col_for("o"),
           of: sql.column,
         ),
-      ]),
-    )
+    ])
     |> sql.where(sql.eq(
       sql.col("id") |> sql.col_for("u"),
       sql.int(1),
@@ -1705,15 +1691,13 @@ pub fn backtick_aliased_identifiers_test() {
       sql.col("name") |> sql.col_for("u"),
       sql.col("total") |> sql.col_for("o") |> sql.col_as("order_total"),
     ])
-    |> sql.join(
-      sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
+    |> sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
         sql.eq(
           sql.col("id") |> sql.col_for("u"),
           sql.col("user_id") |> sql.col_for("o"),
           of: sql.column,
         ),
-      ]),
-    )
+    ])
     |> sql.where(sql.eq(
       sql.col("active") |> sql.col_for("u"),
       sql.true,
@@ -1801,15 +1785,13 @@ pub fn select_right_join_test() {
       sql.col("id") |> sql.col_for("u"),
       sql.col("order_id") |> sql.col_for("o"),
     ])
-    |> sql.join(
-      sql.right_join(table: sql.table("orders") |> sql.table_as("o"), on: [
+    |> sql.right_join(table: sql.table("orders") |> sql.table_as("o"), on: [
         sql.eq(
           sql.col("id") |> sql.col_for("u"),
           sql.col("user_id") |> sql.col_for("o"),
           of: sql.column,
         ),
-      ]),
-    )
+    ])
     |> sql.to_query(a())
 
   assert q.sql
@@ -1824,15 +1806,13 @@ pub fn select_full_join_test() {
       sql.col("id") |> sql.col_for("u"),
       sql.col("order_id") |> sql.col_for("o"),
     ])
-    |> sql.join(
-      sql.full_join(table: sql.table("orders") |> sql.table_as("o"), on: [
+    |> sql.full_join(table: sql.table("orders") |> sql.table_as("o"), on: [
         sql.eq(
           sql.col("id") |> sql.col_for("u"),
           sql.col("user_id") |> sql.col_for("o"),
           of: sql.column,
         ),
-      ]),
-    )
+    ])
     |> sql.to_query(a())
 
   assert q.sql
@@ -1848,24 +1828,20 @@ pub fn select_multiple_joins_test() {
       sql.col("order_id") |> sql.col_for("o"),
       sql.col("product_name") |> sql.col_for("p"),
     ])
-    |> sql.join(
-      sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
+    |> sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
         sql.eq(
           sql.col("id") |> sql.col_for("u"),
           sql.col("user_id") |> sql.col_for("o"),
           of: sql.column,
         ),
-      ]),
-    )
-    |> sql.join(
-      sql.left_join(table: sql.table("products") |> sql.table_as("p"), on: [
+    ])
+    |> sql.left_join(table: sql.table("products") |> sql.table_as("p"), on: [
         sql.eq(
           sql.col("product_id") |> sql.col_for("o"),
           sql.col("id") |> sql.col_for("p"),
           of: sql.column,
         ),
-      ]),
-    )
+    ])
     |> sql.to_query(a())
 
   assert q.sql
@@ -1877,8 +1853,7 @@ pub fn select_join_with_and_conditions_test() {
   let q =
     sql.from(sql.table("users") |> sql.table_as("u"))
     |> sql.select([sql.col("id") |> sql.col_for("u")])
-    |> sql.join(
-      sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
+    |> sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
         sql.and(
           sql.eq(
             sql.col("id") |> sql.col_for("u"),
@@ -1891,8 +1866,7 @@ pub fn select_join_with_and_conditions_test() {
             of: sql.value,
           ),
         ),
-      ]),
-    )
+    ])
     |> sql.to_query(a())
 
   assert q.sql
@@ -1904,8 +1878,7 @@ pub fn select_join_with_multiple_on_conditions_test() {
   let q =
     sql.from(sql.table("users") |> sql.table_as("u"))
     |> sql.select([sql.col("id") |> sql.col_for("u")])
-    |> sql.join(
-      sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
+    |> sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
         sql.eq(
           sql.col("id") |> sql.col_for("u"),
           sql.col("user_id") |> sql.col_for("o"),
@@ -1916,8 +1889,7 @@ pub fn select_join_with_multiple_on_conditions_test() {
           sql.text("active"),
           of: sql.value,
         ),
-      ]),
-    )
+    ])
     |> sql.to_query(a())
 
   assert q.sql
@@ -1929,8 +1901,7 @@ pub fn select_join_with_three_on_conditions_test() {
   let q =
     sql.from(sql.table("users") |> sql.table_as("u"))
     |> sql.select([sql.col("id") |> sql.col_for("u")])
-    |> sql.join(
-      sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
+    |> sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
         sql.eq(
           sql.col("id") |> sql.col_for("u"),
           sql.col("user_id") |> sql.col_for("o"),
@@ -1946,8 +1917,7 @@ pub fn select_join_with_three_on_conditions_test() {
           sql.float(100.0),
           of: sql.value,
         ),
-      ]),
-    )
+    ])
     |> sql.to_query(a())
 
   assert q.sql
@@ -2165,15 +2135,13 @@ pub fn select_join_to_string_test() {
       sql.col("id") |> sql.col_for("u"),
       sql.col("total") |> sql.col_for("o"),
     ])
-    |> sql.join(
-      sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
+    |> sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
         sql.eq(
           sql.col("id") |> sql.col_for("u"),
           sql.col("user_id") |> sql.col_for("o"),
           of: sql.column,
         ),
-      ]),
-    )
+    ])
     |> sql.to_string(a())
 
   assert q
@@ -2262,24 +2230,20 @@ pub fn select_multiple_joins_right_full_test() {
       sql.col("oid") |> sql.col_for("o"),
       sql.col("pid") |> sql.col_for("p"),
     ])
-    |> sql.join(
-      sql.right_join(table: sql.table("orders") |> sql.table_as("o"), on: [
+    |> sql.right_join(table: sql.table("orders") |> sql.table_as("o"), on: [
         sql.eq(
           sql.col("id") |> sql.col_for("u"),
           sql.col("user_id") |> sql.col_for("o"),
           of: sql.column,
         ),
-      ]),
-    )
-    |> sql.join(
-      sql.full_join(table: sql.table("products") |> sql.table_as("p"), on: [
+    ])
+    |> sql.full_join(table: sql.table("products") |> sql.table_as("p"), on: [
         sql.eq(
           sql.col("product_id") |> sql.col_for("o"),
           sql.col("id") |> sql.col_for("p"),
           of: sql.column,
         ),
-      ]),
-    )
+    ])
     |> sql.to_query(a())
 
   assert q.sql
@@ -2710,15 +2674,13 @@ pub fn cte_with_join_test() {
       sql.col("id") |> sql.col_for("au"),
       sql.col("total") |> sql.col_for("o"),
     ])
-    |> sql.join(
-      sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
+    |> sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
         sql.eq(
           sql.col("id") |> sql.col_for("au"),
           sql.col("user_id") |> sql.col_for("o"),
           of: sql.column,
         ),
-      ]),
-    )
+    ])
     |> sql.with([sql.cte(name: "active_users", query: cte_query)])
     |> sql.to_query(a())
 
@@ -2811,15 +2773,13 @@ pub fn cte_multiple_to_string_test() {
       sql.col("name") |> sql.col_for("au"),
       sql.col("total") |> sql.col_for("uo"),
     ])
-    |> sql.join(
-      sql.inner_join(table: sql.table("user_orders") |> sql.table_as("uo"), on: [
+    |> sql.inner_join(table: sql.table("user_orders") |> sql.table_as("uo"), on: [
         sql.eq(
           sql.col("id") |> sql.col_for("au"),
           sql.col("user_id") |> sql.col_for("uo"),
           of: sql.column,
         ),
-      ]),
-    )
+    ])
     |> sql.with([
       sql.cte(name: "active_users", query: cte1),
       sql.cte(name: "user_orders", query: cte2),
@@ -3499,15 +3459,13 @@ pub fn cte_multiple_with_semicolon_test() {
       sql.col("name") |> sql.col_for("au"),
       sql.col("total") |> sql.col_for("uo"),
     ])
-    |> sql.join(
-      sql.inner_join(table: sql.table("user_orders") |> sql.table_as("uo"), on: [
+    |> sql.inner_join(table: sql.table("user_orders") |> sql.table_as("uo"), on: [
         sql.eq(
           sql.col("id") |> sql.col_for("au"),
           sql.col("user_id") |> sql.col_for("uo"),
           of: sql.column,
         ),
-      ]),
-    )
+    ])
     |> sql.with([
       sql.cte(name: "active_users", query: cte1),
       sql.cte(name: "user_orders", query: cte2),
