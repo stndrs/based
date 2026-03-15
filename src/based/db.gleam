@@ -5,144 +5,12 @@
 //// handlers defined by the database adapter of their choice, or mock
 //// handler functions for tests that shouldn't hit a real database.
 
-import based/interval
-import based/uuid
+import based/sql
 import gleam/dynamic.{type Dynamic}
 import gleam/dynamic/decode
 import gleam/list
-import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string
-import gleam/time/calendar
-import gleam/time/timestamp
-
-/// Values
-/// `Offset` represents a UTC offset. `Timestamptz` is composed
-/// of a [`gleam/time/timestamp.Timestamp`][1] and `Offset`. The offset will be
-/// applied to the timestamp when being encoded.
-///
-/// A timestamp with a positive offset represents some time in
-/// the future, relative to UTC.
-/// A timestamp with a negative offset represents some time in
-/// the past, relative to UTC.
-///
-/// `Offset`s will be subtracted from the `gleam/time/timestamp.Timestamp`
-/// so the encoded value is a UTC timestamp.
-///
-/// [1]: https://hexdocs.pm/gleam_time/gleam/time/timestamp.html
-pub type Offset {
-  Offset(hours: Int, minutes: Int)
-}
-
-/// Returns an Offset with the provided hours and 0 minutes.
-pub fn offset(hours: Int) -> Offset {
-  Offset(hours:, minutes: 0)
-}
-
-/// Applies some number of minutes to the Offset
-pub fn minutes(offset: Offset, minutes: Int) -> Offset {
-  Offset(..offset, minutes:)
-}
-
-/// The `Value` type represents PostgreSQL data types. Values can be encoded
-/// to PostgreSQL's binary format. `Value`s can be used when interacting with
-/// PostgreSQL databases through client libraries like [pgl][1].
-///
-/// [1]: https://github.com/stndrs/pgl
-pub type Value {
-  Uuid(uuid.Uuid)
-  Null
-  Bool(Bool)
-  Int(Int)
-  Float(Float)
-  Text(String)
-  Bytea(BitArray)
-  Date(calendar.Date)
-  Time(calendar.TimeOfDay)
-  Datetime(calendar.Date, calendar.TimeOfDay)
-  Timestamp(timestamp.Timestamp)
-  Timestamptz(timestamp.Timestamp, Offset)
-  Interval(interval.Interval)
-  Array(List(Value))
-}
-
-pub fn uuid(uuid: uuid.Uuid) -> Value {
-  Uuid(uuid)
-}
-
-pub const null = Null
-
-pub const true = Bool(True)
-
-pub const false = Bool(False)
-
-pub fn bool(bool: Bool) -> Value {
-  Bool(bool)
-}
-
-pub fn int(int: Int) -> Value {
-  Int(int)
-}
-
-pub fn float(float: Float) -> Value {
-  Float(float)
-}
-
-pub fn text(text: String) -> Value {
-  Text(text)
-}
-
-pub fn bytea(bytea: BitArray) -> Value {
-  Bytea(bytea)
-}
-
-pub fn date(date: calendar.Date) -> Value {
-  Date(date)
-}
-
-pub fn time(time_of_day: calendar.TimeOfDay) -> Value {
-  Time(time_of_day)
-}
-
-pub fn datetime(date: calendar.Date, time: calendar.TimeOfDay) -> Value {
-  Datetime(date, time)
-}
-
-pub fn timestamp(timestamp: timestamp.Timestamp) -> Value {
-  Timestamp(timestamp)
-}
-
-pub fn timestamptz(timestamp: timestamp.Timestamp, offset: Offset) -> Value {
-  Timestamptz(timestamp, offset)
-}
-
-pub fn interval(interval: interval.Interval) -> Value {
-  Interval(interval)
-}
-
-pub fn array(elements: List(a), of kind: fn(a) -> Value) -> Value {
-  elements
-  |> list.map(kind)
-  |> Array
-}
-
-/// Checks if the provided value is `option.Some` or `option.None`. If
-/// `None` then the value returned is `value.Null`. If `Some` value is
-/// provided then it is passed to the `inner_type` function.
-///
-/// Example:
-///
-/// ```gleam
-///   let int = pg_value.nullable(pg_value.int, Some(10))
-///
-///   let null = pg_value.nullable(pg_value.int, None)
-/// ```
-pub fn nullable(inner_type: fn(a) -> Value, optional: Option(a)) -> Value {
-  case optional {
-    Some(term) -> inner_type(term)
-    None -> Null
-  }
-}
 
 /// Error types covering database-specific errors, decoding failures,
 /// and application-level errors.
@@ -214,22 +82,6 @@ pub type TransactionError(error) {
   TransactionFailure(cause: error)
 }
 
-/// Holds a SQL query string and its relevant values.
-pub type Query(v) {
-  Query(sql: String, values: List(v))
-}
-
-/// Returns a `Query` type with the provided SQL string and an empty list
-/// of values.
-pub fn sql(sql: String) -> Query(v) {
-  Query(sql:, values: [])
-}
-
-/// Applies the provided list of values to the given `Query`
-pub fn params(query: Query(v), values: List(v)) -> Query(v) {
-  Query(..query, values:)
-}
-
 /// Holds a count of affected rows, a list of queried fields, and
 /// a list of `Dynamic` rows returned from the database. A `Queried`
 /// record can be passed to `db.decode` with a decoder, returning
@@ -260,13 +112,13 @@ pub fn transaction(
 // Querying
 
 pub type QueryHandler(v, conn) =
-  fn(Query(v), conn) -> Result(Queried, DbError)
+  fn(sql.Query(v), conn) -> Result(Queried, DbError)
 
 pub type ExecuteHandler(conn) =
   fn(String, conn) -> Result(Int, DbError)
 
 pub type BatchQueryHandler(v, conn) =
-  fn(List(Query(v)), conn) -> Result(List(Queried), DbError)
+  fn(List(sql.Query(v)), conn) -> Result(List(Queried), DbError)
 
 pub type Db(v, conn) {
   Db(conn: conn, driver: Driver(v, conn))
@@ -317,7 +169,7 @@ pub fn on_batch(
 /// package.
 /// This function currently only passes the `Query` and connection right back
 /// to the handler.
-pub fn query(query: Query(v), db: Db(v, conn)) -> Result(Queried, DbError) {
+pub fn query(query: sql.Query(v), db: Db(v, conn)) -> Result(Queried, DbError) {
   db.driver.handle_query(query, db.conn)
 }
 
@@ -330,7 +182,7 @@ pub fn execute(sql: String, db: Db(v, conn)) -> Result(Int, DbError) {
 }
 
 pub fn batch(
-  queries: List(Query(v)),
+  queries: List(sql.Query(v)),
   db: Db(v, conn),
 ) -> Result(List(Queried), DbError) {
   db.driver.handle_batch(queries, db.conn)
@@ -341,7 +193,7 @@ pub fn batch(
 /// This function passes the `Query` and connection to the handler, and then
 /// runs the provided decoder using `db.decode`.
 pub fn all(
-  query: Query(v),
+  query: sql.Query(v),
   db: Db(v, conn),
   decoder: decode.Decoder(a),
 ) -> Result(List(a), DbError) {
@@ -363,7 +215,7 @@ pub fn all(
 /// providing the correct SQL query to avoid decoding `n` rows and then
 /// losing all but the first.
 pub fn one(
-  query: Query(v),
+  query: sql.Query(v),
   db: Db(v, conn),
   decoder: decode.Decoder(a),
 ) -> Result(a, DbError) {

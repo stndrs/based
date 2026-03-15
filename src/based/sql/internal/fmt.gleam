@@ -1,357 +1,322 @@
-import gleam/function
+//// Internal module for pure SQL string fragment construction.
+//// All functions are simple string concatenation helpers — no state,
+//// no callbacks, no awareness of query structure or values.
+////
+//// This module is NOT part of the public API.
+
+import gleam/int
 import gleam/string
 
-pub opaque type Fmt(v) {
-  Fmt(
-    handle_identifier: fn(String) -> String,
-    handle_placeholder: fn(Int) -> String,
-    handle_value: fn(v) -> String,
-  )
+// ---- Sentinel Constant ----
+
+/// Sentinel marker inserted wherever a parameterized value belongs.
+/// Replaced by a later pass with `$1`/`?` or literal values.
+pub const placeholder = ":param:"
+
+// ---- Statement Starters ----
+
+pub fn select(columns: String) -> String {
+  "SELECT " <> columns
 }
 
-/// Returns a `Fmt(v)` record with handlers that does not apply any
-/// formatting to identifiers, and returns `?` as placeholders. The value
-/// handler's default behaviour is to panic since it handles a generic type.
-pub fn new() -> Fmt(v) {
-  Fmt(
-    handle_identifier: function.identity,
-    handle_placeholder: fn(_) { "?" },
-    handle_value: fn(_) { panic as "based/sql/internal/fmt.Fmt not configured" },
-  )
+pub fn select_distinct(columns: String) -> String {
+  "SELECT DISTINCT " <> columns
 }
-
-/// Sets the placeholder formatting function.
-pub fn on_placeholder(
-  fmt: Fmt(v),
-  handle_placeholder: fn(Int) -> String,
-) -> Fmt(v) {
-  Fmt(..fmt, handle_placeholder:)
-}
-
-/// Set the identifier formatting function.
-pub fn on_identifier(
-  fmt: Fmt(v),
-  handle_identifier: fn(String) -> String,
-) -> Fmt(v) {
-  Fmt(..fmt, handle_identifier:)
-}
-
-/// Set the value formatting function.
-pub fn on_value(fmt: Fmt(v), handle_value: fn(v) -> String) -> Fmt(v) {
-  Fmt(..fmt, handle_value:)
-}
-
-/// Apply the configured identifier format function to the provided identifier.
-pub fn to_identifier(fmt: Fmt(v), identifier: String) -> String {
-  fmt.handle_identifier(identifier)
-}
-
-/// Apply the configured value format function to the provided value.
-pub fn to_string(fmt: Fmt(v), value: v) -> String {
-  fmt.handle_value(value)
-}
-
-/// Apply the configured placeholder format function to the provided
-/// placeholder index.
-pub fn to_placeholder(fmt: Fmt(v), value: Int) -> String {
-  fmt.handle_placeholder(value)
-}
-
-pub const placeholder = ":param"
-
-pub const column = ":col:"
-
-pub const value = ":val:"
-
-pub const null = "NULL"
-
-pub const true = "TRUE"
-
-pub const false = "FALSE"
-
-pub const nothing = "NOTHING"
-
-// Statements
 
 pub fn insert(
-  columns: List(String),
   into table: String,
-  values values: List(String),
+  columns columns: String,
+  values values: String,
 ) -> String {
-  "INSERT INTO "
-  |> string.append(table)
-  |> string.append(" ")
-  |> string.append(
-    columns
-    |> string.join(with: ", ")
-    |> enclose,
-  )
-  |> string.append(" VALUES ")
-  |> string.append(values |> string.join(", "))
-}
-
-pub fn on_conflict(st: String, target: String) -> String {
-  st
-  |> string.append(" ON CONFLICT ")
-  |> string.append(enclose(target))
-}
-
-pub fn do_update(st: String, updates: List(String)) -> String {
-  let updates = string.join(updates, ", ")
-
-  st
-  |> string.append(" DO UPDATE SET ")
-  |> string.append(updates)
-}
-
-pub fn do_nothing(st: String) -> String {
-  st
-  |> string.append(" DO NOTHING")
+  "INSERT INTO " <> table <> " (" <> columns <> ") VALUES " <> values
 }
 
 pub fn update(table: String) -> String {
   "UPDATE " <> table
 }
 
-pub fn set(st: String, updates: List(String)) -> String {
-  st
-  |> string.append(" SET ")
-  |> string.append(string.join(updates, ", "))
+pub fn delete(from table: String) -> String {
+  "DELETE FROM " <> table
 }
 
-pub const delete = "DELETE"
-
-pub fn select(values: List(String)) -> String {
-  let values =
-    values
-    |> string.join(with: ", ")
-
-  "SELECT "
-  |> string.append(values)
-}
-
-pub fn select_distinct(values: List(String)) -> String {
-  let values =
-    values
-    |> string.join(with: ", ")
-
-  "SELECT DISTINCT "
-  |> string.append(values)
-}
+// ---- Clause Appenders ----
 
 pub fn from(st: String, value: String) -> String {
-  append(st, " FROM ", value)
+  st <> " FROM " <> value
 }
-
-// Where Clause
 
 pub fn where(st: String, value: String) -> String {
-  append(st, " WHERE ", value)
+  st <> " WHERE " <> value
 }
 
-pub fn and(st: String, value: String) -> String {
-  append(st, " AND ", value)
+pub fn and_where(st: String, value: String) -> String {
+  st <> " AND " <> value
 }
 
-pub fn or(st: String, value: String) -> String {
-  append(st, " OR ", value)
+pub fn or_where(st: String, value: String) -> String {
+  st <> " OR " <> value
 }
 
-// SQL Joins
-
-pub fn inner_join(st: String, value: String) -> String {
-  append(st, " INNER JOIN ", value)
-}
-
-pub fn left_join(st: String, value: String) -> String {
-  append(st, " LEFT JOIN ", value)
-}
-
-pub fn right_join(st: String, value: String) -> String {
-  append(st, " RIGHT JOIN ", value)
-}
-
-pub fn full_outer_join(st: String, value: String) -> String {
-  append(st, " FULL OUTER JOIN ", value)
+pub fn set(st: String, assignments: String) -> String {
+  st <> " SET " <> assignments
 }
 
 pub fn on(st: String, value: String) -> String {
-  append(st, " ON ", value)
+  st <> " ON " <> value
 }
 
-// Operators
-
-pub fn eq(st: String, placeholder: String) -> String {
-  append(st, " = ", placeholder)
+pub fn returning(st: String, columns: String) -> String {
+  st <> " RETURNING " <> columns
 }
 
-pub fn gt(st: String, placeholder: String) -> String {
-  append(st, " > ", placeholder)
+pub fn group_by(st: String, columns: String) -> String {
+  st <> " GROUP BY " <> columns
 }
 
-pub fn lt(st: String, placeholder: String) -> String {
-  append(st, " < ", placeholder)
+pub fn having(st: String, value: String) -> String {
+  st <> " HAVING " <> value
 }
 
-pub fn gt_eq(st: String, placeholder: String) -> String {
-  append(st, " >= ", placeholder)
+pub fn order_by(st: String, columns: String) -> String {
+  st <> " ORDER BY " <> columns
 }
 
-pub fn lt_eq(st: String, placeholder: String) -> String {
-  append(st, " <= ", placeholder)
+pub fn limit(st: String, value: String) -> String {
+  st <> " LIMIT " <> value
 }
 
-pub fn not_eq(st: String, placeholder: String) -> String {
-  append(st, " <> ", placeholder)
+pub fn offset(st: String, value: String) -> String {
+  st <> " OFFSET " <> value
 }
 
-pub fn not(right: String) -> String {
-  string.append("NOT ", right)
+pub fn limit_int(st: String, n: Int) -> String {
+  st <> " LIMIT " <> int.to_string(n)
 }
 
-pub fn is_not(st: String, placeholder: String) -> String {
-  append(st, " IS NOT ", placeholder)
-}
-
-pub fn not_like(st: String, placeholder: String) -> String {
-  append(st, " NOT LIKE ", placeholder)
-}
-
-pub fn like(st: String, placeholder: String) -> String {
-  append(st, " LIKE ", placeholder)
-}
-
-pub fn in(st: String, placeholder: String) -> String {
-  append(st, " IN ", placeholder)
-}
-
-pub fn is(st: String, placeholder: String) -> String {
-  append(st, " IS ", placeholder)
-}
-
-pub fn between(st: String, val1: String, val2: String) -> String {
-  st
-  |> append(" BETWEEN ", val1)
-  |> append(" AND ", val2)
-}
-
-pub fn any(subquery: String) -> String {
-  "ANY " |> string.append(subquery)
-}
-
-pub fn all(subquery: String) -> String {
-  "ALL " |> string.append(subquery)
-}
-
-pub fn exists(subquery: String) -> String {
-  "EXISTS " |> string.append(subquery)
-}
-
-pub fn alias(value: String, alias: String) -> String {
-  append(value, " AS ", alias)
-}
-
-pub fn returning(st: String, columns: List(String)) -> String {
-  let columns =
-    columns
-    |> string.join(", ")
-
-  st
-  |> string.append(" RETURNING ")
-  |> string.append(columns)
-}
-
-pub fn limit(st: String, placeholder: String) -> String {
-  append(st, " LIMIT ", placeholder)
-}
-
-pub fn offset(st: String, placeholder: String) -> String {
-  append(st, " OFFSET ", placeholder)
+pub fn offset_int(st: String, n: Int) -> String {
+  st <> " OFFSET " <> int.to_string(n)
 }
 
 pub fn for_update(st: String) -> String {
-  string.append(st, " FOR UPDATE")
+  st <> " FOR UPDATE"
 }
 
-// SQL Functions
+pub fn on_conflict(st: String, target: String) -> String {
+  st <> " ON CONFLICT (" <> target <> ")"
+}
 
-// Aggregate functions
+pub fn do_nothing(st: String) -> String {
+  st <> " DO NOTHING"
+}
+
+pub fn do_update(st: String, assignments: String) -> String {
+  st <> " DO UPDATE SET " <> assignments
+}
+
+// ---- Join Appenders ----
+
+pub fn inner_join(st: String, value: String) -> String {
+  st <> " INNER JOIN " <> value
+}
+
+pub fn left_join(st: String, value: String) -> String {
+  st <> " LEFT JOIN " <> value
+}
+
+pub fn right_join(st: String, value: String) -> String {
+  st <> " RIGHT JOIN " <> value
+}
+
+pub fn full_join(st: String, value: String) -> String {
+  st <> " FULL JOIN " <> value
+}
+
+// ---- Comparison Operators ----
+
+pub fn eq(left: String, right: String) -> String {
+  left <> " = " <> right
+}
+
+pub fn not_eq(left: String, right: String) -> String {
+  left <> " != " <> right
+}
+
+pub fn gt(left: String, right: String) -> String {
+  left <> " > " <> right
+}
+
+pub fn lt(left: String, right: String) -> String {
+  left <> " < " <> right
+}
+
+pub fn gt_eq(left: String, right: String) -> String {
+  left <> " >= " <> right
+}
+
+pub fn lt_eq(left: String, right: String) -> String {
+  left <> " <= " <> right
+}
+
+pub fn like(left: String, right: String) -> String {
+  left <> " LIKE " <> right
+}
+
+pub fn not_like(left: String, right: String) -> String {
+  left <> " NOT LIKE " <> right
+}
+
+pub fn in_(left: String, values: String) -> String {
+  left <> " IN (" <> values <> ")"
+}
+
+pub fn is(left: String, right: String) -> String {
+  left <> " IS " <> right
+}
+
+pub fn is_not(left: String, right: String) -> String {
+  left <> " IS NOT " <> right
+}
+
+pub fn is_null(operand: String) -> String {
+  operand <> " IS NULL"
+}
+
+pub fn is_not_null(operand: String) -> String {
+  operand <> " IS NOT NULL"
+}
+
+pub fn is_true(operand: String) -> String {
+  operand <> " IS TRUE"
+}
+
+pub fn is_false(operand: String) -> String {
+  operand <> " IS FALSE"
+}
+
+pub fn between(operand: String, low: String, high: String) -> String {
+  operand <> " BETWEEN " <> low <> " AND " <> high
+}
+
+// ---- Logical Operators ----
+
+pub fn not(value: String) -> String {
+  "NOT (" <> value <> ")"
+}
+
+pub fn exists(subquery: String) -> String {
+  "EXISTS (" <> subquery <> ")"
+}
+
+pub fn and_op(left: String, right: String) -> String {
+  "(" <> left <> " AND " <> right <> ")"
+}
+
+pub fn or_op(left: String, right: String) -> String {
+  "(" <> left <> " OR " <> right <> ")"
+}
+
+// ---- Subquery / Quantifier Constructors ----
+
+pub fn any(subquery: String) -> String {
+  "ANY (" <> subquery <> ")"
+}
+
+pub fn all(subquery: String) -> String {
+  "ALL (" <> subquery <> ")"
+}
+
+pub fn subquery(query: String) -> String {
+  "(" <> query <> ")"
+}
+
+// ---- Aggregate Functions ----
 
 pub fn count(value: String) -> String {
   "COUNT(" <> value <> ")"
 }
 
-pub fn group_by(st: String, values: List(String)) -> String {
-  append(st, " GROUP BY ", string.join(values, with: ", "))
-}
-
-pub fn having(st: String, value: String) -> String {
-  append(st, " HAVING ", value)
-}
-
 pub fn sum(value: String) -> String {
-  wrap("SUM", value)
+  "SUM(" <> value <> ")"
 }
 
 pub fn avg(value: String) -> String {
-  wrap("AVG", value)
+  "AVG(" <> value <> ")"
 }
 
 pub fn max(value: String) -> String {
-  wrap("MAX", value)
+  "MAX(" <> value <> ")"
 }
 
 pub fn min(value: String) -> String {
-  wrap("MIN", value)
+  "MIN(" <> value <> ")"
 }
 
-// Arithmetic functions
+// ---- CTE Helpers ----
 
-// Character functions
-
-// Order By
-
-pub fn order_by(st: String, values: List(String)) -> String {
-  append(st, " ORDER BY ", string.join(values, with: ", "))
+pub fn with_cte(ctes: String) -> String {
+  "WITH " <> ctes
 }
 
-pub fn asc(st: String) -> String {
-  string.append(st, " ASC")
+pub fn with_recursive(ctes: String) -> String {
+  "WITH RECURSIVE " <> ctes
 }
 
-pub fn desc(st: String) -> String {
-  string.append(st, " DESC")
+pub fn cte(name: String, body: String) -> String {
+  name <> " AS (" <> body <> ")"
 }
 
-// CTEs
-
-pub fn with(ctes: List(String)) -> String {
-  string.join(ctes, ", ") |> string.append("WITH ", _)
+pub fn cte_columns(name: String, columns: String, body: String) -> String {
+  name <> "(" <> columns <> ") AS (" <> body <> ")"
 }
 
-pub fn with_recursive(ctes: List(String)) -> String {
-  string.join(ctes, ", ") |> string.append("WITH RECURSIVE ", _)
+// ---- Union Helpers ----
+
+pub fn union(left: String, right: String) -> String {
+  left <> " UNION " <> right
 }
 
-// Helpers
-
-pub fn terminate(st: String) -> String {
-  string.append(st, ";")
+pub fn union_all(left: String, right: String) -> String {
+  left <> " UNION ALL " <> right
 }
 
-pub fn enclose(str: String) -> String {
-  "(" <> str <> ")"
+// ---- General String Helpers ----
+
+/// Wrap a string in parentheses.
+pub fn enclose(value: String) -> String {
+  "(" <> value <> ")"
 }
 
-pub fn wrap(st: String, value: String) -> String {
-  st
-  |> string.append("(")
-  |> string.append(value)
-  |> string.append(")")
+/// Append an alias: `value AS alias`.
+pub fn alias_as(value: String, alias: String) -> String {
+  value <> " AS " <> alias
 }
 
+/// Append ASC direction.
+pub fn asc(value: String) -> String {
+  value <> " ASC"
+}
+
+/// Append DESC direction.
+pub fn desc(value: String) -> String {
+  value <> " DESC"
+}
+
+/// Terminate a SQL statement with a semicolon.
+pub fn terminate(value: String) -> String {
+  value <> ";"
+}
+
+/// Join a list of strings with ", " separator.
+pub fn comma_join(items: List(String)) -> String {
+  string.join(items, ", ")
+}
+
+/// Core three-part concatenation: st <> keyword <> value.
 pub fn append(st: String, keyword: String, value: String) -> String {
-  st
-  |> string.append(keyword)
-  |> string.append(value)
+  st <> keyword <> value
+}
+
+/// Wrap a value row in parentheses: "(a, b, c)".
+pub fn value_row(values: String) -> String {
+  "(" <> values <> ")"
 }

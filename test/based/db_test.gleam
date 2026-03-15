@@ -1,4 +1,5 @@
 import based/db
+import based/sql
 import gleam/dynamic
 import gleam/dynamic/decode
 import gleam/list
@@ -6,7 +7,7 @@ import gleam/result
 
 pub fn sql_test() {
   let sql = "SELECT 1;"
-  let query = db.sql(sql)
+  let query = sql.query(sql)
 
   let assert True = query.sql == sql
   let assert True = query.values |> list.length == 0
@@ -15,8 +16,8 @@ pub fn sql_test() {
 pub fn sql_with_values_test() {
   let sql = "SELECT * FROM users WHERE id=$1;"
   let query =
-    db.sql(sql)
-    |> db.params([db.int(1)])
+    sql.query(sql)
+    |> sql.params([sql.int(1)])
 
   let assert True = query.sql == sql
   let assert True = query.values |> list.length == 1
@@ -29,8 +30,8 @@ pub fn query_test() {
   let returning = Ok(db.Queried(count: 1, fields: ["id", "name"], rows:))
 
   let assert Ok(_) =
-    db.sql(sql)
-    |> db.params([db.int(1)])
+    sql.query(sql)
+    |> sql.params([sql.int(1)])
     |> db.query(query_handler(returning:))
 }
 
@@ -40,8 +41,8 @@ pub fn query_error_test() {
   let returning = Error(db.DbError("something failed"))
 
   let assert Error(_) =
-    db.sql(sql)
-    |> db.params([db.int(1)])
+    sql.query(sql)
+    |> sql.params([sql.int(1)])
     |> db.query(query_handler(returning:))
 }
 
@@ -66,8 +67,8 @@ pub fn all_test() {
   let returning = Ok(db.Queried(count: 1, fields: ["id", "name"], rows:))
 
   let assert Ok([#(1, "Steve")]) =
-    db.sql(sql)
-    |> db.params([db.int(1)])
+    sql.query(sql)
+    |> sql.params([sql.int(1)])
     |> db.all(query_handler(returning:), user_decoder())
 }
 
@@ -77,8 +78,8 @@ pub fn all_error_test() {
   let returning = Error(db.DbError("something failed"))
 
   let assert Error(_) =
-    db.sql(sql)
-    |> db.params([db.int(1)])
+    sql.query(sql)
+    |> sql.params([sql.int(1)])
     |> db.all(query_handler(returning:), user_decoder())
 }
 
@@ -89,8 +90,8 @@ pub fn one_test() {
   let returning = Ok(db.Queried(count: 1, fields: ["id", "name"], rows:))
 
   let assert Ok(#(1, "Steve")) =
-    db.sql(sql)
-    |> db.params([db.int(1)])
+    sql.query(sql)
+    |> sql.params([sql.int(1)])
     |> db.one(query_handler(returning:), user_decoder())
 }
 
@@ -100,8 +101,8 @@ pub fn one_error_test() {
   let returning = Error(db.DbError("something failed"))
 
   let assert Error(_) =
-    db.sql(sql)
-    |> db.params([db.int(1)])
+    sql.query(sql)
+    |> sql.params([sql.int(1)])
     |> db.one(query_handler(returning:), user_decoder())
 }
 
@@ -250,8 +251,8 @@ pub fn batch_test() {
     |> db.new(Conn)
 
   let queries = [
-    db.sql("SELECT * FROM users WHERE id=$1;") |> db.params([db.int(1)]),
-    db.sql("SELECT * FROM users WHERE id=$1;") |> db.params([db.int(2)]),
+    sql.query("SELECT * FROM users WHERE id=$1;") |> sql.params([sql.int(1)]),
+    sql.query("SELECT * FROM users WHERE id=$1;") |> sql.params([sql.int(2)]),
   ]
 
   let assert Ok(results) = db.batch(queries, database)
@@ -266,7 +267,7 @@ pub fn batch_error_test() {
     |> db.on_batch(fn(_, _) { returning })
     |> db.new(Conn)
 
-  let queries = [db.sql("SELECT 1;")]
+  let queries = [sql.query("SELECT 1;")]
 
   let assert Error(_) = db.batch(queries, database)
 }
