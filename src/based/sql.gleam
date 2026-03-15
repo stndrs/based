@@ -521,29 +521,33 @@ pub opaque type Condition(v) {
 /// Created using `inner_join`, `left_join`, `right_join`, or `full_join`,
 /// and attached to a query with `join`.
 pub opaque type Join(v) {
-  InnerJoin(table: Table, on: Condition(v))
-  LeftJoin(table: Table, on: Condition(v))
-  RightJoin(table: Table, on: Condition(v))
-  FullJoin(table: Table, on: Condition(v))
+  InnerJoin(table: Table, on: List(Condition(v)))
+  LeftJoin(table: Table, on: List(Condition(v)))
+  RightJoin(table: Table, on: List(Condition(v)))
+  FullJoin(table: Table, on: List(Condition(v)))
 }
 
 /// Creates an `INNER JOIN` clause.
-pub fn inner_join(table table: Table, on on: Condition(v)) -> Join(v) {
+/// Multiple conditions are combined with AND at render time.
+pub fn inner_join(table table: Table, on on: List(Condition(v))) -> Join(v) {
   InnerJoin(table: table, on: on)
 }
 
 /// Creates a `LEFT JOIN` clause.
-pub fn left_join(table table: Table, on on: Condition(v)) -> Join(v) {
+/// Multiple conditions are combined with AND at render time.
+pub fn left_join(table table: Table, on on: List(Condition(v))) -> Join(v) {
   LeftJoin(table: table, on: on)
 }
 
 /// Creates a `RIGHT JOIN` clause.
-pub fn right_join(table table: Table, on on: Condition(v)) -> Join(v) {
+/// Multiple conditions are combined with AND at render time.
+pub fn right_join(table table: Table, on on: List(Condition(v))) -> Join(v) {
   RightJoin(table: table, on: on)
 }
 
 /// Creates a `FULL JOIN` clause.
-pub fn full_join(table table: Table, on on: Condition(v)) -> Join(v) {
+/// Multiple conditions are combined with AND at render time.
+pub fn full_join(table table: Table, on on: List(Condition(v))) -> Join(v) {
   FullJoin(table: table, on: on)
 }
 
@@ -1018,7 +1022,7 @@ pub fn or_where(
         [] -> SelectBuilder(..query, wheres: [condition])
         existing ->
           SelectBuilder(..query, wheres: [
-            Or(combine_wheres(existing), condition),
+            Or(combine_conditions(existing), condition),
           ])
       }
     UpdateBuilder(..) ->
@@ -1026,7 +1030,7 @@ pub fn or_where(
         [] -> UpdateBuilder(..query, wheres: [condition])
         existing ->
           UpdateBuilder(..query, wheres: [
-            Or(combine_wheres(existing), condition),
+            Or(combine_conditions(existing), condition),
           ])
       }
     DeleteBuilder(..) ->
@@ -1034,7 +1038,7 @@ pub fn or_where(
         [] -> DeleteBuilder(..query, wheres: [condition])
         existing ->
           DeleteBuilder(..query, wheres: [
-            Or(combine_wheres(existing), condition),
+            Or(combine_conditions(existing), condition),
           ])
       }
     _ -> query
@@ -1704,7 +1708,7 @@ fn append_where(
     [] -> acc
     _ -> {
       let #(sql, vals) = acc
-      let combined = combine_wheres(wheres)
+      let combined = combine_conditions(wheres)
       let #(ws, wv) = build_condition(combined, adapter)
       #(sqlfmt.where(sql, ws), list.append(vals, wv))
     }
@@ -1720,7 +1724,7 @@ fn append_having(
     [] -> acc
     _ -> {
       let #(sql, vals) = acc
-      let combined = combine_wheres(having)
+      let combined = combine_conditions(having)
       let #(hs, hv) = build_condition(combined, adapter)
       #(sqlfmt.having(sql, hs), list.append(vals, hv))
     }
@@ -2206,13 +2210,14 @@ fn build_join(
   adapter: Adapter(v),
 ) -> #(String, List(v)) {
   let fmt = adapter
-  let #(join_fn, tbl, on) = case j {
+  let #(join_fn, tbl, on_conditions) = case j {
     InnerJoin(table:, on:) -> #(sqlfmt.inner_join, table, on)
     LeftJoin(table:, on:) -> #(sqlfmt.left_join, table, on)
     RightJoin(table:, on:) -> #(sqlfmt.right_join, table, on)
     FullJoin(table:, on:) -> #(sqlfmt.full_join, table, on)
   }
-  let #(on_sql, on_vals) = build_condition(on, adapter)
+  let combined = combine_conditions(on_conditions)
+  let #(on_sql, on_vals) = build_condition(combined, adapter)
   let sql = join_fn(sql, build_table(tbl, fmt)) |> sqlfmt.on(on_sql)
   #(sql, on_vals)
 }
@@ -2346,7 +2351,7 @@ fn build_order_by(orders: List(OrderBy), fmt: Adapter(v)) -> String {
   |> sqlfmt.comma_join
 }
 
-fn combine_wheres(wheres: List(Condition(v))) -> Condition(v) {
+fn combine_conditions(wheres: List(Condition(v))) -> Condition(v) {
   case wheres {
     [single] -> single
     [first, ..rest] -> list.fold(rest, first, fn(acc, w) { And(acc, w) })
