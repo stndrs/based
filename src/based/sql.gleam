@@ -53,6 +53,7 @@
 ////
 
 import based/interval
+import based/sql/internal/fmt as sqlfmt
 import based/uuid
 import gleam/bit_array
 import gleam/float
@@ -344,22 +345,14 @@ pub opaque type Adapter(v) {
 ///
 /// Use `default_adapter()` for a ready-to-use adapter that works with the
 /// built-in `Value` type.
-pub fn adapter() -> Adapter(v) {
+pub fn new_adapter() -> Adapter(v) {
   Adapter(
     handle_placeholder: fn(i) { "$" <> int.to_string(i + 1) },
-    handle_value: fn(_) {
-      panic as "value_to_string not set on adapter — use sql.value_to_string(adapter, with: fn(v) { ... }) to set it"
-    },
+    handle_value: fn(_) { panic as "sql.Adapter not configured (on_value)" },
     handle_identifier: function.identity,
-    handle_null: fn() {
-      panic as "on_null not set on adapter — use sql.on_null(adapter, with: fn() { ... }) to set it"
-    },
-    handle_int: fn(_) {
-      panic as "on_int not set on adapter — use sql.on_int(adapter, with: fn(i) { ... }) to set it"
-    },
-    handle_text: fn(_) {
-      panic as "on_text not set on adapter — use sql.on_text(adapter, with: fn(s) { ... }) to set it"
-    },
+    handle_null: fn() { panic as "sql.Adapter not configured (on_null)" },
+    handle_int: fn(_) { panic as "sql.Adapter not configured (on_int)" },
+    handle_text: fn(_) { panic as "sql.Adapter not configured (on_text)" },
   )
 }
 
@@ -1635,14 +1628,14 @@ fn pad_zero(n: Int) -> String {
 ///
 /// Uses PostgreSQL-style `$N` placeholders, no identifier quoting, and
 /// handles all `Value` variants for `to_string` output.
-pub fn default_adapter() -> Adapter(Value) {
+pub fn adapter() -> Adapter(Value) {
   Adapter(
     handle_placeholder: fn(i) { "$" <> int.to_string(i + 1) },
     handle_identifier: function.identity,
     handle_value: value_to_string,
     handle_null: fn() { Null },
-    handle_int: fn(_) { panic as "handle_int not configured" },
-    handle_text: fn(_) { panic as "handle_text not configured" },
+    handle_int: int,
+    handle_text: text,
   )
 }
 
@@ -1650,8 +1643,6 @@ pub fn default_adapter() -> Adapter(Value) {
 //
 // All build_* functions produce SQL with `:param:` sentinels and collect
 // values in order. These two functions do the final replacement pass.
-
-import based/sql/internal/fmt as sqlfmt
 
 /// Replace `:param:` sentinels with positional placeholders ($1, $2, ...).
 fn replace_placeholders(sql: String, formatter: Adapter(v)) -> String {
