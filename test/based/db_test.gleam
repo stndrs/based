@@ -107,7 +107,7 @@ pub fn one_error_test() {
 }
 
 pub fn transaction_test() {
-  let db = db.driver() |> db.new(Conn)
+  let db = db.driver() |> db.new(sql_adapter(), Conn)
 
   let assert Ok("success") = {
     use _tx <- db.transaction(db, tx_handler)
@@ -117,7 +117,7 @@ pub fn transaction_test() {
 }
 
 pub fn transaction_error_test() {
-  let db = db.driver() |> db.new(Conn)
+  let db = db.driver() |> db.new(sql_adapter(), Conn)
 
   let assert Error(db.Rollback("failure")) = {
     use _tx <- db.transaction(db, tx_handler)
@@ -139,18 +139,18 @@ fn user_decoder() -> decode.Decoder(#(Int, String)) {
 
 fn query_handler(
   returning queried: Result(db.Queried, db.DbError),
-) -> db.Db(v, Conn) {
+) -> db.Db(sql.Value, Conn) {
   db.driver()
   |> db.on_query(fn(_, _) { queried })
-  |> db.new(Conn)
+  |> db.new(sql_adapter(), Conn)
 }
 
 fn execute_handler(
   returning executed: Result(Int, db.DbError),
-) -> db.Db(v, Conn) {
+) -> db.Db(sql.Value, Conn) {
   db.driver()
   |> db.on_execute(fn(_, _) { executed })
-  |> db.new(Conn)
+  |> db.new(sql_adapter(), Conn)
 }
 
 fn tx_handler(
@@ -248,7 +248,7 @@ pub fn batch_test() {
   let database =
     db.driver()
     |> db.on_batch(fn(_, _) { returning })
-    |> db.new(Conn)
+    |> db.new(sql_adapter(), Conn)
 
   let queries = [
     sql.query("SELECT * FROM users WHERE id=$1;") |> sql.params([sql.int(1)]),
@@ -265,9 +265,13 @@ pub fn batch_error_test() {
   let database =
     db.driver()
     |> db.on_batch(fn(_, _) { returning })
-    |> db.new(Conn)
+    |> db.new(sql_adapter(), Conn)
 
   let queries = [sql.query("SELECT 1;")]
 
   let assert Error(_) = db.batch(queries, database)
+}
+
+fn sql_adapter() -> sql.Adapter(sql.Value) {
+  sql.default_adapter()
 }

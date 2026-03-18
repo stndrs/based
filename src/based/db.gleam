@@ -121,11 +121,15 @@ pub type BatchQueryHandler(v, conn) =
   fn(List(sql.Query(v)), conn) -> Result(List(Queried), DbError)
 
 pub type Db(v, conn) {
-  Db(conn: conn, driver: Driver(v, conn))
+  Db(conn: conn, driver: Driver(v, conn), adapter: sql.Adapter(v))
 }
 
-pub fn new(driver: Driver(v, conn), conn: conn) -> Db(v, conn) {
-  Db(conn:, driver:)
+pub fn new(
+  driver: Driver(v, conn),
+  adapter: sql.Adapter(v),
+  conn: conn,
+) -> Db(v, conn) {
+  Db(conn:, driver:, adapter:)
 }
 
 pub opaque type Driver(v, conn) {
