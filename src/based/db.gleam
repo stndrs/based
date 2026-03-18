@@ -120,7 +120,7 @@ pub type ExecuteHandler(conn) =
 pub type BatchQueryHandler(v, conn) =
   fn(List(sql.Query(v)), conn) -> Result(List(Queried), DbError)
 
-pub type Db(v, conn) {
+pub opaque type Db(v, conn) {
   Db(conn: conn, driver: Driver(v, conn), adapter: sql.Adapter(v))
 }
 
@@ -167,6 +167,92 @@ pub fn on_batch(
   handle_batch: BatchQueryHandler(v, conn),
 ) -> Driver(v, conn) {
   Driver(..db, handle_batch:)
+}
+
+// ----- Adapter ----- //
+
+/// Sets the placeholder format function.
+///
+/// Receives a zero-based index and returns the placeholder string.
+/// Defaults to PostgreSQL-style `$1`, `$2`, etc.
+///
+/// ```gleam
+/// // MySQL-style ? placeholders (index ignored)
+/// adapter |> sql.on_placeholder(with: fn(_) { "?" })
+/// ```
+pub fn on_placeholder(
+  db: Db(v, conn),
+  with handle_placeholder: fn(Int) -> String,
+) -> Db(v, conn) {
+  let adapter = sql.on_placeholder(db.adapter, handle_placeholder)
+
+  Db(..db, adapter:)
+}
+
+/// Sets the function used to render a value as a literal SQL string.
+///
+/// Only needed for `to_string` output — `to_query` uses placeholders instead.
+pub fn on_value(
+  db: Db(v, conn),
+  with handle_value: fn(v) -> String,
+) -> Db(v, conn) {
+  let adapter = sql.on_value(db.adapter, handle_value)
+
+  Db(..db, adapter:)
+}
+
+/// Sets the identifier quoting function.
+///
+/// Defaults to identity (no quoting). Override to add database-specific quoting.
+///
+/// ```gleam
+/// // Quote with double quotes
+/// adapter |> sql.on_identifier(with: fn(name) { "\"" <> name <> "\"" })
+/// ```
+pub fn on_identifier(
+  db: Db(v, conn),
+  with handle_identifier: fn(String) -> String,
+) -> Db(v, conn) {
+  let adapter = sql.on_identifier(db.adapter, handle_identifier)
+
+  Db(..db, adapter:)
+}
+
+/// Sets the function that produces the null representation for type `v`.
+///
+/// Used when a `nullable` kind resolves to `None`.
+pub fn on_null(db: Db(v, conn), with fun: fn() -> v) -> Db(v, conn) {
+  let adapter = sql.on_null(db.adapter, fun)
+
+  Db(..db, adapter:)
+}
+
+/// Sets the function that wraps an `Int` into the value type `v`.
+///
+/// Used internally when rendering `LIMIT`, `OFFSET`, and other integer literals.
+pub fn on_int(db: Db(v, conn), with fun: fn(Int) -> v) -> Db(v, conn) {
+  let adapter = sql.on_int(db.adapter, fun)
+
+  Db(..db, adapter:)
+}
+
+/// Sets the function that wraps a `String` into the value type `v`.
+///
+/// Used internally when rendering `LIKE` patterns and other string literals.
+pub fn on_text(db: Db(v, conn), with fun: fn(String) -> v) -> Db(v, conn) {
+  let adapter = sql.on_text(db.adapter, fun)
+
+  Db(..db, adapter:)
+}
+
+// ----- Query Builder ----- //
+
+pub fn sql(qb: sql.QueryBuilder(a, v), db: Db(v, conn)) -> sql.Query(v) {
+  sql.to_query(qb, db.adapter)
+}
+
+pub fn sql_string(qb: sql.QueryBuilder(a, v), db: Db(v, conn)) -> String {
+  sql.to_string(qb, db.adapter)
 }
 
 /// Accepts a `Query`, connection, and query handler function from an adapter
