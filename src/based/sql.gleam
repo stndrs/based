@@ -52,8 +52,8 @@
 //// from being constructed at compile time.
 ////
 
+import based/internal/fmt as sqlfmt
 import based/interval
-import based/sql/internal/fmt as sqlfmt
 import based/uuid
 import gleam/bit_array
 import gleam/float
