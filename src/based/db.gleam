@@ -120,7 +120,7 @@ pub type ExecuteHandler(conn) =
 pub type BatchQueryHandler(v, conn) =
   fn(List(sql.Query(v)), conn) -> Result(List(Queried), DbError)
 
-pub opaque type Db(v, conn) {
+pub type Db(v, conn) {
   Db(conn: conn, driver: Driver(v, conn), adapter: sql.Adapter(v))
 }
 
@@ -243,16 +243,6 @@ pub fn on_text(db: Db(v, conn), with fun: fn(String) -> v) -> Db(v, conn) {
   let adapter = sql.on_text(db.adapter, fun)
 
   Db(..db, adapter:)
-}
-
-// ----- Query Builder ----- //
-
-pub fn sql(qb: sql.QueryBuilder(a, v), db: Db(v, conn)) -> sql.Query(v) {
-  sql.to_query(qb, db.adapter)
-}
-
-pub fn sql_string(qb: sql.QueryBuilder(a, v), db: Db(v, conn)) -> String {
-  sql.to_string(qb, db.adapter)
 }
 
 /// Accepts a `Query`, connection, and query handler function from an adapter

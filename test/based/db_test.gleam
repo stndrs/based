@@ -281,7 +281,7 @@ pub fn to_sql_query_select_test() {
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("name")])
     |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
-    |> db.sql(database)
+    |> sql.to_query(database.adapter)
 
   let assert True = q.sql == "SELECT id, name FROM users WHERE id = $1"
   let assert True = q.values == [sql.int(1)]
@@ -293,7 +293,7 @@ pub fn to_sql_query_select_no_params_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("name")])
-    |> db.sql(database)
+    |> sql.to_query(database.adapter)
 
   let assert True = q.sql == "SELECT name FROM users"
   let assert True = q.values == []
@@ -310,7 +310,7 @@ pub fn to_sql_query_insert_test() {
         sql.final(column: "age", value: sql.int(30))
       },
     ])
-    |> db.sql(database)
+    |> sql.to_query(database.adapter)
 
   let assert True = q.sql == "INSERT INTO users (name, age) VALUES ($1, $2)"
   let assert True = q.values == [sql.text("Alice"), sql.int(30)]
@@ -323,7 +323,7 @@ pub fn to_sql_query_update_test() {
     sql.update(table: sql.table("users"))
     |> sql.set("name", sql.text("Bob"), of: sql.value)
     |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
-    |> db.sql(database)
+    |> sql.to_query(database.adapter)
 
   let assert True = q.sql == "UPDATE users SET name = $1 WHERE id = $2"
   let assert True = q.values == [sql.text("Bob"), sql.int(1)]
@@ -336,7 +336,7 @@ pub fn to_sql_query_delete_test() {
     sql.from(sql.table("users"))
     |> sql.delete()
     |> sql.where(sql.eq(sql.col("id"), sql.int(42), of: sql.value))
-    |> db.sql(database)
+    |> sql.to_query(database.adapter)
 
   let assert True = q.sql == "DELETE FROM users WHERE id = $1"
   let assert True = q.values == [sql.int(42)]
