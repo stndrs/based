@@ -426,10 +426,10 @@ pub fn on_text(adapter: Adapter(v), with fun: fn(String) -> v) -> Adapter(v) {
 /// ensuring that every row has the same columns at compile time.
 ///
 /// ```gleam
-/// let row =
-///   sql.field(column: "name", value: sql.text("Alice"), next: fn() {
-///     sql.final(column: "age", value: sql.int(30))
-///   })
+/// let row = {
+///   use <- sql.field(column: "name", value: sql.text("Alice"))
+///   sql.final(column: "age", value: sql.int(30))
+/// }
 /// ```
 pub opaque type Row(v) {
   Row(column: String, value: v, next: Option(fn() -> Row(v)))
@@ -438,11 +438,9 @@ pub opaque type Row(v) {
 /// Adds a column/value pair to a row, with a continuation for the next field.
 ///
 /// ```gleam
-/// sql.field(column: "name", value: sql.text("Alice"), next: fn() {
-///   sql.field(column: "email", value: sql.text("alice@example.com"), next: fn() {
-///     sql.final(column: "age", value: sql.int(30))
-///   })
-/// })
+/// use <- sql.field(column: "name", value: sql.text("Alice"))
+/// use <- sql.field(column: "email", value: sql.text("alice@example.com"))
+/// sql.final(column: "age", value: sql.int(30))
 /// ```
 pub fn field(
   column column: String,
@@ -1190,10 +1188,10 @@ pub fn for_update(query: QueryBuilder(Select, v)) -> QueryBuilder(Select, v) {
 /// Replaces any previously set values.
 ///
 /// ```gleam
-/// let row1 =
-///   sql.field(column: "name", value: sql.text("Alice"), next: fn() {
-///     sql.final(column: "age", value: sql.int(30))
-///   })
+/// let row1 = {
+///   use <- sql.field(column: "name", value: sql.text("Alice"))
+///   sql.final(column: "age", value: sql.int(30))
+/// }
 ///
 /// sql.insert(into: users) |> sql.values([row1])
 /// ```
