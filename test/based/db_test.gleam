@@ -2,6 +2,7 @@ import based/db
 import based/sql
 import gleam/dynamic
 import gleam/dynamic/decode
+import gleam/int
 import gleam/list
 import gleam/result
 
@@ -344,4 +345,5 @@ pub fn to_sql_query_delete_test() {
 
 fn sql_adapter() -> sql.Adapter(sql.Value) {
   sql.adapter()
+  |> sql.on_placeholder(fn(idx) { "$" <> int.to_string(idx + 1) })
 }

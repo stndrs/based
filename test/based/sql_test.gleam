@@ -18,6 +18,7 @@ fn sql_value_to_string(value: sql.Value) -> String {
 
 fn a() -> sql.Adapter(sql.Value) {
   sql.adapter()
+  |> sql.on_placeholder(fn(idx) { "$" <> int.to_string(idx + 1) })
   |> sql.on_null(with: fn() { sql.null })
   |> sql.on_int(with: fn(i) { sql.int(i) })
   |> sql.on_text(with: fn(s) { sql.text(s) })
@@ -432,7 +433,10 @@ pub fn to_string_delete_test() {
 // ---- default_formatter Tests ----
 
 pub fn default_formatter_placeholder_test() {
-  let r = sql.adapter()
+  let r =
+    sql.adapter()
+    |> sql.on_placeholder(fn(idx) { "$" <> int.to_string(idx + 1) })
+
   let q =
     sql.from(sql.table("users"))
     |> sql.select([
@@ -449,7 +453,10 @@ pub fn default_formatter_placeholder_test() {
 }
 
 pub fn default_formatter_quote_test() {
-  let r = sql.adapter()
+  let r =
+    sql.adapter()
+    |> sql.on_placeholder(fn(idx) { "$" <> int.to_string(idx + 1) })
+
   // default_formatter uses identity for quote_identifier, so names are unquoted
   let q =
     sql.from(sql.table("users"))
@@ -459,7 +466,10 @@ pub fn default_formatter_quote_test() {
 }
 
 pub fn default_formatter_value_to_string_test() {
-  let r = sql.adapter()
+  let r =
+    sql.adapter()
+    |> sql.on_placeholder(fn(idx) { "$" <> int.to_string(idx + 1) })
+
   let base =
     sql.from(sql.table("t"))
     |> sql.select([sql.col("x")])
@@ -492,7 +502,10 @@ pub fn default_formatter_value_to_string_test() {
 }
 
 pub fn default_formatter_escapes_quotes_test() {
-  let r = sql.adapter()
+  let r =
+    sql.adapter()
+    |> sql.on_placeholder(fn(idx) { "$" <> int.to_string(idx + 1) })
+
   let s =
     sql.from(sql.table("t"))
     |> sql.select([sql.col("x")])
@@ -504,7 +517,10 @@ pub fn default_formatter_escapes_quotes_test() {
 // ---- Full default_formatter Integration Test ----
 
 pub fn default_formatter_to_query_test() {
-  let r = sql.adapter()
+  let r =
+    sql.adapter()
+    |> sql.on_placeholder(fn(idx) { "$" <> int.to_string(idx + 1) })
+
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("name"), sql.col("email")])
@@ -575,6 +591,7 @@ pub fn double_quote_quote_identifier_test() {
     |> sql.on_text(with: fn(s) { sql.text(s) })
     |> sql.on_value(with: sql_value_to_string)
     |> sql.on_identifier(with: fn(name) { "\"" <> name <> "\"" })
+    |> sql.on_placeholder(fn(idx) { "$" <> int.to_string(idx + 1) })
 
   let q =
     sql.from(sql.table("users"))
@@ -601,6 +618,7 @@ pub fn double_quote_aliased_identifiers_test() {
     |> sql.on_text(with: fn(s) { sql.text(s) })
     |> sql.on_value(with: sql_value_to_string)
     |> sql.on_identifier(with: fn(name) { "\"" <> name <> "\"" })
+    |> sql.on_placeholder(fn(idx) { "$" <> int.to_string(idx + 1) })
 
   let q =
     sql.from(sql.table("users") |> sql.table_as("u"))
@@ -3268,7 +3286,10 @@ pub fn select_where_in_list_to_string_test() {
 // --- adapter test ---
 
 pub fn adapter_test() {
-  let r = sql.adapter()
+  let r =
+    sql.adapter()
+    |> sql.on_placeholder(fn(idx) { "$" <> int.to_string(idx + 1) })
+
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("name")])
@@ -3284,6 +3305,7 @@ pub fn adapter_test() {
 pub fn mapper_handle_null_test() {
   let r =
     sql.adapter()
+    |> sql.on_placeholder(fn(idx) { "$" <> int.to_string(idx + 1) })
     |> sql.on_null(with: fn() { sql.null })
     |> sql.on_int(with: fn(i) { sql.int(i) })
     |> sql.on_text(with: fn(s) { sql.text(s) })

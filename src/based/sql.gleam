@@ -10,7 +10,7 @@
 //// ```gleam
 //// import based/sql
 ////
-//// let adapter = sql.default_adapter()
+//// let adapter = sql.adapter()
 ////
 //// let query =
 ////   sql.from(sql.table("users"))
@@ -339,15 +339,15 @@ pub opaque type Adapter(v) {
 
 /// Creates a new adapter with sensible defaults.
 ///
-/// Defaults to PostgreSQL-style `$N` placeholders and identity quoting for
-/// identifiers. The `on_value`, `on_null`, `on_int`, and `on_text` handlers
-/// must be configured before use — they panic if called unconfigured.
+/// Defaults to `"?"` placeholders and does not quote identifiers.
+/// The `on_value`, `on_null`, `on_int`, and `on_text` handlers
+/// will panic if left unconfigured.
 ///
-/// Use `default_adapter()` for a ready-to-use adapter that works with the
+/// Use `adapter()` for a ready-to-use adapter that works with the
 /// built-in `Value` type.
 pub fn new_adapter() -> Adapter(v) {
   Adapter(
-    handle_placeholder: fn(i) { "$" <> int.to_string(i + 1) },
+    handle_placeholder: fn(_) { "?" },
     handle_value: fn(_) { panic as "sql.Adapter not configured (on_value)" },
     handle_identifier: function.identity,
     handle_null: fn() { panic as "sql.Adapter not configured (on_null)" },
@@ -358,12 +358,10 @@ pub fn new_adapter() -> Adapter(v) {
 
 /// Sets the placeholder format function.
 ///
-/// Receives a zero-based index and returns the placeholder string.
-/// Defaults to PostgreSQL-style `$1`, `$2`, etc.
-///
 /// ```gleam
-/// // MySQL-style ? placeholders (index ignored)
 /// adapter |> sql.on_placeholder(with: fn(_) { "?" })
+///
+/// adapter |> sql.on_placeholder(fn(idx) { "$" <> int.to_string(idx + 1) })
 /// ```
 pub fn on_placeholder(
   adapter: Adapter(v),
@@ -610,20 +608,6 @@ pub opaque type OnConflict(v) {
   )
 }
 
-// ---- Union ----
-
-type UnionType {
-  Union
-  UnionAll
-}
-
-// ---- From ----
-
-type FromClause(v) {
-  FromTable(Table)
-  FromSubQuery(query: QueryBuilder(Select, v), alias: String)
-}
-
 /// Describes how to convert an input of type `a` into an internal operand
 /// for query building.
 ///
@@ -656,7 +640,23 @@ pub type Update
 pub type Delete
 
 /// Phantom type for the initial FROM stage before selecting a query kind.
-pub type From
+pub type From(a)
+
+pub type Subquery
+
+// ---- Union ----
+
+type UnionType {
+  Union
+  UnionAll
+}
+
+// ---- From ----
+
+type FromClause(v) {
+  FromTable(Table)
+  FromSubQuery(query: QueryBuilder(Select, v), alias: String)
+}
 
 // ---- QueryBuilder ----
 
@@ -722,7 +722,8 @@ pub opaque type QueryBuilder(kind, v) {
     ctes: List(Cte(v)),
     recursive: Bool,
   )
-  FromBuilder(source: FromClause(v))
+  FromTableBuilder(table: Table)
+  FromSubQueryBuilder(query: QueryBuilder(Select, v), alias: String)
 }
 
 // ---- CTE ----
@@ -880,8 +881,8 @@ pub fn raw_with_values(sql: String, values: List(v)) -> Condition(v) {
 /// // DELETE
 /// sql.from(users) |> sql.delete()
 /// ```
-pub fn from(tbl: Table) -> QueryBuilder(From, v) {
-  FromBuilder(source: FromTable(tbl))
+pub fn from(table: Table) -> QueryBuilder(From(Table), v) {
+  FromTableBuilder(table:)
 }
 
 /// Converts a `From` builder into a SELECT query with the given columns.
@@ -891,28 +892,30 @@ pub fn from(tbl: Table) -> QueryBuilder(From, v) {
 /// |> sql.select([sql.col("name"), sql.col("email")])
 /// ```
 pub fn select(
-  query: QueryBuilder(From, v),
+  query: QueryBuilder(From(a), v),
   columns: List(Column),
 ) -> QueryBuilder(Select, v) {
-  case query {
-    FromBuilder(source:) ->
-      SelectBuilder(
-        columns: columns,
-        from: source,
-        wheres: [],
-        joins: [],
-        order_by: [],
-        limit: None,
-        offset: None,
-        group_by: [],
-        distinct: False,
-        having: [],
-        for_update: False,
-        ctes: [],
-        recursive: False,
-      )
+  let from = case query {
+    FromTableBuilder(table:) -> FromTable(table)
+    FromSubQueryBuilder(query:, alias:) -> FromSubQuery(query:, alias:)
     _ -> panic as "select called on non-From builder"
   }
+
+  SelectBuilder(
+    columns: columns,
+    from:,
+    wheres: [],
+    joins: [],
+    order_by: [],
+    limit: None,
+    offset: None,
+    group_by: [],
+    distinct: False,
+    having: [],
+    for_update: False,
+    ctes: [],
+    recursive: False,
+  )
 }
 
 /// Creates a new INSERT query builder for the given table.
@@ -964,22 +967,18 @@ pub fn update(table tbl: Table) -> QueryBuilder(Update, v) {
 /// |> sql.where(sql.eq(sql.col("id"), 1, of: sql.value))
 /// |> sql.to_query(adapter)
 /// ```
-pub fn delete(query: QueryBuilder(From, v)) -> QueryBuilder(Delete, v) {
+pub fn delete(query: QueryBuilder(From(Table), v)) -> QueryBuilder(Delete, v) {
   case query {
-    FromBuilder(source:) -> {
-      let tbl = case source {
-        FromTable(t) -> t
-        FromSubQuery(..) -> Table(name: "", alias: None)
-      }
+    FromTableBuilder(table:) -> {
       DeleteBuilder(
-        from: tbl,
+        from: table,
         wheres: [],
         returning: [],
         ctes: [],
         recursive: False,
       )
     }
-    _ -> panic as "delete called on non-From builder"
+    _ -> panic as "delete called on non-From(Table) builder"
   }
 }
 
@@ -998,10 +997,10 @@ pub fn delete(query: QueryBuilder(From, v)) -> QueryBuilder(Delete, v) {
 /// |> sql.to_query(adapter)
 /// ```
 pub fn from_subquery(
-  sub: QueryBuilder(Select, v),
+  query: QueryBuilder(Select, v),
   alias a: String,
-) -> QueryBuilder(From, v) {
-  FromBuilder(source: FromSubQuery(sub, a))
+) -> QueryBuilder(From(Subquery), v) {
+  FromSubQueryBuilder(query:, alias: a)
 }
 
 /// Adds a WHERE condition to the query. Multiple `where` calls are combined
@@ -1394,7 +1393,8 @@ pub fn with(
     UpdateBuilder(..) -> UpdateBuilder(..query, ctes: ctes)
     DeleteBuilder(..) -> DeleteBuilder(..query, ctes: ctes)
     UnionBuilder(..) -> UnionBuilder(..query, ctes: ctes)
-    FromBuilder(..) -> query
+    FromTableBuilder(..) -> query
+    FromSubQueryBuilder(..) -> query
   }
 }
 
@@ -1406,7 +1406,8 @@ pub fn recursive(query: QueryBuilder(a, v)) -> QueryBuilder(a, v) {
     UpdateBuilder(..) -> UpdateBuilder(..query, recursive: True)
     DeleteBuilder(..) -> DeleteBuilder(..query, recursive: True)
     UnionBuilder(..) -> UnionBuilder(..query, recursive: True)
-    FromBuilder(..) -> query
+    FromTableBuilder(..) -> query
+    FromSubQueryBuilder(..) -> query
   }
 }
 
@@ -1624,11 +1625,10 @@ fn pad_zero(n: Int) -> String {
 
 /// Returns a ready-to-use adapter for the built-in `Value` type.
 ///
-/// Uses PostgreSQL-style `$N` placeholders, no identifier quoting, and
 /// handles all `Value` variants for `to_string` output.
 pub fn adapter() -> Adapter(Value) {
   Adapter(
-    handle_placeholder: fn(i) { "$" <> int.to_string(i + 1) },
+    handle_placeholder: fn(_) { "?" },
     handle_identifier: function.identity,
     handle_value: value_to_string,
     handle_null: fn() { Null },
@@ -1809,7 +1809,8 @@ fn build_query(
     UpdateBuilder(ctes:, recursive:, ..) -> #(ctes, recursive)
     DeleteBuilder(ctes:, recursive:, ..) -> #(ctes, recursive)
     UnionBuilder(ctes:, recursive:, ..) -> #(ctes, recursive)
-    FromBuilder(..) -> #([], False)
+    FromTableBuilder(..) -> #([], False)
+    FromSubQueryBuilder(..) -> #([], False)
   }
 
   let #(cte_prefix, cte_vals) = build_ctes(ctes, recursive, adapter)
@@ -1869,7 +1870,8 @@ fn build_query(
       build_delete(from, wheres, returning, adapter)
     UnionBuilder(selects:, union_type:, ..) ->
       build_combined_select(selects, union_type, adapter)
-    FromBuilder(..) -> #("", [])
+    FromTableBuilder(..) -> #("", [])
+    FromSubQueryBuilder(..) -> #("", [])
   }
 
   let body_with_suffix = case ctes {
@@ -2345,6 +2347,6 @@ fn combine_conditions(wheres: List(Condition(v))) -> Condition(v) {
     [first, ..rest] -> list.fold(rest, first, fn(acc, w) { And(acc, w) })
     // This case should never happen when called correctly,
     // but we need to handle it for exhaustiveness.
-    [] -> IsNull(Col(Star))
+    [] -> panic as "shouldn't happen"
   }
 }
