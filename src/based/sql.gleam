@@ -1407,9 +1407,11 @@ pub fn union_all(
 /// query.values  // [Integer(1)]
 /// ```
 pub fn to_query(query: QueryBuilder(a, v), adapter: Adapter(v)) -> Query(v) {
-  let #(sql, vals) = build_query(query, adapter)
+  let SqlBuilder(sql, values) = build_query(query, adapter)
   let sql = replace_placeholders(sql, adapter)
-  Query(sql: sql, values: vals)
+  let values = values |> list.reverse |> list.flatten
+
+  Query(sql:, values:)
 }
 
 /// Serializes a query builder into a plain SQL string with values inlined.
@@ -1417,8 +1419,10 @@ pub fn to_query(query: QueryBuilder(a, v), adapter: Adapter(v)) -> Query(v) {
 /// Values are formatted using the adapter's `on_value` handler. This is useful
 /// for debugging and logging — use `to_query` for actual database execution.
 pub fn to_string(query: QueryBuilder(a, v), adapter: Adapter(v)) -> String {
-  let #(sql, vals) = build_query(query, adapter)
-  replace_with_values(sql, vals, adapter)
+  let SqlBuilder(sql, values) = build_query(query, adapter)
+  let values = values |> list.reverse |> list.flatten
+
+  replace_with_values(sql, values, adapter)
 }
 
 // ---- Default Adapter ----
@@ -1609,141 +1613,158 @@ fn replace_with_values(
   }
 }
 
+type SqlBuilder(v) {
+  SqlBuilder(sql: String, values: List(List(v)))
+}
+
 // Each helper takes an accumulator `#(String, List(v))` and appends
 // one optional SQL clause, returning the (possibly unchanged) accumulator.
 // When the clause data is empty/None/False, the acc passes through unchanged.
 
 fn append_where(
-  acc: #(String, List(v)),
+  builder: SqlBuilder(v),
   wheres: List(Condition(v)),
   adapter: Adapter(v),
-) -> #(String, List(v)) {
+) -> SqlBuilder(v) {
   case wheres {
-    [] -> acc
+    [] -> builder
     _ -> {
-      let #(sql, vals) = acc
       let combined =
         wheres
         |> list.reverse
         |> combine_conditions
 
       let #(ws, wv) = build_condition(combined, adapter)
-      #(fmt.where(sql, ws), list.append(vals, wv))
+
+      builder.sql
+      |> fmt.where(ws)
+      |> SqlBuilder(list.prepend(builder.values, wv))
     }
   }
 }
 
 fn append_having(
-  acc: #(String, List(v)),
+  builder: SqlBuilder(v),
   having: List(Condition(v)),
   adapter: Adapter(v),
-) -> #(String, List(v)) {
+) -> SqlBuilder(v) {
   case having {
-    [] -> acc
+    [] -> builder
     _ -> {
-      let #(sql, vals) = acc
       let combined =
         having
         |> list.reverse
         |> combine_conditions
 
       let #(hs, hv) = build_condition(combined, adapter)
-      #(fmt.having(sql, hs), list.append(vals, hv))
+      builder.sql
+      |> fmt.having(hs)
+      |> SqlBuilder(list.prepend(builder.values, hv))
     }
   }
 }
 
 fn append_joins(
-  acc: #(String, List(v)),
+  builder: SqlBuilder(v),
   joins: List(Join(v)),
   adapter: Adapter(v),
-) -> #(String, List(v)) {
+) -> SqlBuilder(v) {
   joins
   |> list.reverse
-  |> list.fold(acc, fn(acc, join) {
-    let #(sql, values) = acc
-    let #(joins, join_values) = build_join(sql, join, adapter)
+  |> list.fold(builder, fn(builder1, join) {
+    let #(joins, join_values) = build_join(builder1.sql, join, adapter)
 
-    #(joins, list.append(values, join_values))
+    SqlBuilder(joins, list.prepend(builder1.values, join_values))
   })
 }
 
 fn append_group_by(
-  acc: #(String, List(v)),
+  builder: SqlBuilder(v),
   group_by: List(Column),
   adapter: Adapter(v),
-) -> #(String, List(v)) {
+) -> SqlBuilder(v) {
   case group_by {
-    [] -> acc
-    cols -> #(fmt.group_by(acc.0, build_columns(cols, adapter)), acc.1)
-  }
-}
-
-fn append_order_by(
-  acc: #(String, List(v)),
-  orders: List(OrderBy),
-  adapter: Adapter(v),
-) -> #(String, List(v)) {
-  case orders {
-    [] -> acc
-    _ -> {
-      let orders = list.reverse(orders)
-
-      #(fmt.order_by(acc.0, build_order_by(orders, adapter)), acc.1)
+    [] -> builder
+    cols -> {
+      builder.sql
+      |> fmt.group_by(build_columns(cols, adapter))
+      |> SqlBuilder(builder.values)
     }
   }
 }
 
-fn append_limit(
-  acc: #(String, List(v)),
-  limit_val: Option(Int),
-) -> #(String, List(v)) {
+fn append_order_by(
+  builder: SqlBuilder(v),
+  orders: List(OrderBy),
+  adapter: Adapter(v),
+) -> SqlBuilder(v) {
+  case orders {
+    [] -> builder
+    _ -> {
+      let orders = list.reverse(orders)
+
+      builder.sql
+      |> fmt.order_by(build_order_by(orders, adapter))
+      |> SqlBuilder(builder.values)
+    }
+  }
+}
+
+fn append_limit(builder: SqlBuilder(v), limit_val: Option(Int)) -> SqlBuilder(v) {
   case limit_val {
-    None -> acc
-    Some(n) -> #(fmt.limit(acc.0, n), acc.1)
+    None -> builder
+    Some(n) -> {
+      builder.sql
+      |> fmt.limit(n)
+      |> SqlBuilder(builder.values)
+    }
   }
 }
 
 fn append_offset(
-  acc: #(String, List(v)),
+  builder: SqlBuilder(v),
   offset_val: Option(Int),
-) -> #(String, List(v)) {
+) -> SqlBuilder(v) {
   case offset_val {
-    None -> acc
-    Some(n) -> #(fmt.offset(acc.0, n), acc.1)
+    None -> builder
+    Some(n) -> {
+      builder.sql
+      |> fmt.offset(n)
+      |> SqlBuilder(builder.values)
+    }
   }
 }
 
-fn append_for_update(
-  acc: #(String, List(v)),
-  for_update: Bool,
-) -> #(String, List(v)) {
+fn append_for_update(builder: SqlBuilder(v), for_update: Bool) -> SqlBuilder(v) {
   case for_update {
-    True -> #(fmt.for_update(acc.0), acc.1)
-    False -> acc
+    True -> {
+      builder.sql
+      |> fmt.for_update
+      |> SqlBuilder(builder.values)
+    }
+    False -> builder
   }
 }
 
 fn append_returning(
-  acc: #(String, List(v)),
+  builder: SqlBuilder(v),
   returning: List(Column),
   adapter: Adapter(v),
-) -> #(String, List(v)) {
+) -> SqlBuilder(v) {
   case returning {
-    [] -> acc
-    cols -> #(fmt.returning(acc.0, build_columns(cols, adapter)), acc.1)
+    [] -> builder
+    cols -> {
+      builder.sql
+      |> fmt.returning(build_columns(cols, adapter))
+      |> SqlBuilder(builder.values)
+    }
   }
 }
 
-// ---- Internal: Unified Query Building ----
-//
 // Single-path functions that produce SQL with `:param:` sentinels
 // and collect values in order. No idx threading needed.
 
-fn build_query(
-  query: QueryBuilder(a, v),
-  adapter: Adapter(v),
-) -> #(String, List(v)) {
+fn build_query(query: QueryBuilder(a, v), adapter: Adapter(v)) -> SqlBuilder(v) {
   let #(ctes, recursive) = case query {
     SelectBuilder(ctes:, recursive:, ..) -> #(ctes, recursive)
     InsertBuilder(ctes:, recursive:, ..) -> #(ctes, recursive)
@@ -1754,9 +1775,9 @@ fn build_query(
     FromSubQueryBuilder(..) -> #([], False)
   }
 
-  let #(cte_prefix, cte_vals) = build_ctes(ctes, recursive, adapter)
+  let SqlBuilder(cte_prefix, cte_vals) = build_ctes(ctes, recursive, adapter)
 
-  let #(body, body_vals) = case query {
+  let SqlBuilder(sql, values) = case query {
     SelectBuilder(
       columns:,
       from:,
@@ -1810,37 +1831,42 @@ fn build_query(
     DeleteBuilder(from:, wheres:, returning:, ..) ->
       build_delete(from, wheres, returning, adapter)
     UnionBuilder(selects:, union_type:, ..) ->
-      build_combined_select(selects, union_type, adapter)
-    FromTableBuilder(..) -> #("", [])
-    FromSubQueryBuilder(..) -> #("", [])
+      build_union(selects, union_type, adapter)
+    FromTableBuilder(..) -> SqlBuilder("", [])
+    FromSubQueryBuilder(..) -> SqlBuilder("", [])
   }
 
   let body_with_suffix = case ctes {
-    [] -> body
-    _ -> fmt.terminate(body)
+    [] -> sql
+    _ -> fmt.terminate(sql)
   }
-  #(cte_prefix <> body_with_suffix, list.append(cte_vals, body_vals))
+  SqlBuilder(
+    sql: cte_prefix <> body_with_suffix,
+    values: list.append(values, cte_vals),
+  )
 }
 
 fn build_ctes(
   ctes: List(Cte(v)),
   recursive: Bool,
   adapter: Adapter(v),
-) -> #(String, List(v)) {
+) -> SqlBuilder(v) {
   case ctes {
-    [] -> #("", [])
+    [] -> SqlBuilder("", [])
     _ -> {
       let #(cte_parts, all_vals) =
-        list.fold(ctes, #([], []), fn(acc, c) {
+        ctes
+        |> list.fold(#([], []), fn(acc, c) {
           let #(parts, vals) = acc
           let Cte(name:, columns:, query:) = c
-          let #(body_sql, body_vals) = build_single_select(query, adapter)
+          let sql_builder = build_single_select(query, adapter)
           let col_part = case columns {
             [] -> ""
             cols -> fmt.enclose(fmt.comma_join(cols))
           }
-          let part = fmt.cte(name <> col_part, body_sql)
-          #(list.prepend(parts, part), list.append(vals, body_vals))
+          let part = fmt.cte(name <> col_part, sql_builder.sql)
+
+          #(list.prepend(parts, part), list.prepend(vals, sql_builder.values))
         })
 
       let ctes_sql =
@@ -1852,7 +1878,7 @@ fn build_ctes(
         True -> fmt.with_recursive(ctes_sql)
         False -> fmt.with_cte(ctes_sql)
       }
-      #(prefix <> " ", all_vals)
+      SqlBuilder(prefix <> " ", list.flatten(all_vals))
     }
   }
 }
@@ -1870,7 +1896,7 @@ fn build_select(
   having: List(Condition(v)),
   for_update: Bool,
   adapter: Adapter(v),
-) -> #(String, List(v)) {
+) -> SqlBuilder(v) {
   let cols_sql = build_columns(columns, adapter)
   let select_start = case distinct {
     True -> fmt.select_distinct(cols_sql)
@@ -1879,12 +1905,14 @@ fn build_select(
   let #(from_sql, from_vals) = case from {
     FromTable(tbl) -> #(build_table(tbl, adapter), [])
     FromSubQuery(query, alias) -> {
-      let #(sql, vals) = build_single_select(query, adapter)
+      let SqlBuilder(sql, vals) = build_single_select(query, adapter)
+
       #(fmt.alias_as(fmt.enclose(sql), adapter.handle_identifier(alias)), vals)
     }
   }
 
-  #(fmt.from(select_start, from_sql), from_vals)
+  fmt.from(select_start, from_sql)
+  |> SqlBuilder(from_vals)
   |> append_joins(joins, adapter)
   |> append_where(wheres, adapter)
   |> append_group_by(group_by, adapter)
@@ -1902,8 +1930,8 @@ fn build_insert(
   returning: List(Column),
   on_conflict: Option(OnConflict(v)),
   adapter: Adapter(v),
-) -> #(String, List(v)) {
-  let #(placeholders, vals) = {
+) -> SqlBuilder(v) {
+  let #(placeholders, values) = {
     use #(rows, vals), row <- list.fold(values, #([], []))
 
     let row_placeholders =
@@ -1915,8 +1943,6 @@ fn build_insert(
     #(list.prepend(rows, row_placeholders), list.prepend(vals, row))
   }
 
-  let values = vals |> list.reverse |> list.flatten
-  let placeholders = list.reverse(placeholders)
   let columns = list.map(columns, adapter.handle_identifier)
 
   let sql =
@@ -1924,24 +1950,24 @@ fn build_insert(
     |> build_table(adapter)
     |> fmt.insert(columns:, values: placeholders)
 
-  #(sql, values)
+  SqlBuilder(sql:, values:)
   |> append_on_conflict(on_conflict, adapter)
   |> append_returning(returning, adapter)
 }
 
 fn append_on_conflict(
-  acc: #(String, List(v)),
+  builder: SqlBuilder(v),
   on_conflict: Option(OnConflict(v)),
   adapter: Adapter(v),
-) -> #(String, List(v)) {
+) -> SqlBuilder(v) {
   case on_conflict {
-    None -> acc
+    None -> builder
     Some(OnConflict(target:, action:, wheres: conflict_wheres)) -> {
-      let #(sql, values) = acc
+      let sql =
+        builder.sql
+        |> fmt.on_conflict(adapter.handle_identifier(target))
 
-      let sql = fmt.on_conflict(sql, adapter.handle_identifier(target))
-
-      let sql = case action {
+      case action {
         DoNothing -> fmt.do_nothing(sql)
         DoUpdate(sets:) -> {
           sets
@@ -1952,7 +1978,8 @@ fn append_on_conflict(
           |> fmt.do_update(sql, _)
         }
       }
-      #(sql, values) |> append_where(conflict_wheres, adapter)
+      |> SqlBuilder(builder.values)
+      |> append_where(conflict_wheres, adapter)
     }
   }
 }
@@ -1966,7 +1993,7 @@ fn build_update(
   limit_val: Option(Int),
   offset_val: Option(Int),
   adapter: Adapter(v),
-) -> #(String, List(v)) {
+) -> SqlBuilder(v) {
   let #(set_strings, vals) =
     sets
     |> list.reverse
@@ -1976,7 +2003,7 @@ fn build_update(
     fmt.update(build_table(tbl, adapter))
     |> fmt.set(fmt.comma_join(set_strings))
 
-  #(sql, vals)
+  SqlBuilder(sql, [vals])
   |> append_where(wheres, adapter)
   |> append_order_by(order_by, adapter)
   |> append_limit(limit_val)
@@ -2014,8 +2041,11 @@ fn build_delete(
   wheres: List(Condition(v)),
   returning: List(Column),
   adapter: Adapter(v),
-) -> #(String, List(v)) {
-  #(fmt.delete(from: build_table(from, adapter)), [])
+) -> SqlBuilder(v) {
+  from
+  |> build_table(adapter)
+  |> fmt.delete
+  |> SqlBuilder([])
   |> append_where(wheres, adapter)
   |> append_returning(returning, adapter)
 }
@@ -2029,16 +2059,16 @@ fn build_operand(operand: Operand(v), adapter: Adapter(v)) -> #(String, List(v))
       #(fmt.placeholder, [null_val])
     }
     SubQuery(query) -> {
-      let #(sql, vals) = build_single_select(query, adapter)
-      #(fmt.subquery(sql), vals)
+      let SqlBuilder(sql, vals) = build_single_select(query, adapter)
+      #(fmt.subquery(sql), list.flatten(vals))
     }
     AnyQuery(query) -> {
-      let #(sql, vals) = build_single_select(query, adapter)
-      #(fmt.any(sql), vals)
+      let SqlBuilder(sql, vals) = build_single_select(query, adapter)
+      #(fmt.any(sql), list.flatten(vals))
     }
     AllQuery(query) -> {
-      let #(sql, vals) = build_single_select(query, adapter)
-      #(fmt.all(sql), vals)
+      let SqlBuilder(sql, vals) = build_single_select(query, adapter)
+      #(fmt.all(sql), list.flatten(vals))
     }
   }
 }
@@ -2116,8 +2146,8 @@ fn build_condition(
       #(fmt.not(cs), cv)
     }
     Exists(query) -> {
-      let #(sql, vals) = build_single_select(query, adapter)
-      #(fmt.exists(sql), vals)
+      let SqlBuilder(sql, vals) = build_single_select(query, adapter)
+      #(fmt.exists(sql), list.flatten(vals))
     }
     Raw(sql:, values:) -> {
       // Rewrite ? placeholders to sentinel markers
@@ -2155,38 +2185,38 @@ fn build_join(
   #(sql, on_vals)
 }
 
-fn build_combined_select(
+fn build_union(
   selects: List(QueryBuilder(Select, v)),
   union_type: UnionType,
   adapter: Adapter(v),
-) -> #(String, List(v)) {
+) -> SqlBuilder(v) {
   let union_fn = case union_type {
     Union -> fmt.union
     UnionAll -> fmt.union_all
   }
 
-  let #(sql_parts, all_vals) =
+  let #(sql_parts, values) =
     selects
-    |> list.reverse
     |> list.fold(#([], []), fn(acc, q) {
       let #(parts, vals) = acc
-      let #(sub_sql, sub_vals) = build_single_select(q, adapter)
-      #(list.prepend(parts, sub_sql), list.append(vals, sub_vals))
+      let SqlBuilder(sub_sql, sub_vals) = build_single_select(q, adapter)
+
+      #(list.prepend(parts, sub_sql), list.prepend(vals, sub_vals))
     })
 
-  let sql_parts = list.reverse(sql_parts)
+  let values = list.flatten(values) |> list.reverse
 
   let sql = case sql_parts {
     [] -> ""
     [first, ..rest] -> list.fold(rest, first, union_fn)
   }
-  #(sql, all_vals)
+  SqlBuilder(sql, values)
 }
 
 fn build_single_select(
   query: QueryBuilder(Select, v),
   adapter: Adapter(v),
-) -> #(String, List(v)) {
+) -> SqlBuilder(v) {
   case query {
     SelectBuilder(
       columns:,
@@ -2217,8 +2247,8 @@ fn build_single_select(
         adapter,
       )
     UnionBuilder(selects:, union_type:, ..) ->
-      build_combined_select(selects, union_type, adapter)
-    _ -> #("", [])
+      build_union(selects, union_type, adapter)
+    _ -> SqlBuilder("", [])
   }
 }
 
