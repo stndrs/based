@@ -1819,21 +1819,25 @@ fn build_ctes(
   case ctes {
     [] -> SqlBuilder("", [])
     _ -> {
-      let #(cte_parts, all_vals) =
-        ctes
-        |> list.fold(#([], []), fn(acc, c) {
-          let #(parts, vals) = acc
-          let Cte(name:, columns:, query:) = c
-          let sql_builder = build_single_select(query, adapter)
-          let col_part = case columns {
-            [] -> ""
-            cols -> fmt.enclose(string.join(cols, ", "))
-          }
+      let #(cte_parts, all_vals) = {
+        use #(parts, vals), cte <- list.fold(ctes, #([], []))
 
-          let part = fmt.cte(name <> col_part, sql_builder.sql)
+        let sql_builder = build_single_select(cte.query, adapter)
+        let col_part = case cte.columns {
+          [] -> ""
+          cols -> fmt.enclose(string.join(cols, ", "))
+        }
 
-          #(list.prepend(parts, part), list.prepend(vals, sql_builder.values))
-        })
+        let values = list.prepend(vals, sql_builder.values)
+
+        let parts =
+          cte.name
+          |> string.append(col_part)
+          |> fmt.cte(sql_builder.sql)
+          |> list.prepend(parts, _)
+
+        #(parts, values)
+      }
 
       let ctes_sql =
         cte_parts
