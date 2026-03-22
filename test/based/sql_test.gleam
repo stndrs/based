@@ -1,8 +1,12 @@
+import based/interval
 import based/sql
+import based/uuid
 import gleam/float
 import gleam/int
 import gleam/option.{None, Some}
+import gleam/string
 import gleam/time/calendar
+import gleam/time/timestamp
 
 fn sql_value_to_string(value: sql.Value) -> String {
   case value {
@@ -35,7 +39,13 @@ fn backtick_a() -> sql.Adapter(sql.Value) {
   |> sql.on_identifier(with: fn(name) { "`" <> name <> "`" })
 }
 
-// ---- Table Constructor Tests ----
+/// Adapter that uses the default built-in value handler (handles all Value
+/// variants including Bytea, Timestamp, Uuid, Array, etc).
+fn default_a() -> sql.Adapter(sql.Value) {
+  sql.adapter()
+  |> sql.on_placeholder(fn(idx) { "$" <> int.to_string(idx + 1) })
+}
+
 
 pub fn table_test() {
   let t = sql.table("users")
@@ -47,7 +57,6 @@ pub fn table_alias_test() {
   assert t == sql.table("users") |> sql.table_as("u")
 }
 
-// ---- Column Constructor Tests ----
 
 pub fn col_test() {
   let c = sql.col("email")
@@ -64,7 +73,6 @@ pub fn col_alias_test() {
   assert c == sql.col("email") |> sql.col_for("users") |> sql.col_as("e")
 }
 
-// ---- Simple SELECT Tests ----
 
 pub fn select_all_to_query_test() {
   let q =
@@ -109,7 +117,6 @@ pub fn select_aliased_column_test() {
   assert q.sql == "SELECT u.email AS user_email FROM users AS u"
 }
 
-// ---- SELECT with WHERE Tests ----
 
 pub fn select_where_eq_test() {
   let q =
@@ -229,7 +236,6 @@ pub fn select_where_like_test() {
   assert q.values == [sql.text("%john%")]
 }
 
-// ---- SELECT with JOIN Tests ----
 
 pub fn select_inner_join_test() {
   let q =
@@ -266,7 +272,6 @@ pub fn select_left_join_test() {
     == "SELECT * FROM users AS u LEFT JOIN profiles AS p ON u.id = p.user_id"
 }
 
-// ---- SELECT with ORDER BY, LIMIT, OFFSET, GROUP BY ----
 
 pub fn select_order_by_test() {
   let q =
@@ -300,7 +305,6 @@ pub fn select_group_by_test() {
   assert q.sql == "SELECT department, count FROM employees GROUP BY department"
 }
 
-// ---- INSERT Tests ----
 
 pub fn insert_single_row_test() {
   let q =
@@ -337,7 +341,6 @@ pub fn insert_multiple_rows_test() {
     == [sql.text("Alice"), sql.int(30), sql.text("Bob"), sql.int(25)]
 }
 
-// ---- UPDATE Tests ----
 
 pub fn update_test() {
   let q =
@@ -361,7 +364,6 @@ pub fn update_no_where_test() {
   assert q.values == [sql.false]
 }
 
-// ---- DELETE Tests ----
 
 pub fn delete_test() {
   let q =
@@ -384,7 +386,6 @@ pub fn delete_no_where_test() {
   assert q.values == []
 }
 
-// ---- to_string Tests ----
 
 pub fn to_string_select_test() {
   let s =
@@ -430,7 +431,6 @@ pub fn to_string_delete_test() {
   assert s == "DELETE FROM users WHERE age < 18"
 }
 
-// ---- default_formatter Tests ----
 
 pub fn default_formatter_placeholder_test() {
   let r =
@@ -514,7 +514,6 @@ pub fn default_formatter_escapes_quotes_test() {
   assert s == "SELECT x FROM t WHERE x = 'it''s'"
 }
 
-// ---- Full default_formatter Integration Test ----
 
 pub fn default_formatter_to_query_test() {
   let r =
@@ -532,7 +531,6 @@ pub fn default_formatter_to_query_test() {
   assert q.values == [sql.true]
 }
 
-// ---- Custom Formatter Test (Backtick style) ----
 
 pub fn custom_backtick_formatter_test() {
   let backtick_r =
@@ -554,7 +552,6 @@ pub fn custom_backtick_formatter_test() {
   assert q.values == [sql.int(1)]
 }
 
-// ---- Identifier Quoting Style Tests ----
 
 pub fn backtick_quote_identifier_test() {
   let f =
@@ -672,7 +669,6 @@ pub fn double_quote_question_mark_identifier_test() {
   assert s == "SELECT \"name\" FROM \"users\" WHERE \"id\" = 1"
 }
 
-// ---- Generic Value Type Test ----
 
 pub type MyValue {
   MyInt(Int)
@@ -712,7 +708,6 @@ pub fn generic_value_type_test() {
   assert s == "SELECT [name] FROM [users] WHERE [id] = 42"
 }
 
-// ---- Complex Query Test ----
 
 pub fn complex_query_test() {
   let q =
@@ -749,7 +744,6 @@ pub fn complex_query_test() {
   assert q.values == [sql.float(50.0), sql.true]
 }
 
-// ---- Column-to-Column in WHERE Test ----
 
 pub fn column_to_column_where_test() {
   let q =
@@ -762,7 +756,6 @@ pub fn column_to_column_where_test() {
   assert q.values == []
 }
 
-// ---- DISTINCT Tests ----
 
 pub fn select_distinct_test() {
   let q =
@@ -795,7 +788,6 @@ pub fn select_distinct_to_string_test() {
   assert s == "SELECT DISTINCT value FROM readings"
 }
 
-// ---- Aggregate Function Tests ----
 
 pub fn count_column_test() {
   let q =
@@ -884,7 +876,6 @@ pub fn multiple_aggregates_test() {
     == "SELECT department, COUNT(*) AS cnt, AVG(salary) AS avg_salary FROM employees GROUP BY department"
 }
 
-// ---- HAVING Tests ----
 
 pub fn having_test() {
   let q =
@@ -925,7 +916,6 @@ pub fn having_to_string_test() {
     == "SELECT department, COUNT(*) AS cnt FROM employees GROUP BY department HAVING COUNT(*) > 5"
 }
 
-// ---- RETURNING Tests ----
 
 pub fn insert_returning_test() {
   let q =
@@ -976,7 +966,6 @@ pub fn returning_to_string_test() {
   assert s == "INSERT INTO users (name) VALUES ('Alice') RETURNING id"
 }
 
-// ---- ON CONFLICT Tests ----
 
 pub fn on_conflict_do_nothing_test() {
   let q =
@@ -1095,7 +1084,6 @@ pub fn on_conflict_where_to_string_test() {
     == "INSERT INTO counts (id, quantity) VALUES (1, 10) ON CONFLICT (id) DO UPDATE SET quantity = excluded.quantity WHERE quantity > 5"
 }
 
-// ---- Complex Query with New Features Test ----
 
 pub fn complex_query_with_aggregates_having_test() {
   let q =
@@ -1117,7 +1105,6 @@ pub fn complex_query_with_aggregates_having_test() {
   assert q.values == [sql.true, sql.int(3)]
 }
 
-// ---- UNION Tests ----
 
 pub fn union_basic_test() {
   let q =
@@ -1299,7 +1286,6 @@ pub fn union_three_way_to_string_test() {
     == "SELECT name FROM a UNION SELECT name FROM b UNION SELECT name FROM c"
 }
 
-// ---- CTE Tests ----
 
 pub fn cte_basic_to_query_test() {
   let active_users =
@@ -1542,7 +1528,6 @@ pub fn cte_placeholder_threading_test() {
   assert q.values == [sql.Int(1), sql.Int(2), sql.Int(3)]
 }
 
-// ---- FOR UPDATE Tests ----
 
 pub fn for_update_test() {
   let q =
@@ -1609,9 +1594,6 @@ pub fn for_update_to_string_test() {
   assert q == "SELECT * FROM users WHERE id = 42 FOR UPDATE"
 }
 
-// ============================================================
-// Backtick Formatter Tests
-// ============================================================
 
 pub fn backtick_select_test() {
   let q =
@@ -1731,9 +1713,6 @@ pub fn backtick_aliased_identifiers_test() {
   assert q.values == [sql.Bool(True)]
 }
 
-// ============================================================
-// SELECT Tests
-// ============================================================
 
 pub fn select_not_like_test() {
   let q =
@@ -2272,9 +2251,6 @@ pub fn select_multiple_joins_right_full_test() {
   assert q.values == []
 }
 
-// ============================================================
-// INSERT Tests
-// ============================================================
 
 pub fn insert_with_null_test() {
   let q =
@@ -2398,9 +2374,6 @@ pub fn insert_returning_backtick_test() {
   assert q.values == [sql.Text("Alice"), sql.Text("alice@example.com")]
 }
 
-// ============================================================
-// UPDATE Tests
-// ============================================================
 
 pub fn update_where_not_test() {
   let q =
@@ -2510,9 +2483,6 @@ pub fn update_backtick_test() {
   assert q.values == [sql.Text("Bob"), sql.Int(1)]
 }
 
-// ============================================================
-// DELETE Tests
-// ============================================================
 
 pub fn delete_where_not_test() {
   let q =
@@ -2614,9 +2584,6 @@ pub fn delete_backtick_test() {
   assert q.values == [sql.Int(1)]
 }
 
-// ============================================================
-// Union additional tests
-// ============================================================
 
 pub fn union_all_backtick_test() {
   let q1 =
@@ -2679,9 +2646,6 @@ pub fn union_to_string_with_values_test() {
     == "SELECT id, name FROM users WHERE active = TRUE UNION SELECT id, name FROM admins WHERE active = TRUE"
 }
 
-// ============================================================
-// CTE additional tests
-// ============================================================
 
 pub fn cte_with_join_test() {
   let cte_query =
@@ -2814,9 +2778,6 @@ pub fn cte_multiple_to_string_test() {
     == "WITH active_users AS (SELECT id, name FROM users WHERE active = TRUE), user_orders AS (SELECT user_id, SUM(amount) AS total FROM orders GROUP BY user_id) SELECT au.name, uo.total FROM active_users AS au INNER JOIN user_orders AS uo ON au.id = uo.user_id;"
 }
 
-// ============================================================
-// Additional edge cases
-// ============================================================
 
 pub fn select_all_with_where_test() {
   let q =
@@ -2948,7 +2909,6 @@ pub fn on_conflict_do_nothing_to_string_test() {
     == "INSERT INTO users (name, email) VALUES ('Alice', 'alice@example.com') ON CONFLICT (email) DO NOTHING"
 }
 
-// --- Subquery in WHERE ---
 
 pub fn select_where_subquery_test() {
   let sub =
@@ -2967,7 +2927,6 @@ pub fn select_where_subquery_test() {
   assert q.values == [sql.Text("Alice")]
 }
 
-// --- FROM subquery ---
 pub fn select_from_subquery_test() {
   let sub =
     sql.from(sql.table("orders"))
@@ -2985,7 +2944,6 @@ pub fn select_from_subquery_test() {
   assert q.values == [sql.Int(100)]
 }
 
-// --- EXISTS subquery condition ---
 pub fn select_where_exists_test() {
   let sub =
     sql.from(sql.table("orders"))
@@ -3006,7 +2964,6 @@ pub fn select_where_exists_test() {
     == "SELECT * FROM users WHERE EXISTS (SELECT id FROM orders WHERE orders.user_id = users.id)"
 }
 
-// --- ANY subquery condition ---
 pub fn select_where_any_test() {
   let sub =
     sql.from(sql.table("orders"))
@@ -3022,7 +2979,6 @@ pub fn select_where_any_test() {
     == "SELECT * FROM users WHERE id = ANY (SELECT user_id FROM orders)"
 }
 
-// --- ALL subquery condition ---
 pub fn select_where_all_test() {
   let sub =
     sql.from(sql.table("requirements"))
@@ -3038,7 +2994,6 @@ pub fn select_where_all_test() {
     == "SELECT * FROM users WHERE age > ALL (SELECT min_age FROM requirements)"
 }
 
-// --- IS TRUE / IS FALSE conditions ---
 
 pub fn select_where_is_true_test() {
   let q =
@@ -3060,7 +3015,6 @@ pub fn select_where_is_false_test() {
   assert q.sql == "SELECT id FROM users WHERE active IS FALSE"
 }
 
-// --- Raw SQL condition ---
 
 pub fn select_where_raw_sql_test() {
   let q =
@@ -3146,7 +3100,6 @@ pub fn update_where_raw_test() {
   assert q.values == [sql.Text("inactive"), sql.Int(65), sql.Bool(True)]
 }
 
-// --- where_not convenience function ---
 
 pub fn select_where_not_convenience_test() {
   let q =
@@ -3169,7 +3122,6 @@ pub fn select_where_not_to_string_convenience_test() {
   assert s == "SELECT * FROM users WHERE NOT (active = FALSE)"
 }
 
-// --- where_exists convenience function ---
 
 pub fn select_where_exists_convenience_test() {
   let subquery =
@@ -3192,7 +3144,6 @@ pub fn select_where_exists_convenience_test() {
   assert q.values == []
 }
 
-// --- nullable Kind wrapper ---
 
 pub fn select_where_nullable_some_test() {
   let q =
@@ -3230,7 +3181,6 @@ pub fn select_where_nullable_none_to_string_test() {
   assert s == "SELECT * FROM users WHERE age = NULL"
 }
 
-// --- list Kind constructor ---
 
 pub fn select_where_in_list_test() {
   let q =
@@ -3276,7 +3226,6 @@ pub fn select_where_in_list_to_string_test() {
   assert s == "SELECT * FROM users WHERE id IN (1, 2, 3)"
 }
 
-// --- adapter test ---
 
 pub fn adapter_test() {
   let r =
@@ -3293,7 +3242,6 @@ pub fn adapter_test() {
   assert q.values == [sql.true]
 }
 
-// --- Mapper tests ---
 
 pub fn mapper_handle_null_test() {
   let r =
@@ -3314,7 +3262,6 @@ pub fn mapper_handle_null_test() {
   assert q.values == [sql.Null]
 }
 
-// --- UPDATE with ORDER BY ---
 
 pub fn update_with_order_by_test() {
   let q =
@@ -3327,7 +3274,6 @@ pub fn update_with_order_by_test() {
   assert q.values == [sql.Bool(False)]
 }
 
-// --- UPDATE with LIMIT ---
 
 pub fn update_with_limit_test() {
   let q =
@@ -3340,7 +3286,6 @@ pub fn update_with_limit_test() {
   assert q.values == [sql.Bool(False)]
 }
 
-// --- UPDATE with ORDER BY + LIMIT + RETURNING ---
 
 pub fn update_with_order_by_limit_returning_test() {
   let q =
@@ -3356,7 +3301,6 @@ pub fn update_with_order_by_limit_returning_test() {
   assert q.values == [sql.Bool(False)]
 }
 
-// --- UPDATE with LIMIT + OFFSET ---
 
 pub fn update_with_limit_offset_test() {
   let q =
@@ -3370,7 +3314,6 @@ pub fn update_with_limit_offset_test() {
   assert q.values == [sql.Bool(False)]
 }
 
-// --- UPDATE OFFSET without LIMIT ---
 
 pub fn update_offset_without_limit_test() {
   let q =
@@ -3383,7 +3326,6 @@ pub fn update_offset_without_limit_test() {
   assert q.values == [sql.Bool(False)]
 }
 
-// --- UPDATE SET from subquery ---
 
 pub fn update_set_from_subquery_test() {
   let sub =
@@ -3445,7 +3387,6 @@ pub fn update_set_from_subquery_with_scalar_test() {
   assert q.values == [sql.text("Alice")]
 }
 
-// --- CTE with trailing semicolons ---
 
 pub fn cte_basic_with_semicolon_test() {
   let cte_query =
@@ -3535,7 +3476,6 @@ pub fn cte_recursive_union_all_semicolon_test() {
     == "WITH RECURSIVE category_tree AS (SELECT id, parent_id, name FROM categories WHERE parent_id IS NULL) SELECT id, parent_id, name FROM category_tree;"
 }
 
-// --- UPDATE with IS FALSE condition ---
 
 pub fn update_where_is_false_test() {
   let q =
@@ -3546,4 +3486,283 @@ pub fn update_where_is_false_test() {
 
   assert q.sql == "UPDATE users SET status = $1 WHERE active IS FALSE"
   assert q.values == [sql.Text("inactive")]
+}
+
+
+pub fn bytea_to_string_test() {
+  let s =
+    sql.from(sql.table("data"))
+    |> sql.select([sql.star])
+    |> sql.where(sql.eq(sql.col("blob"), sql.bytea(<<1, 2, 3>>), of: sql.value))
+    |> sql.to_string(default_a())
+
+  assert s == "SELECT * FROM data WHERE blob = '\\x010203'"
+}
+
+pub fn bytea_empty_to_string_test() {
+  let s =
+    sql.from(sql.table("data"))
+    |> sql.select([sql.star])
+    |> sql.where(sql.eq(sql.col("blob"), sql.bytea(<<>>), of: sql.value))
+    |> sql.to_string(default_a())
+
+  assert s == "SELECT * FROM data WHERE blob = '\\x'"
+}
+
+pub fn bytea_to_query_test() {
+  let q =
+    sql.from(sql.table("data"))
+    |> sql.select([sql.star])
+    |> sql.where(sql.eq(sql.col("blob"), sql.bytea(<<1, 2, 3>>), of: sql.value))
+    |> sql.to_query(a())
+
+  assert q.sql == "SELECT * FROM data WHERE blob = $1"
+  assert q.values == [sql.Bytea(<<1, 2, 3>>)]
+}
+
+
+pub fn timestamp_to_string_test() {
+  let ts = timestamp.from_unix_seconds(0)
+  let s =
+    sql.from(sql.table("events"))
+    |> sql.select([sql.star])
+    |> sql.where(sql.eq(sql.col("created_at"), sql.timestamp(ts), of: sql.value))
+    |> sql.to_string(default_a())
+
+  // Epoch timestamp rendered as RFC3339 UTC
+  assert string.contains(s, "'1970-01-01T00:00:00")
+}
+
+pub fn timestamp_to_query_test() {
+  let ts = timestamp.from_unix_seconds(0)
+  let q =
+    sql.from(sql.table("events"))
+    |> sql.select([sql.star])
+    |> sql.where(sql.eq(sql.col("created_at"), sql.timestamp(ts), of: sql.value))
+    |> sql.to_query(a())
+
+  assert q.sql == "SELECT * FROM events WHERE created_at = $1"
+  assert q.values == [sql.Timestamp(ts)]
+}
+
+
+pub fn timestamptz_zero_offset_to_string_test() {
+  let ts = timestamp.from_unix_seconds(0)
+  let offset = sql.utc_offset(0)
+  let s =
+    sql.from(sql.table("events"))
+    |> sql.select([sql.star])
+    |> sql.where(sql.eq(
+      sql.col("ts"),
+      sql.timestamptz(ts, offset),
+      of: sql.value,
+    ))
+    |> sql.to_string(default_a())
+
+  // Zero offset should be identity — same as plain timestamp at epoch
+  assert string.contains(s, "'1970-01-01T00:00:00")
+}
+
+pub fn timestamptz_positive_offset_to_string_test() {
+  // 5 hours in seconds = 18000; timestamp at 18000 UTC with +5 offset
+  // should subtract 5h to produce epoch
+  let ts = timestamp.from_unix_seconds(18_000)
+  let offset = sql.utc_offset(5)
+  let s =
+    sql.from(sql.table("events"))
+    |> sql.select([sql.star])
+    |> sql.where(sql.eq(
+      sql.col("ts"),
+      sql.timestamptz(ts, offset),
+      of: sql.value,
+    ))
+    |> sql.to_string(default_a())
+
+  // +5 offset subtracts 5 hours → back to epoch
+  assert string.contains(s, "'1970-01-01T00:00:00")
+}
+
+pub fn timestamptz_to_query_test() {
+  let ts = timestamp.from_unix_seconds(0)
+  let offset = sql.utc_offset(5)
+  let q =
+    sql.from(sql.table("events"))
+    |> sql.select([sql.star])
+    |> sql.where(sql.eq(
+      sql.col("ts"),
+      sql.timestamptz(ts, offset),
+      of: sql.value,
+    ))
+    |> sql.to_query(a())
+
+  assert q.sql == "SELECT * FROM events WHERE ts = $1"
+  assert q.values == [sql.Timestamptz(ts, sql.Offset(hours: 5, minutes: 0))]
+}
+
+
+pub fn interval_to_string_test() {
+  let s =
+    sql.from(sql.table("tasks"))
+    |> sql.select([sql.star])
+    |> sql.where(sql.eq(
+      sql.col("duration"),
+      sql.interval(interval.months(2)),
+      of: sql.value,
+    ))
+    |> sql.to_string(default_a())
+
+  assert s == "SELECT * FROM tasks WHERE duration = P2M"
+}
+
+pub fn interval_to_query_test() {
+  let iv = interval.months(2)
+  let q =
+    sql.from(sql.table("tasks"))
+    |> sql.select([sql.star])
+    |> sql.where(sql.eq(sql.col("duration"), sql.interval(iv), of: sql.value))
+    |> sql.to_query(a())
+
+  assert q.sql == "SELECT * FROM tasks WHERE duration = $1"
+  assert q.values == [sql.Interval(iv)]
+}
+
+
+pub fn uuid_nil_to_string_test() {
+  let s =
+    sql.from(sql.table("users"))
+    |> sql.select([sql.star])
+    |> sql.where(sql.eq(sql.col("id"), sql.uuid(uuid.nil), of: sql.value))
+    |> sql.to_string(default_a())
+
+  assert s
+    == "SELECT * FROM users WHERE id = 00000000-0000-0000-0000-000000000000"
+}
+
+pub fn uuid_to_query_test() {
+  let q =
+    sql.from(sql.table("users"))
+    |> sql.select([sql.star])
+    |> sql.where(sql.eq(sql.col("id"), sql.uuid(uuid.nil), of: sql.value))
+    |> sql.to_query(a())
+
+  assert q.sql == "SELECT * FROM users WHERE id = $1"
+  assert q.values == [sql.Uuid(uuid.nil)]
+}
+
+
+pub fn array_to_string_test() {
+  let s =
+    sql.from(sql.table("data"))
+    |> sql.select([sql.star])
+    |> sql.where(sql.eq(
+      sql.col("tags"),
+      sql.array([1, 2, 3], of: sql.int),
+      of: sql.value,
+    ))
+    |> sql.to_string(default_a())
+
+  assert s == "SELECT * FROM data WHERE tags = [1, 2, 3]"
+}
+
+pub fn array_empty_to_string_test() {
+  let s =
+    sql.from(sql.table("data"))
+    |> sql.select([sql.star])
+    |> sql.where(sql.eq(
+      sql.col("tags"),
+      sql.array([], of: sql.int),
+      of: sql.value,
+    ))
+    |> sql.to_string(default_a())
+
+  assert s == "SELECT * FROM data WHERE tags = []"
+}
+
+pub fn array_single_to_string_test() {
+  let s =
+    sql.from(sql.table("data"))
+    |> sql.select([sql.star])
+    |> sql.where(sql.eq(
+      sql.col("tags"),
+      sql.array(["hello"], of: sql.text),
+      of: sql.value,
+    ))
+    |> sql.to_string(default_a())
+
+  assert s == "SELECT * FROM data WHERE tags = ['hello']"
+}
+
+pub fn array_to_query_test() {
+  let q =
+    sql.from(sql.table("data"))
+    |> sql.select([sql.star])
+    |> sql.where(sql.eq(
+      sql.col("tags"),
+      sql.array([1, 2], of: sql.int),
+      of: sql.value,
+    ))
+    |> sql.to_query(a())
+
+  assert q.sql == "SELECT * FROM data WHERE tags = $1"
+  assert q.values == [sql.Array([sql.Int(1), sql.Int(2)])]
+}
+
+
+pub fn utc_offset_test() {
+  assert sql.utc_offset(5) == sql.Offset(hours: 5, minutes: 0)
+}
+
+pub fn utc_offset_negative_test() {
+  assert sql.utc_offset(-3) == sql.Offset(hours: -3, minutes: 0)
+}
+
+pub fn utc_offset_zero_test() {
+  assert sql.utc_offset(0) == sql.Offset(hours: 0, minutes: 0)
+}
+
+pub fn utc_offset_with_minutes_test() {
+  assert sql.utc_offset(5) |> sql.minutes(30)
+    == sql.Offset(hours: 5, minutes: 30)
+}
+
+
+pub fn in_empty_list_to_string_test() {
+  let s =
+    sql.from(sql.table("users"))
+    |> sql.select([sql.star])
+    |> sql.where(sql.in(sql.col("id"), [], of: sql.value))
+    |> sql.to_string(a())
+
+  assert s == "SELECT * FROM users WHERE id IN ()"
+}
+
+pub fn in_empty_list_to_query_test() {
+  let q =
+    sql.from(sql.table("users"))
+    |> sql.select([sql.star])
+    |> sql.where(sql.in(sql.col("id"), [], of: sql.value))
+    |> sql.to_query(a())
+
+  assert q.sql == "SELECT * FROM users WHERE id IN ()"
+  assert q.values == []
+}
+
+
+pub fn insert_empty_values_to_string_test() {
+  let s =
+    sql.insert(into: sql.table("users"))
+    |> sql.values([])
+    |> sql.to_string(a())
+
+  assert s == "INSERT INTO users () VALUES "
+}
+
+pub fn insert_empty_values_to_query_test() {
+  let q =
+    sql.insert(into: sql.table("users"))
+    |> sql.values([])
+    |> sql.to_query(a())
+
+  assert q.sql == "INSERT INTO users () VALUES "
+  assert q.values == []
 }

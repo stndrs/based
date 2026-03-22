@@ -162,8 +162,6 @@ fn tx_handler(
   |> result.map_error(db.Rollback)
 }
 
-// error_to_string tests
-
 pub fn error_to_string_connection_timeout_test() {
   let result = db.error_to_string(db.ConnectionTimeout)
 
@@ -236,8 +234,6 @@ pub fn error_to_string_decode_error_test() {
     == "[based/db.DecodeError] errors: [gleam/dynamic/decode.DecodeError] expected: Int, found: String, path: 0"
 }
 
-// batch tests
-
 pub fn batch_test() {
   let rows = [dynamic.array([dynamic.int(1), dynamic.string("Steve")])]
   let returning = Ok([db.Queried(count: 1, fields: ["id", "name"], rows:)])
@@ -268,8 +264,6 @@ pub fn batch_error_test() {
 
   let assert Error(_) = db.batch(queries, database)
 }
-
-// to_sql_query tests
 
 pub fn to_sql_query_select_test() {
   let database = db.driver() |> db.new(sql_adapter(), Conn)
@@ -342,4 +336,41 @@ pub fn to_sql_query_delete_test() {
 fn sql_adapter() -> sql.Adapter(sql.Value) {
   sql.adapter()
   |> sql.on_placeholder(fn(idx) { "$" <> int.to_string(idx + 1) })
+}
+
+pub fn one_not_found_test() {
+  let sql = "SELECT * FROM users WHERE id=$1;"
+  let returning = Ok(db.Queried(count: 0, fields: ["id", "name"], rows: []))
+
+  let assert Error(db.NotFound) =
+    sql.query(sql)
+    |> sql.params([sql.int(999)])
+    |> db.one(query_handler(returning:), user_decoder())
+}
+
+pub fn decode_success_test() {
+  let rows = [dynamic.array([dynamic.int(1), dynamic.string("Steve")])]
+  let queried = db.Queried(count: 1, fields: ["id", "name"], rows:)
+
+  let assert Ok(returning) = db.decode(queried, user_decoder())
+  assert returning.count == 1
+  assert returning.rows == [#(1, "Steve")]
+}
+
+pub fn decode_empty_rows_test() {
+  let queried = db.Queried(count: 0, fields: ["id", "name"], rows: [])
+
+  let assert Ok(returning) = db.decode(queried, user_decoder())
+  assert returning.count == 0
+  assert returning.rows == []
+}
+
+pub fn decode_error_test() {
+  // Provide a row that doesn't match the decoder (string where int expected)
+  let rows = [
+    dynamic.array([dynamic.string("not_an_int"), dynamic.string("Steve")]),
+  ]
+  let queried = db.Queried(count: 1, fields: ["id", "name"], rows:)
+
+  let assert Error(db.DecodeError(_)) = db.decode(queried, user_decoder())
 }

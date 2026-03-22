@@ -51,8 +51,6 @@ pub fn add_zero_test() {
   assert base == interval.add(zero, base)
 }
 
-// to_iso8601_string tests
-
 pub fn iso8601_zero_test() {
   let result =
     Interval(months: 0, days: 0, seconds: 0, microseconds: 0)
@@ -173,4 +171,47 @@ pub fn iso8601_negative_microseconds_field_test() {
     |> interval.to_iso8601_string
 
   assert "PT2.5S" == result
+}
+
+pub fn iso8601_negative_months_test() {
+  let result =
+    interval.months(-2)
+    |> interval.to_iso8601_string
+
+  assert "P-2M" == result
+}
+
+pub fn iso8601_negative_days_test() {
+  let result =
+    interval.days(-5)
+    |> interval.to_iso8601_string
+
+  assert "P-5D" == result
+}
+
+pub fn iso8601_negative_seconds_test() {
+  let result =
+    interval.seconds(-30)
+    |> interval.to_iso8601_string
+
+  assert "PT-30S" == result
+}
+
+pub fn iso8601_negative_months_and_days_test() {
+  let result =
+    Interval(months: -1, days: -3, seconds: 0, microseconds: 0)
+    |> interval.to_iso8601_string
+
+  assert "P-1M-3D" == result
+}
+
+pub fn iso8601_negative_microseconds_decompose_test() {
+  // -500_000 usecs: seconds = 0, remainder = -500_000 (< 0)
+  // so seconds becomes -1, usecs becomes 500_000
+  // Combined with secs field = 0: total seconds = -1, usecs = 500_000
+  let result =
+    interval.microseconds(-500_000)
+    |> interval.to_iso8601_string
+
+  assert "PT-1.5S" == result
 }
