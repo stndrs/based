@@ -1,6 +1,4 @@
 import based/interval.{Interval}
-import gleam/dynamic
-import gleam/dynamic/decode
 
 pub fn months_test() {
   let result = interval.months(14)
@@ -165,50 +163,6 @@ pub fn iso8601_complete_interval_test() {
     |> interval.to_iso8601_string
 
   assert "P1M2DT3.4S" == result
-}
-
-// decoder tests
-
-pub fn decoder_basic_test() {
-  // Decoder expects array of [months, days, total_microseconds]
-  // 5_000_000 usecs = 5 seconds + 0 usecs
-  let data =
-    dynamic.array([dynamic.int(2), dynamic.int(10), dynamic.int(5_000_000)])
-
-  let assert Ok(result) = decode.run(data, interval.decoder())
-
-  assert Interval(months: 2, days: 10, seconds: 5, microseconds: 0) == result
-}
-
-pub fn decoder_with_remaining_microseconds_test() {
-  // 5_500_000 usecs = 5 seconds + 500_000 usecs
-  let data =
-    dynamic.array([dynamic.int(0), dynamic.int(0), dynamic.int(5_500_000)])
-
-  let assert Ok(result) = decode.run(data, interval.decoder())
-
-  assert Interval(months: 0, days: 0, seconds: 5, microseconds: 500_000)
-    == result
-}
-
-pub fn decoder_zero_test() {
-  let data = dynamic.array([dynamic.int(0), dynamic.int(0), dynamic.int(0)])
-
-  let assert Ok(result) = decode.run(data, interval.decoder())
-
-  assert Interval(months: 0, days: 0, seconds: 0, microseconds: 0) == result
-}
-
-// Negative microsecond edge case (bug fix)
-
-pub fn decoder_negative_microseconds_test() {
-  // -1_500_000 usecs should produce seconds: -2, microseconds: 500_000
-  // (not seconds: -1, microseconds: -500_000)
-  let data =
-    dynamic.array([dynamic.int(0), dynamic.int(0), dynamic.int(-1_500_000)])
-
-  let assert Ok(Interval(months: 0, days: 0, seconds: -2, microseconds: 500_000)) =
-    decode.run(data, interval.decoder())
 }
 
 pub fn iso8601_negative_microseconds_field_test() {

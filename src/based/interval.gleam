@@ -1,33 +1,38 @@
+//// ISO 8601 duration/interval type with months, days, seconds, and
+//// microseconds. Includes construction, addition, and string formatting.
+
 import gleam/bool
-import gleam/dynamic/decode.{type Decoder}
 import gleam/int
 import gleam/string
 
+/// An interval representing a duration with separate month, day, second,
+/// and microsecond components. Each component is stored independently
+/// without cross-unit conversion (e.g. 90 days is not converted to 3 months).
 pub type Interval {
   Interval(months: Int, days: Int, seconds: Int, microseconds: Int)
 }
 
-/// Returns an Interval with the provided number of months
+/// Returns an Interval with the provided number of months.
 pub fn months(months: Int) -> Interval {
   Interval(months:, days: 0, seconds: 0, microseconds: 0)
 }
 
-/// Returns an Interval with the provided number of days
+/// Returns an Interval with the provided number of days.
 pub fn days(days: Int) -> Interval {
   Interval(months: 0, days:, seconds: 0, microseconds: 0)
 }
 
-/// Returns an Interval with the provided number of seconds
+/// Returns an Interval with the provided number of seconds.
 pub fn seconds(seconds: Int) -> Interval {
   Interval(months: 0, days: 0, seconds:, microseconds: 0)
 }
 
-/// Returns an Interval with the provided number of microseconds
+/// Returns an Interval with the provided number of microseconds.
 pub fn microseconds(microseconds: Int) -> Interval {
   Interval(months: 0, days: 0, seconds: 0, microseconds:)
 }
 
-/// Returns an Interval with the summed values of each provided Interval
+/// Returns an Interval with the summed values of each provided Interval.
 pub fn add(left: Interval, right: Interval) -> Interval {
   let Interval(
     months: l_months,
@@ -51,18 +56,22 @@ pub fn add(left: Interval, right: Interval) -> Interval {
   )
 }
 
-/// Converts an interval to an [ISO8601](https://en.wikipedia.org/wiki/ISO_8601#Durations)
-/// formatted string. This function avoids converting the Interval's units, except for
-/// when the number of microseconds includes whole seconds. If more than `1_000_000`
-/// microseconds are provided, whole seconds will be derived from the microseconds value.
-/// The remaining microseconds will be appended as a decimal in the formatted string.
+/// Converts an interval to an [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations)
+/// formatted string. This function avoids converting the Interval's units,
+/// except when the number of microseconds includes whole seconds. If more
+/// than `1_000_000` microseconds are provided, whole seconds will be derived
+/// from the microseconds value. The remaining microseconds will be appended
+/// as a decimal in the formatted string.
 ///
-/// `Interval(months: 14, days: 0, seconds: 86430, microseconds: 0)`
-/// will be formatted as "P14MT86430S" rather than subdividing months into years
-/// or seconds into days and formatting the string as e.g. "P1Y2M1DT30S".
+/// ```gleam
+/// Interval(months: 14, days: 0, seconds: 86430, microseconds: 0)
+/// |> to_iso8601_string
+/// // -> "P14MT86430S"
 ///
-/// `Interval(months: 0, days: 0, seconds: 10, microseconds: 1_200_000)` will be
-/// formatted as "PT11.2S"
+/// Interval(months: 0, days: 0, seconds: 10, microseconds: 1_200_000)
+/// |> to_iso8601_string
+/// // -> "PT11.2S"
+/// ```
 pub fn to_iso8601_string(interval: Interval) -> String {
   case interval {
     Interval(0, 0, 0, 0) -> "PT0S"
@@ -122,15 +131,4 @@ fn microsecond_digits(n: Int, position: Int, acc: String) -> String {
       microsecond_digits(n / 10, position + 1, acc)
     }
   }
-}
-
-pub fn decoder() -> Decoder(Interval) {
-  use months <- decode.field(0, decode.int)
-  use days <- decode.field(1, decode.int)
-  use microseconds <- decode.field(2, decode.int)
-
-  let #(seconds, microseconds) = to_seconds_and_microseconds(microseconds)
-
-  Interval(months:, days:, seconds:, microseconds:)
-  |> decode.success
 }

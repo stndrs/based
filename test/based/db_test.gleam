@@ -10,8 +10,8 @@ pub fn sql_test() {
   let sql = "SELECT 1;"
   let query = sql.query(sql)
 
-  let assert True = query.sql == sql
-  let assert True = query.values |> list.length == 0
+  assert query.sql == sql
+  assert query.values == []
 }
 
 pub fn sql_with_values_test() {
@@ -20,8 +20,8 @@ pub fn sql_with_values_test() {
     sql.query(sql)
     |> sql.params([sql.int(1)])
 
-  let assert True = query.sql == sql
-  let assert True = query.values |> list.length == 1
+  assert query.sql == sql
+  assert list.length(query.values) == 1
 }
 
 pub fn query_test() {
@@ -167,13 +167,13 @@ fn tx_handler(
 pub fn error_to_string_connection_timeout_test() {
   let result = db.error_to_string(db.ConnectionTimeout)
 
-  let assert True = result == "[based/db.ConnectionTimeout]"
+  assert result == "[based/db.ConnectionTimeout]"
 }
 
 pub fn error_to_string_connection_error_test() {
   let result = db.error_to_string(db.ConnectionError("refused"))
 
-  let assert True = result == "[based/db.ConnectionError] refused"
+  assert result == "[based/db.ConnectionError] refused"
 }
 
 pub fn error_to_string_database_error_test() {
@@ -184,8 +184,7 @@ pub fn error_to_string_database_error_test() {
       message: "relation does not exist",
     ))
 
-  let assert True =
-    result
+  assert result
     == "[based/db.DatabaseError] code: 42P01, name: undefined_table, message: relation does not exist"
 }
 
@@ -197,8 +196,7 @@ pub fn error_to_string_constraint_error_test() {
       message: "duplicate key",
     ))
 
-  let assert True =
-    result
+  assert result
     == "[based/db.ConstraintError] code: 23505, name: unique_violation, message: duplicate key"
 }
 
@@ -210,21 +208,20 @@ pub fn error_to_string_syntax_error_test() {
       message: "unexpected token",
     ))
 
-  let assert True =
-    result
+  assert result
     == "[based/db.SyntaxError] code: 42601, name: syntax_error, message: unexpected token"
 }
 
 pub fn error_to_string_db_error_test() {
   let result = db.error_to_string(db.DbError("something failed"))
 
-  let assert True = result == "[based/db.DbError] something failed"
+  assert result == "[based/db.DbError] something failed"
 }
 
 pub fn error_to_string_not_found_test() {
   let result = db.error_to_string(db.NotFound)
 
-  let assert True = result == "[based/db.NotFound]"
+  assert result == "[based/db.NotFound]"
 }
 
 pub fn error_to_string_decode_error_test() {
@@ -235,8 +232,7 @@ pub fn error_to_string_decode_error_test() {
       ]),
     )
 
-  let assert True =
-    result
+  assert result
     == "[based/db.DecodeError] errors: [gleam/dynamic/decode.DecodeError] expected: Int, found: String, path: 0"
 }
 
@@ -257,7 +253,7 @@ pub fn batch_test() {
   ]
 
   let assert Ok(results) = db.batch(queries, database)
-  let assert True = list.length(results) == 1
+  assert list.length(results) == 1
 }
 
 pub fn batch_error_test() {
@@ -284,8 +280,8 @@ pub fn to_sql_query_select_test() {
     |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
     |> sql.to_query(database.adapter)
 
-  let assert True = q.sql == "SELECT id, name FROM users WHERE id = $1"
-  let assert True = q.values == [sql.int(1)]
+  assert q.sql == "SELECT id, name FROM users WHERE id = $1"
+  assert q.values == [sql.int(1)]
 }
 
 pub fn to_sql_query_select_no_params_test() {
@@ -296,8 +292,8 @@ pub fn to_sql_query_select_no_params_test() {
     |> sql.select([sql.col("name")])
     |> sql.to_query(database.adapter)
 
-  let assert True = q.sql == "SELECT name FROM users"
-  let assert True = q.values == []
+  assert q.sql == "SELECT name FROM users"
+  assert q.values == []
 }
 
 pub fn to_sql_query_insert_test() {
@@ -313,8 +309,8 @@ pub fn to_sql_query_insert_test() {
     ])
     |> sql.to_query(database.adapter)
 
-  let assert True = q.sql == "INSERT INTO users (name, age) VALUES ($1, $2)"
-  let assert True = q.values == [sql.text("Alice"), sql.int(30)]
+  assert q.sql == "INSERT INTO users (name, age) VALUES ($1, $2)"
+  assert q.values == [sql.text("Alice"), sql.int(30)]
 }
 
 pub fn to_sql_query_update_test() {
@@ -326,8 +322,8 @@ pub fn to_sql_query_update_test() {
     |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
     |> sql.to_query(database.adapter)
 
-  let assert True = q.sql == "UPDATE users SET name = $1 WHERE id = $2"
-  let assert True = q.values == [sql.text("Bob"), sql.int(1)]
+  assert q.sql == "UPDATE users SET name = $1 WHERE id = $2"
+  assert q.values == [sql.text("Bob"), sql.int(1)]
 }
 
 pub fn to_sql_query_delete_test() {
@@ -339,8 +335,8 @@ pub fn to_sql_query_delete_test() {
     |> sql.where(sql.eq(sql.col("id"), sql.int(42), of: sql.value))
     |> sql.to_query(database.adapter)
 
-  let assert True = q.sql == "DELETE FROM users WHERE id = $1"
-  let assert True = q.values == [sql.int(42)]
+  assert q.sql == "DELETE FROM users WHERE id = $1"
+  assert q.values == [sql.int(42)]
 }
 
 fn sql_adapter() -> sql.Adapter(sql.Value) {

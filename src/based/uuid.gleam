@@ -1,13 +1,19 @@
+//// Generation and parsing of UUIDs (v4 random and v7 time-ordered).
+////
+//// Produced UUIDs conform to RFC 9562 with the standard variant bits.
+
 import gleam/crypto
 import gleam/int
 import gleam/result
 import gleam/string
 import gleam/time/timestamp
 
+/// An opaque UUID backed by a 128-bit `BitArray`.
 pub opaque type Uuid {
   Uuid(uuid: BitArray)
 }
 
+/// The UUID version, as read from the version nibble.
 pub type Version {
   V4
   V7
@@ -19,6 +25,7 @@ const v4_version = 4
 
 const v7_version = 7
 
+/// Generates a random v4 UUID using cryptographically strong random bytes.
 pub fn v4() -> Uuid {
   let assert <<a:size(48), _:size(4), b:size(12), _:size(2), c:size(62)>> =
     crypto.strong_random_bytes(16)
@@ -30,10 +37,13 @@ pub fn v4() -> Uuid {
   Uuid(uuid: uuid)
 }
 
+/// Formats a UUID as a lowercase hyphenated string
+/// (e.g. `"550e8400-e29b-41d4-a716-446655440000"`).
 pub fn to_string(uuid: Uuid) -> String {
   do_to_string(uuid.uuid, 0, "", "-")
 }
 
+/// Returns the raw 16-byte `BitArray` backing the UUID.
 pub fn to_bit_array(uuid: Uuid) -> BitArray {
   uuid.uuid
 }
@@ -58,10 +68,15 @@ fn do_to_string(
   }
 }
 
+/// Generates a time-ordered v7 UUID from the current system time.
 pub fn v7() -> Uuid {
   timestamp.system_time() |> from_timestamp
 }
 
+/// Generates a time-ordered v7 UUID from the given timestamp.
+///
+/// The millisecond portion of the timestamp is embedded in the UUID,
+/// making v7 UUIDs sortable by creation time.
 pub fn from_timestamp(ts: timestamp.Timestamp) -> Uuid {
   let assert <<a:size(12), b:size(62), _:size(6)>> =
     crypto.strong_random_bytes(10)
@@ -77,6 +92,9 @@ pub fn from_timestamp(ts: timestamp.Timestamp) -> Uuid {
   Uuid(uuid: uuid)
 }
 
+/// Parses a UUID from a hyphenated or non-hyphenated hex string.
+///
+/// Returns `Error(Nil)` if the string is not a valid 32-hex-character UUID.
 pub fn from_string(value: String) -> Result(Uuid, Nil) {
   use uuid <- result.map(do_from_string(value, 0, <<>>))
 
@@ -126,10 +144,14 @@ fn hex_to_int(c: String) -> Result(Int, Nil) {
   }
 }
 
+/// The nil UUID (`00000000-0000-0000-0000-000000000000`) as a `Uuid` value.
 pub const nil: Uuid = Uuid(uuid: <<0:128>>)
 
+/// The nil UUID as a pre-formatted string.
 pub const nil_string: String = "00000000-0000-0000-0000-000000000000"
 
+/// Returns the version of the UUID, or `Error(Nil)` if the version nibble
+/// does not match a known version (v4 or v7).
 pub fn version(uuid: Uuid) -> Result(Version, Nil) {
   case uuid.uuid {
     <<_:48, 4:4, _:76>> -> Ok(V4)

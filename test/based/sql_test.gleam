@@ -2948,15 +2948,8 @@ pub fn on_conflict_do_nothing_to_string_test() {
     == "INSERT INTO users (name, email) VALUES ('Alice', 'alice@example.com') ON CONFLICT (email) DO NOTHING"
 }
 
-// ============================================================
-// TODO: Tests for features that don't exist yet
-// These are commented out because they reference APIs or produce
-// SQL that our current implementation doesn't support.
-// Uncomment and fix as features are added.
-// ============================================================
-
 // --- Subquery in WHERE ---
-// TODO: requires subquery support (e.g. sql.sub_query or sql.SubQuery operand)
+
 pub fn select_where_subquery_test() {
   let sub =
     sql.from(sql.table("users"))
@@ -2975,7 +2968,7 @@ pub fn select_where_subquery_test() {
 }
 
 // --- FROM subquery ---
-pub fn select_from_subqueryquery_test() {
+pub fn select_from_subquery_test() {
   let sub =
     sql.from(sql.table("orders"))
     |> sql.select([sql.col("user_id"), sql.sum("amount") |> sql.col_as("total")])
@@ -3391,8 +3384,8 @@ pub fn update_offset_without_limit_test() {
 }
 
 // --- UPDATE SET from subquery ---
-// TODO: requires subquery support in SET values
-pub fn update_set_from_subqueryquery_test() {
+
+pub fn update_set_from_subquery_test() {
   let sub =
     sql.from(sql.table("new_emails"))
     |> sql.select([sql.col("email")])
@@ -3412,7 +3405,7 @@ pub fn update_set_from_subqueryquery_test() {
   assert q.values == []
 }
 
-pub fn update_set_from_subqueryquery_literal_test() {
+pub fn update_set_from_subquery_literal_test() {
   let sub =
     sql.from(sql.table("new_emails"))
     |> sql.select([sql.col("email")])
@@ -3431,7 +3424,7 @@ pub fn update_set_from_subqueryquery_literal_test() {
     == "UPDATE users SET email = (SELECT email FROM new_emails WHERE new_emails.user_id = users.id)"
 }
 
-pub fn update_set_from_subqueryquery_with_scalar_test() {
+pub fn update_set_from_subquery_with_scalar_test() {
   let sub =
     sql.from(sql.table("new_emails"))
     |> sql.select([sql.col("email")])

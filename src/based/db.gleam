@@ -1,9 +1,5 @@
-//// A standardized interface for database opterations. This module defines
-//// types for adapter packages to use in their public interfaces. The
-//// transaction and query functions defined in this package require a
-//// handler function to be passed in. This allows applications to pass in
-//// handlers defined by the database adapter of their choice, or mock
-//// handler functions for tests that shouldn't hit a real database.
+//// A standardized interface for database operations. This module defines
+//// types for adapter packages to use in their public interfaces.
 
 import based/sql
 import gleam/dynamic.{type Dynamic}
@@ -98,9 +94,16 @@ pub type Returning(a) {
 
 // Transaction
 
+/// A function provided by an adapter package that wraps a callback in a
+/// database transaction. The handler receives a connection and a callback;
+/// it is responsible for committing on `Ok` and rolling back on `Error`.
 pub type TxHandler(conn, t, error) =
   fn(conn, fn(conn) -> Result(t, error)) -> Result(t, TransactionError(error))
 
+/// Runs `next` inside a database transaction using the provided `handler`.
+///
+/// The handler (supplied by an adapter package) is responsible for beginning
+/// the transaction, committing on success, and rolling back on failure.
 pub fn transaction(
   db: Db(v, conn),
   handler: TxHandler(conn, t, error),
@@ -111,19 +114,27 @@ pub fn transaction(
 
 // Querying
 
+/// A function that executes a parameterized query and returns rows.
 pub type QueryHandler(v, conn) =
   fn(sql.Query(v), conn) -> Result(Queried, DbError)
 
+/// A function that executes a raw SQL string and returns a count of
+/// affected rows.
 pub type ExecuteHandler(conn) =
   fn(String, conn) -> Result(Int, DbError)
 
+/// A function that executes a list of parameterized queries and returns
+/// a list of results.
 pub type BatchQueryHandler(v, conn) =
   fn(List(sql.Query(v)), conn) -> Result(List(Queried), DbError)
 
+/// A configured database connection bundling a connection value, a
+/// `Driver` with query handlers, and an `sql.Adapter` for query rendering.
 pub type Db(v, conn) {
   Db(conn: conn, driver: Driver(v, conn), adapter: sql.Adapter(v))
 }
 
+/// Creates a new `Db` from a driver, adapter, and connection.
 pub fn new(
   driver: Driver(v, conn),
   adapter: sql.Adapter(v),
@@ -132,6 +143,11 @@ pub fn new(
   Db(conn:, driver:, adapter:)
 }
 
+/// An opaque driver that holds the query, execute, and batch handler
+/// functions provided by an adapter package.
+///
+/// Create one with `driver()` and configure it with `on_query`,
+/// `on_execute`, and `on_batch`.
 pub opaque type Driver(v, conn) {
   Driver(
     handle_query: QueryHandler(v, conn),
@@ -140,33 +156,42 @@ pub opaque type Driver(v, conn) {
   )
 }
 
+/// Creates a new driver with unconfigured handlers.
+///
+/// All handlers will panic if called before being set with `on_query`,
+/// `on_execute`, and `on_batch`.
 pub fn driver() -> Driver(v, conn) {
   Driver(
-    handle_query: fn(_, _) { panic },
-    handle_execute: fn(_, _) { panic },
-    handle_batch: fn(_, _) { panic },
+    handle_query: fn(_, _) { panic as "based/db.Db not configured (on_query) " },
+    handle_execute: fn(_, _) {
+      panic as "based/db.Db not configured (on_execute)"
+    },
+    handle_batch: fn(_, _) { panic as "based/db.Db not configured (on_batch)" },
   )
 }
 
+/// Sets the handler for parameterized queries.
 pub fn on_query(
-  db: Driver(v, conn),
+  driver: Driver(v, conn),
   handle_query: QueryHandler(v, conn),
 ) -> Driver(v, conn) {
-  Driver(..db, handle_query:)
+  Driver(..driver, handle_query:)
 }
 
+/// Sets the handler for raw SQL execution.
 pub fn on_execute(
-  db: Driver(v, conn),
+  driver: Driver(v, conn),
   handle_execute: ExecuteHandler(conn),
 ) -> Driver(v, conn) {
-  Driver(..db, handle_execute:)
+  Driver(..driver, handle_execute:)
 }
 
+/// Sets the handler for batch queries.
 pub fn on_batch(
-  db: Driver(v, conn),
+  driver: Driver(v, conn),
   handle_batch: BatchQueryHandler(v, conn),
 ) -> Driver(v, conn) {
-  Driver(..db, handle_batch:)
+  Driver(..driver, handle_batch:)
 }
 
 /// Accepts a `Query`, connection, and query handler function from an adapter
@@ -185,6 +210,7 @@ pub fn execute(sql: String, db: Db(v, conn)) -> Result(Int, DbError) {
   db.driver.handle_execute(sql, db.conn)
 }
 
+/// Executes a list of parameterized queries as a batch.
 pub fn batch(
   queries: List(sql.Query(v)),
   db: Db(v, conn),
@@ -192,32 +218,23 @@ pub fn batch(
   db.driver.handle_batch(queries, db.conn)
 }
 
-/// Accepts a `Query`, connection, decoder, and query handler function from
-/// an adapter package.
-/// This function passes the `Query` and connection to the handler, and then
-/// runs the provided decoder using `db.decode`.
+/// A convenience function for callers performing a query that will return
+/// a list of rows, but don't need the full `Returning` record.
 pub fn all(
   query: sql.Query(v),
   db: Db(v, conn),
   decoder: decode.Decoder(a),
 ) -> Result(List(a), DbError) {
   use queried <- result.try(db.driver.handle_query(query, db.conn))
-
   use returning <- result.map(decode(queried, decoder))
 
   returning.rows
 }
 
-/// Accepts a `Query`, connection, decoder, and query handler function from
-/// an adapter package.
-/// This function passes the `Query` and connection to the handler, and then
-/// runs the provided decoder using `db.decode`. It will decode all rows if
-/// multiple are returned from the database, but will only return the first
-/// row to the caller.
-/// This is a convenience function for callers that are performing a query
-/// that will only return one row. It's up to callers to ensure they're
-/// providing the correct SQL query to avoid decoding `n` rows and then
-/// losing all but the first.
+/// A convenience function for callers performing a query that will return
+/// only one row. It's up to callers to ensure they're providing the correct
+/// SQL query to avoid decoding `n` rows and then losing all but the first.
+/// Returns `Error(NotFound)` if the query returns zero rows.
 pub fn one(
   query: sql.Query(v),
   db: Db(v, conn),

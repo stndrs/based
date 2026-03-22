@@ -24,17 +24,18 @@
 //// // -> "SELECT name, email FROM users WHERE active = $1 ORDER BY name ASC LIMIT 10"
 ////
 //// query.values
-//// // -> [sql.Boolean(True)]
+//// // -> [sql.Bool(True)]
 //// ```
 ////
 //// ## Custom adapters
 ////
-//// Use `adapter()` with builder functions to configure how queries are rendered.
-//// This controls placeholder style, identifier quoting, and value type mapping.
+//// Use `new_adapter()` with builder functions to configure how queries are
+//// rendered for a specific database backend. This controls placeholder style,
+//// identifier quoting, and value type mapping.
 ////
 //// ```gleam
 //// let mysql_adapter =
-////   sql.adapter()
+////   sql.new_adapter()
 ////   |> sql.on_null(with: fn() { sql.null })
 ////   |> sql.on_int(with: fn(i) { sql.int(i) })
 ////   |> sql.on_text(with: fn(s) { sql.text(s) })
@@ -48,8 +49,12 @@
 //// The `QueryBuilder(kind, v)` type uses phantom types (`Select`, `Insert`,
 //// `Update`, `Delete`, `From`) to restrict which modifier functions can be
 //// called. For example, `join` only accepts `QueryBuilder(Select, v)`, and
-//// `set` only accepts `QueryBuilder(Update, v)`. This prevents invalid SQL
-//// from being constructed at compile time.
+//// `set` only accepts `QueryBuilder(Update, v)`. This helps callers avoid
+//// building invalid SQL queries. It is possible to call functions that do
+//// not modify the provided `QueryBuilder`. Passing `QueryBuilder(Insert)`
+//// to `sql.where` will not modify the query builder. This library is meant
+//// to help with building SQL strings, but will not protect callers from
+//// creating invalid SQL strings.
 ////
 
 import based/internal/fmt as sqlfmt
@@ -81,30 +86,24 @@ pub type Query(v) {
   Query(sql: String, values: List(v))
 }
 
+/// Creates a `Query` from a raw SQL string with no parameters.
 pub fn query(sql: String) -> Query(v) {
   Query(sql:, values: [])
 }
 
+/// Sets the parameter values on a `Query`.
 pub fn params(query: Query(v), values: List(v)) -> Query(v) {
   Query(..query, values:)
 }
 
-// ---- Values ----
-
-/// Values
-/// `Offset` represents a UTC offset. `Timestamptz` is composed
-/// of a [`gleam/time/timestamp.Timestamp`][1] and `Offset`. The offset will be
-/// applied to the timestamp when being encoded.
+/// A UTC offset composed of hours and minutes.
 ///
-/// A timestamp with a positive offset represents some time in
-/// the future, relative to UTC.
-/// A timestamp with a negative offset represents some time in
-/// the past, relative to UTC.
+/// Used with `Timestamptz` to encode a timestamp relative to UTC.
+/// Offsets are subtracted from the timestamp during encoding so the
+/// result is always a UTC value.
 ///
-/// `Offset`s will be subtracted from the `gleam/time/timestamp.Timestamp`
-/// so the encoded value is a UTC timestamp.
-///
-/// [1]: https://hexdocs.pm/gleam_time/gleam/time/timestamp.html
+/// A positive offset (e.g. `utc_offset(5)`) means local time is
+/// ahead of UTC; a negative offset means it is behind.
 pub type Offset {
   Offset(hours: Int, minutes: Int)
 }
@@ -114,11 +113,12 @@ pub fn utc_offset(hours: Int) -> Offset {
   Offset(hours:, minutes: 0)
 }
 
-/// Applies some number of minutes to the Offset
+/// Applies some number of minutes to the Offset.
 pub fn minutes(offset: Offset, minutes: Int) -> Offset {
   Offset(..offset, minutes:)
 }
 
+/// The built-in value type covering common SQL data types.
 pub type Value {
   Uuid(uuid.Uuid)
   Null
@@ -136,67 +136,84 @@ pub type Value {
   Array(List(Value))
 }
 
+/// Wraps a `Uuid` as a `Value`.
 pub fn uuid(uuid: uuid.Uuid) -> Value {
   Uuid(uuid)
 }
 
+/// The SQL `NULL` value.
 pub const null = Null
 
+/// The SQL boolean `TRUE` value.
 pub const true = Bool(True)
 
+/// The SQL boolean `FALSE` value.
 pub const false = Bool(False)
 
+/// Wraps a `Bool` as a `Value`.
 pub fn bool(bool: Bool) -> Value {
   Bool(bool)
 }
 
+/// Wraps an `Int` as a `Value`.
 pub fn int(int: Int) -> Value {
   Int(int)
 }
 
+/// Wraps a `Float` as a `Value`.
 pub fn float(float: Float) -> Value {
   Float(float)
 }
 
+/// Wraps a `String` as a `Value`.
 pub fn text(text: String) -> Value {
   Text(text)
 }
 
+/// Wraps a `BitArray` as a `Value` for binary/bytea columns.
 pub fn bytea(bytea: BitArray) -> Value {
   Bytea(bytea)
 }
 
+/// Wraps a `calendar.Date` as a `Value`.
 pub fn date(date: calendar.Date) -> Value {
   Date(date)
 }
 
+/// Wraps a `calendar.TimeOfDay` as a `Value`.
 pub fn time(time_of_day: calendar.TimeOfDay) -> Value {
   Time(time_of_day)
 }
 
+/// Wraps a date and time as a `Value` for datetime columns.
 pub fn datetime(date: calendar.Date, time: calendar.TimeOfDay) -> Value {
   Datetime(date, time)
 }
 
+/// Wraps a `timestamp.Timestamp` as a `Value`.
 pub fn timestamp(timestamp: timestamp.Timestamp) -> Value {
   Timestamp(timestamp)
 }
 
+/// Wraps a `timestamp.Timestamp` and `Offset` as a `Value` for
+/// timestamp-with-timezone columns.
 pub fn timestamptz(timestamp: timestamp.Timestamp, offset: Offset) -> Value {
   Timestamptz(timestamp, offset)
 }
 
+/// Wraps an `interval.Interval` as a `Value`.
 pub fn interval(interval: interval.Interval) -> Value {
   Interval(interval)
 }
 
+/// Wraps a list of elements as an `Array` value.
+///
+/// The `of` parameter specifies how to convert each element to a `Value`.
 pub fn array(elements: List(a), of kind: fn(a) -> Value) -> Value {
   elements
   |> list.map(kind)
   |> Array
 }
-
-// ---- Table ----
 
 /// A SQL table reference, optionally aliased.
 pub opaque type Table {
@@ -204,24 +221,14 @@ pub opaque type Table {
 }
 
 /// Creates a table reference.
-///
-/// ```gleam
-/// sql.table("users")
-/// ```
 pub fn table(name: String) -> Table {
   Table(name: name, alias: None)
 }
 
 /// Sets an alias on a table. Renders as `table AS alias`.
-///
-/// ```gleam
-/// sql.table("users") |> sql.table_as("u")
-/// ```
 pub fn table_as(table: Table, alias: String) -> Table {
   Table(..table, alias: Some(alias))
 }
-
-// ---- Column ----
 
 type Aggregate {
   Count
@@ -240,7 +247,7 @@ pub opaque type Column {
     alias: Option(String),
     func: Option(Aggregate),
   )
-  Star
+  All
 }
 
 /// Creates a plain column reference.
@@ -288,43 +295,38 @@ pub fn min(name: String) -> Column {
 pub fn col_for(column: Column, table: String) -> Column {
   case column {
     Column(..) -> Column(..column, table: Some(table))
-    Star -> Star
+    All -> All
   }
 }
 
 /// Sets an alias on a column. Renders as `column AS alias`.
-/// No-ops on `star`.
-///
-/// ```gleam
-/// sql.col("total") |> sql.col_as("order_total")
-/// // Renders as: total AS order_total
-/// ```
+/// No-ops on wildcard column.
 pub fn col_as(column: Column, a: String) -> Column {
   case column {
     Column(..) -> Column(..column, alias: Some(a))
-    Star -> Star
+    All -> All
   }
 }
 
 /// The `*` wildcard column, for use in `SELECT *`.
-pub const star = Star
+pub const star = All
 
 // ---- Adapter ----
 
 /// Database adapter that controls how queries are serialized.
 ///
 /// An adapter defines how placeholders, identifiers, and values are formatted
-/// for a specific database backend. Create one with `adapter()` and configure
-/// it using the `on_*` builder functions.
+/// for a specific database backend. Create one with `new_adapter()` and
+/// configure it using the `on_*` builder functions.
 ///
 /// ```gleam
-/// let pg =
-///   sql.adapter()
+/// let my_adapter =
+///   sql.new_adapter()
 ///   |> sql.on_placeholder(with: fn(i) { "$" <> int.to_string(i + 1) })
 ///   |> sql.on_value(with: my_value_to_string)
-///   |> sql.on_null(with: fn() { Null })
-///   |> sql.on_int(with: Integer)
-///   |> sql.on_text(with: Text)
+///   |> sql.on_null(with: fn() { MyNull })
+///   |> sql.on_int(with: fn(i) { MyInt(i) })
+///   |> sql.on_text(with: fn(s) { MyText(s) })
 /// ```
 pub opaque type Adapter(v) {
   Adapter(
@@ -337,7 +339,7 @@ pub opaque type Adapter(v) {
   )
 }
 
-/// Creates a new adapter with sensible defaults.
+/// Creates a new adapter with unconfigured value handlers.
 ///
 /// Defaults to `"?"` placeholders and does not quote identifiers.
 /// The `on_value`, `on_null`, `on_int`, and `on_text` handlers
@@ -382,8 +384,6 @@ pub fn on_value(
 
 /// Sets the identifier quoting function.
 ///
-/// Defaults to identity (no quoting). Override to add database-specific quoting.
-///
 /// ```gleam
 /// // Quote with double quotes
 /// adapter |> sql.on_identifier(with: fn(name) { "\"" <> name <> "\"" })
@@ -416,19 +416,7 @@ pub fn on_text(adapter: Adapter(v), with fun: fn(String) -> v) -> Adapter(v) {
   Adapter(..adapter, handle_text: fun)
 }
 
-// ---- Row ----
-
 /// A type-safe row for INSERT statements.
-///
-/// Rows are built as continuation-passing linked lists using `field` and `final`,
-/// ensuring that every row has the same columns at compile time.
-///
-/// ```gleam
-/// let row = {
-///   use <- sql.field(column: "name", value: sql.text("Alice"))
-///   sql.final(column: "age", value: sql.int(30))
-/// }
-/// ```
 pub opaque type Row(v) {
   Row(column: String, value: v, next: Option(fn() -> Row(v)))
 }
@@ -463,8 +451,6 @@ fn row_to_columns_and_values(row: Row(v)) -> #(List(String), List(v)) {
   }
 }
 
-// ---- Operand ----
-
 type Operand(v) {
   Col(Column)
   Val(v)
@@ -473,8 +459,6 @@ type Operand(v) {
   AnyQuery(QueryBuilder(Select, v))
   AllQuery(QueryBuilder(Select, v))
 }
-
-// ---- Condition ----
 
 /// A WHERE clause condition.
 ///
@@ -564,8 +548,6 @@ fn append_join(
   }
 }
 
-// ---- Order ----
-
 /// Sort direction for ORDER BY clauses.
 pub opaque type Order {
   Asc
@@ -585,22 +567,20 @@ pub opaque type OrderBy {
   OrderBy(column: Column, direction: Order)
 }
 
-// ---- OnConflict ----
-
 /// The action to take when an INSERT conflict occurs.
 ///
-/// - `DoNothing` — ignores the conflicting row (`ON CONFLICT ... DO NOTHING`)
-/// - `DoUpdate(sets:)` — updates specified columns (`ON CONFLICT ... DO UPDATE SET ...`).
+/// - `DoNothing` ignores the conflicting row (`ON CONFLICT ... DO NOTHING`)
+/// - `DoUpdate(sets:)` updates specified columns (`ON CONFLICT ... DO UPDATE SET ...`).
 ///   Each tuple is `#(column_name, expression_string)`.
 pub type ConflictAction(v) {
   DoNothing
   DoUpdate(sets: List(#(String, String)))
 }
 
-/// An ON CONFLICT clause for INSERT statements.
-///
-/// Created by the `on_conflict` function — not constructed directly.
-pub opaque type OnConflict(v) {
+// An ON CONFLICT clause for INSERT statements.
+//
+// Created by the `on_conflict` function — not constructed directly.
+type OnConflict(v) {
   OnConflict(
     target: String,
     action: ConflictAction(v),
@@ -625,8 +605,6 @@ pub opaque type Kind(a, v) {
   Kind(to_operand: fn(a) -> Operand(v))
 }
 
-// ---- Phantom Types ----
-
 /// Phantom type for SELECT queries.
 pub type Select
 
@@ -642,37 +620,24 @@ pub type Delete
 /// Phantom type for the initial FROM stage before selecting a query kind.
 pub type From(a)
 
+/// Phatom type indicating a sub query
 pub type Subquery
-
-// ---- Union ----
 
 type UnionType {
   Union
   UnionAll
 }
 
-// ---- From ----
-
 type FromClause(v) {
   FromTable(Table)
   FromSubQuery(query: QueryBuilder(Select, v), alias: String)
 }
 
-// ---- QueryBuilder ----
-
 /// The main query builder type, parameterized by a phantom `kind` type
-/// (`Select`, `Insert`, `Update`, `Delete`, or `From`) and a value type `v`.
+/// (`Select`, `Insert`, `Update`, `Delete`, or `From(a)`) and a value type `v`.
 ///
 /// The phantom type restricts which modifier functions can be applied,
-/// preventing invalid combinations at compile time.
-///
-/// ```gleam
-/// // kind=From initially, becomes Select after sql.select()
-/// sql.from(users)
-/// |> sql.select([sql.star])
-/// |> sql.where(sql.eq(sql.col("active"), True, of: sql.value))
-/// |> sql.to_query(adapter)
-/// ```
+/// preventing some invalid combinations at compile time.
 pub opaque type QueryBuilder(kind, v) {
   SelectBuilder(
     columns: List(Column),
@@ -726,8 +691,6 @@ pub opaque type QueryBuilder(kind, v) {
   FromSubQueryBuilder(query: QueryBuilder(Select, v), alias: String)
 }
 
-// ---- CTE ----
-
 /// A Common Table Expression (CTE) for use with `WITH` clauses.
 ///
 /// Created with `cte` and optionally refined with `cte_columns`.
@@ -735,44 +698,37 @@ pub opaque type Cte(v) {
   Cte(name: String, columns: List(String), query: QueryBuilder(Select, v))
 }
 
-// ---- Condition Constructors ----
-
-/// Creates an equality condition (`column = input`).
-///
-/// ```gleam
-/// sql.eq(sql.col("name"), "Alice", of: sql.value)
-/// // Renders as: name = $1
-/// ```
+/// Creates an equality condition.
 pub fn eq(column: Column, input: a, of kind: Kind(a, v)) -> Condition(v) {
   Equal(Col(column), kind.to_operand(input))
 }
 
-/// Creates an inequality condition (`column != input`).
+/// Creates an inequality condition.
 pub fn not_eq(column: Column, input: a, of kind: Kind(a, v)) -> Condition(v) {
   NotEqual(Col(column), kind.to_operand(input))
 }
 
-/// Creates a greater-than condition (`column > input`).
+/// Creates a greater-than condition.
 pub fn gt(column: Column, input: a, of kind: Kind(a, v)) -> Condition(v) {
   GreaterThan(Col(column), kind.to_operand(input))
 }
 
-/// Creates a less-than condition (`column < input`).
+/// Creates a less-than condition.
 pub fn lt(column: Column, input: a, of kind: Kind(a, v)) -> Condition(v) {
   LessThan(Col(column), kind.to_operand(input))
 }
 
-/// Creates a greater-than-or-equal condition (`column >= input`).
+/// Creates a greater-than-or-equal condition.
 pub fn gt_eq(column: Column, input: a, of kind: Kind(a, v)) -> Condition(v) {
   GreaterThanOrEqual(Col(column), kind.to_operand(input))
 }
 
-/// Creates a less-than-or-equal condition (`column <= input`).
+/// Creates a less-than-or-equal condition.
 pub fn lt_eq(column: Column, input: a, of kind: Kind(a, v)) -> Condition(v) {
   LessThanOrEqual(Col(column), kind.to_operand(input))
 }
 
-/// Creates a BETWEEN condition (`column BETWEEN low AND high`).
+/// Creates a BETWEEN condition.
 pub fn between(
   column: Column,
   low: a,
@@ -782,90 +738,70 @@ pub fn between(
   Between(Col(column), kind.to_operand(low), kind.to_operand(high))
 }
 
-/// Creates a LIKE condition (`column LIKE pattern`).
+/// Creates a LIKE condition.
 pub fn like(column: Column, input: a, of kind: Kind(a, v)) -> Condition(v) {
   Like(Col(column), kind.to_operand(input))
 }
 
-/// Creates a NOT LIKE condition (`column NOT LIKE pattern`).
+/// Creates a NOT LIKE condition.
 pub fn not_like(column: Column, input: a, of kind: Kind(a, v)) -> Condition(v) {
   NotLike(Col(column), kind.to_operand(input))
 }
 
-/// Creates an IN condition (`column IN (v1, v2, ...)`).
-///
-/// ```gleam
-/// sql.in(sql.col("status"), ["active", "pending"], of: sql.value)
-/// // Renders as: status IN ($1, $2)
-/// ```
+/// Creates an IN condition.
 pub fn in(column: Column, values: List(a), of kind: Kind(a, v)) -> Condition(v) {
   In(Col(column), list.map(values, kind.to_operand))
 }
 
-/// Creates an IS NULL condition (`column IS NULL`).
+/// Creates an IS NULL condition.
 pub fn is_null(column: Column) -> Condition(v) {
   IsNull(Col(column))
 }
 
-/// Creates an IS NOT NULL condition (`column IS NOT NULL`).
+/// Creates an IS NOT NULL condition.
 pub fn is_not_null(column: Column) -> Condition(v) {
   IsNotNull(Col(column))
 }
 
-/// Creates an IS TRUE condition (`column IS TRUE`).
+/// Creates an IS TRUE condition.
 pub fn is_true(column: Column) -> Condition(v) {
   IsTrue(Col(column))
 }
 
-/// Creates an IS FALSE condition (`column IS FALSE`).
+/// Creates an IS FALSE condition.
 pub fn is_false(column: Column) -> Condition(v) {
   IsFalse(Col(column))
 }
 
-/// Combines two conditions with OR (`left OR right`).
-///
-/// For adding an OR clause to an existing query's WHERE, see `or_where`.
+/// Combines two conditions with OR.
 pub fn or(left: Condition(v), right: Condition(v)) -> Condition(v) {
   Or(left, right)
 }
 
-/// Combines two conditions with AND (`left AND right`).
+/// Combines two conditions with AND.
 pub fn and(left: Condition(v), right: Condition(v)) -> Condition(v) {
   And(left, right)
 }
 
-/// Negates a condition (`NOT (condition)`).
+/// Negates a condition.
 pub fn not(condition: Condition(v)) -> Condition(v) {
   Not(condition)
 }
 
-/// Creates an EXISTS condition (`EXISTS (subquery)`).
+/// Creates an EXISTS condition.
 pub fn exists(query: QueryBuilder(Select, v)) -> Condition(v) {
   Exists(query)
 }
 
 /// Creates a raw SQL condition without parameterized values.
-///
-/// ```gleam
-/// sql.raw("age > 18")
-/// ```
 pub fn raw(sql: String) -> Condition(v) {
   Raw(sql: sql, values: [])
 }
 
 /// Creates a raw SQL condition with parameterized values.
-///
-/// Use `?` as placeholders — they are rewritten to the adapter's placeholder
-/// format automatically.
-///
-/// ```gleam
-/// sql.raw_with_values("age > ?", [sql.int(18)])
-/// ```
 pub fn raw_with_values(sql: String, values: List(v)) -> Condition(v) {
   Raw(sql: sql, values: values)
 }
-
-// ---- Query Builder Constructors ----
 
 /// Starts building a query from a table. This is the entry point for SELECT
 /// and DELETE queries.
@@ -1456,13 +1392,10 @@ pub fn union_all(
   }
 }
 
-// ---- Output: to_query ----
-
 /// Serializes a query builder into a `Query(v)` with parameterized placeholders.
 ///
-/// Returns a `Query` record with `.sql` containing the SQL string (with
-/// placeholders like `$1`, `$2`) and `.values` containing the parameter values
-/// in order.
+/// Returns a `Query` record with `.sql` containing the SQL string with
+/// placeholders and `.values` containing the parameter values in order.
 ///
 /// ```gleam
 /// let query =
@@ -1479,8 +1412,6 @@ pub fn to_query(query: QueryBuilder(a, v), adapter: Adapter(v)) -> Query(v) {
   let sql = replace_placeholders(sql, adapter)
   Query(sql: sql, values: vals)
 }
-
-// ---- Output: to_string ----
 
 /// Serializes a query builder into a plain SQL string with values inlined.
 ///
@@ -1637,8 +1568,6 @@ pub fn adapter() -> Adapter(Value) {
   )
 }
 
-// ---- Internal: Sentinel-Based Rendering ----
-//
 // All build_* functions produce SQL with `:param:` sentinels and collect
 // values in order. These two functions do the final replacement pass.
 
@@ -1681,8 +1610,6 @@ fn replace_with_values(
   }
 }
 
-// ---- Internal: Clause Append Helpers ----
-//
 // Each helper takes an accumulator `#(String, List(v))` and appends
 // one optional SQL clause, returning the (possibly unchanged) accumulator.
 // When the clause data is empty/None/False, the acc passes through unchanged.
@@ -2279,7 +2206,7 @@ fn build_single_select(
 
 fn build_column(column: Column, fmt: Adapter(v)) -> String {
   case column {
-    Star -> "*"
+    All -> "*"
     Column(table:, name:, alias:, func:) -> {
       // Build the base column reference (possibly table-qualified)
       let col_ref = case name {
