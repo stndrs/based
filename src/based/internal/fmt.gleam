@@ -259,11 +259,6 @@ pub fn terminate(value: String) -> String {
   value <> ";"
 }
 
-/// Join a list of strings with ", " separator.
-pub fn comma_join(items: List(String)) -> String {
-  string.join(items, ", ")
-}
-
 /// Wrap a value row in parentheses: "(a, b, c)".
 pub fn value_row(values: String) -> String {
   "(" <> values <> ")"

@@ -1827,8 +1827,9 @@ fn build_ctes(
           let sql_builder = build_single_select(query, adapter)
           let col_part = case columns {
             [] -> ""
-            cols -> fmt.enclose(fmt.comma_join(cols))
+            cols -> fmt.enclose(string.join(cols, ", "))
           }
+
           let part = fmt.cte(name <> col_part, sql_builder.sql)
 
           #(list.prepend(parts, part), list.prepend(vals, sql_builder.values))
@@ -1962,7 +1963,7 @@ fn append_on_conflict(
 }
 
 fn build_update(
-  tbl: Table,
+  table: Table,
   sets: List(#(String, Operand(v))),
   wheres: List(List(Condition(v))),
   returning: List(Column),
@@ -1971,16 +1972,11 @@ fn build_update(
   offset_val: Option(Int),
   adapter: Adapter(v),
 ) -> SqlBuilder(v) {
-  let #(set_strings, vals) =
-    sets
-    |> list.reverse
-    |> sets_to_set_values(adapter)
-
-  let sql =
-    fmt.update(build_table(tbl, adapter))
-    |> fmt.set(fmt.comma_join(set_strings))
-
-  SqlBuilder(sql, [vals])
+  table
+  |> build_table(adapter)
+  |> fmt.update
+  |> SqlBuilder([])
+  |> append_sets(sets, adapter)
   |> append_where(wheres, adapter)
   |> append_order_by(order_by, adapter)
   |> append_limit(limit_val)
@@ -1988,29 +1984,32 @@ fn build_update(
   |> append_returning(returning, adapter)
 }
 
-fn sets_to_set_values(
+fn append_sets(
+  builder: SqlBuilder(v),
   sets: List(#(String, Operand(v))),
   adapter: Adapter(v),
-) -> #(List(String), List(v)) {
-  let #(sets, vals) = {
-    use #(ss, vs), #(col, operand) <- list.fold(sets, #([], []))
+) -> SqlBuilder(v) {
+  let #(sets_sql, values) = {
+    use #(sql, values), #(column, operand) <- list.fold(sets, #([], []))
 
-    let #(set_string, values) = build_operand(operand, adapter)
+    let #(set, operand_values) = build_operand(operand, adapter)
+    let values = list.prepend(values, operand_values)
 
-    let right_hand_side = case operand {
-      SubQuery(_) -> set_string
-      _ -> fmt.placeholder
-    }
-
-    let set_string =
-      col
+    let sql =
+      column
       |> adapter.handle_identifier
-      |> fmt.eq(right_hand_side)
+      |> fmt.eq(set)
+      |> list.prepend(sql, _)
 
-    #(list.prepend(ss, set_string), list.prepend(vs, values))
+    #(sql, values)
   }
 
-  #(sets |> list.reverse, vals |> list.reverse |> list.flatten)
+  let sets_sql = string.join(sets_sql, ", ")
+  let values = list.flatten(values)
+
+  builder.sql
+  |> fmt.set(sets_sql)
+  |> SqlBuilder(list.prepend(builder.values, values))
 }
 
 fn build_delete(
@@ -2287,7 +2286,7 @@ fn build_column(column: Column, adapter: Adapter(v)) -> String {
 fn build_columns(columns: List(Column), adapter: Adapter(v)) -> String {
   columns
   |> list.map(fn(c) { build_column(c, adapter) })
-  |> fmt.comma_join
+  |> string.join(", ")
 }
 
 fn build_table(tbl: Table, adapter: Adapter(v)) -> String {
@@ -2310,5 +2309,5 @@ fn build_order_by(orders: List(OrderBy), adapter: Adapter(v)) -> String {
       Desc -> fmt.desc(col_str)
     }
   })
-  |> fmt.comma_join
+  |> string.join(", ")
 }

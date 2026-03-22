@@ -1,4 +1,5 @@
 import based/internal/fmt
+import gleam/string
 
 pub fn placeholder_test() {
   assert fmt.placeholder == ":param:"
@@ -304,18 +305,6 @@ pub fn terminate_test() {
   assert fmt.terminate("SELECT * FROM users") == "SELECT * FROM users;"
 }
 
-pub fn comma_join_test() {
-  assert fmt.comma_join(["id", "name", "email"]) == "id, name, email"
-}
-
-pub fn comma_join_single_test() {
-  assert fmt.comma_join(["id"]) == "id"
-}
-
-pub fn comma_join_empty_test() {
-  assert fmt.comma_join([]) == ""
-}
-
 pub fn value_row_test() {
   assert fmt.value_row(":param:, :param:") == "(:param:, :param:)"
 }
@@ -470,19 +459,8 @@ pub fn aggregate_with_alias_test() {
   assert col == "COUNT(*) AS total"
 }
 
-pub fn comma_join_with_aggregates_test() {
-  let columns =
-    fmt.comma_join([
-      "department",
-      fmt.alias_as(fmt.count("*"), "total"),
-      fmt.alias_as(fmt.avg("salary"), "avg_salary"),
-    ])
-
-  assert columns == "department, COUNT(*) AS total, AVG(salary) AS avg_salary"
-}
-
 pub fn order_by_with_directions_test() {
-  let ordering = fmt.comma_join([fmt.asc("name"), fmt.desc("created_at")])
+  let ordering = string.join([fmt.asc("name"), fmt.desc("created_at")], ", ")
   let result =
     fmt.select("*")
     |> fmt.from("users")
@@ -527,10 +505,13 @@ pub fn exists_subquery_test() {
 
 pub fn value_row_composition_test() {
   let rows =
-    fmt.comma_join([
-      fmt.value_row(":param:, :param:"),
-      fmt.value_row(":param:, :param:"),
-    ])
+    string.join(
+      [
+        fmt.value_row(":param:, :param:"),
+        fmt.value_row(":param:, :param:"),
+      ],
+      ", ",
+    )
 
   assert rows == "(:param:, :param:), (:param:, :param:)"
 }
