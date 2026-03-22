@@ -1686,7 +1686,7 @@ fn append_limit(
 ) -> #(String, List(v)) {
   case limit_val {
     None -> acc
-    Some(n) -> #(sqlfmt.limit_int(acc.0, n), acc.1)
+    Some(n) -> #(sqlfmt.limit(acc.0, n), acc.1)
   }
 }
 
@@ -1696,7 +1696,7 @@ fn append_offset(
 ) -> #(String, List(v)) {
   case offset_val {
     None -> acc
-    Some(n) -> #(sqlfmt.offset_int(acc.0, n), acc.1)
+    Some(n) -> #(sqlfmt.offset(acc.0, n), acc.1)
   }
 }
 

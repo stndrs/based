@@ -7,13 +7,9 @@
 import gleam/int
 import gleam/string
 
-// ---- Sentinel Constant ----
-
 /// Sentinel marker inserted wherever a parameterized value belongs.
 /// Replaced by a later pass with `$1`/`?` or literal values.
 pub const placeholder = ":param:"
-
-// ---- Statement Starters ----
 
 pub fn select(columns: String) -> String {
   "SELECT " <> columns
@@ -39,22 +35,12 @@ pub fn delete(from table: String) -> String {
   "DELETE FROM " <> table
 }
 
-// ---- Clause Appenders ----
-
 pub fn from(st: String, value: String) -> String {
   st <> " FROM " <> value
 }
 
 pub fn where(st: String, value: String) -> String {
   st <> " WHERE " <> value
-}
-
-pub fn and_where(st: String, value: String) -> String {
-  st <> " AND " <> value
-}
-
-pub fn or_where(st: String, value: String) -> String {
-  st <> " OR " <> value
 }
 
 pub fn set(st: String, assignments: String) -> String {
@@ -81,19 +67,11 @@ pub fn order_by(st: String, columns: String) -> String {
   st <> " ORDER BY " <> columns
 }
 
-pub fn limit(st: String, value: String) -> String {
-  st <> " LIMIT " <> value
-}
-
-pub fn offset(st: String, value: String) -> String {
-  st <> " OFFSET " <> value
-}
-
-pub fn limit_int(st: String, n: Int) -> String {
+pub fn limit(st: String, n: Int) -> String {
   st <> " LIMIT " <> int.to_string(n)
 }
 
-pub fn offset_int(st: String, n: Int) -> String {
+pub fn offset(st: String, n: Int) -> String {
   st <> " OFFSET " <> int.to_string(n)
 }
 
@@ -113,8 +91,6 @@ pub fn do_update(st: String, assignments: String) -> String {
   st <> " DO UPDATE SET " <> assignments
 }
 
-// ---- Join Appenders ----
-
 pub fn inner_join(st: String, value: String) -> String {
   st <> " INNER JOIN " <> value
 }
@@ -130,8 +106,6 @@ pub fn right_join(st: String, value: String) -> String {
 pub fn full_join(st: String, value: String) -> String {
   st <> " FULL JOIN " <> value
 }
-
-// ---- Comparison Operators ----
 
 pub fn eq(left: String, right: String) -> String {
   left <> " = " <> right
@@ -169,14 +143,6 @@ pub fn in_(left: String, values: String) -> String {
   left <> " IN (" <> values <> ")"
 }
 
-pub fn is(left: String, right: String) -> String {
-  left <> " IS " <> right
-}
-
-pub fn is_not(left: String, right: String) -> String {
-  left <> " IS NOT " <> right
-}
-
 pub fn is_null(operand: String) -> String {
   operand <> " IS NULL"
 }
@@ -197,8 +163,6 @@ pub fn between(operand: String, low: String, high: String) -> String {
   operand <> " BETWEEN " <> low <> " AND " <> high
 }
 
-// ---- Logical Operators ----
-
 pub fn not(value: String) -> String {
   "NOT (" <> value <> ")"
 }
@@ -215,8 +179,6 @@ pub fn or_op(left: String, right: String) -> String {
   "(" <> left <> " OR " <> right <> ")"
 }
 
-// ---- Subquery / Quantifier Constructors ----
-
 pub fn any(subquery: String) -> String {
   "ANY (" <> subquery <> ")"
 }
@@ -228,8 +190,6 @@ pub fn all(subquery: String) -> String {
 pub fn subquery(query: String) -> String {
   "(" <> query <> ")"
 }
-
-// ---- Aggregate Functions ----
 
 pub fn count(value: String) -> String {
   "COUNT(" <> value <> ")"
@@ -251,8 +211,6 @@ pub fn min(value: String) -> String {
   "MIN(" <> value <> ")"
 }
 
-// ---- CTE Helpers ----
-
 pub fn with_cte(ctes: String) -> String {
   "WITH " <> ctes
 }
@@ -265,12 +223,6 @@ pub fn cte(name: String, body: String) -> String {
   name <> " AS (" <> body <> ")"
 }
 
-pub fn cte_columns(name: String, columns: String, body: String) -> String {
-  name <> "(" <> columns <> ") AS (" <> body <> ")"
-}
-
-// ---- Union Helpers ----
-
 pub fn union(left: String, right: String) -> String {
   left <> " UNION " <> right
 }
@@ -278,8 +230,6 @@ pub fn union(left: String, right: String) -> String {
 pub fn union_all(left: String, right: String) -> String {
   left <> " UNION ALL " <> right
 }
-
-// ---- General String Helpers ----
 
 /// Wrap a string in parentheses.
 pub fn enclose(value: String) -> String {
@@ -309,11 +259,6 @@ pub fn terminate(value: String) -> String {
 /// Join a list of strings with ", " separator.
 pub fn comma_join(items: List(String)) -> String {
   string.join(items, ", ")
-}
-
-/// Core three-part concatenation: st <> keyword <> value.
-pub fn append(st: String, keyword: String, value: String) -> String {
-  st <> keyword <> value
 }
 
 /// Wrap a value row in parentheses: "(a, b, c)".

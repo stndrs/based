@@ -1,12 +1,8 @@
 import based/internal/fmt
 
-// ---- Sentinel Constant ----
-
 pub fn placeholder_test() {
   assert fmt.placeholder == ":param:"
 }
-
-// ---- Statement Starters ----
 
 pub fn select_test() {
   assert fmt.select("id, name") == "SELECT id, name"
@@ -42,8 +38,6 @@ pub fn delete_test() {
   assert fmt.delete(from: "users") == "DELETE FROM users"
 }
 
-// ---- Clause Appenders ----
-
 pub fn from_test() {
   assert fmt.from("SELECT *", "users") == "SELECT * FROM users"
 }
@@ -51,16 +45,6 @@ pub fn from_test() {
 pub fn where_test() {
   assert fmt.where("SELECT * FROM users", "id = 1")
     == "SELECT * FROM users WHERE id = 1"
-}
-
-pub fn and_where_test() {
-  assert fmt.and_where("SELECT * FROM users WHERE id = 1", "name = 'Bob'")
-    == "SELECT * FROM users WHERE id = 1 AND name = 'Bob'"
-}
-
-pub fn or_where_test() {
-  assert fmt.or_where("SELECT * FROM users WHERE id = 1", "id = 2")
-    == "SELECT * FROM users WHERE id = 1 OR id = 2"
 }
 
 pub fn set_test() {
@@ -102,22 +86,11 @@ pub fn order_by_test() {
 }
 
 pub fn limit_test() {
-  assert fmt.limit("SELECT * FROM users", "10")
-    == "SELECT * FROM users LIMIT 10"
+  assert fmt.limit("SELECT * FROM users", 25) == "SELECT * FROM users LIMIT 25"
 }
 
 pub fn offset_test() {
-  assert fmt.offset("SELECT * FROM users LIMIT 10", "20")
-    == "SELECT * FROM users LIMIT 10 OFFSET 20"
-}
-
-pub fn limit_int_test() {
-  assert fmt.limit_int("SELECT * FROM users", 25)
-    == "SELECT * FROM users LIMIT 25"
-}
-
-pub fn offset_int_test() {
-  assert fmt.offset_int("SELECT * FROM users LIMIT 25", 50)
+  assert fmt.offset("SELECT * FROM users LIMIT 25", 50)
     == "SELECT * FROM users LIMIT 25 OFFSET 50"
 }
 
@@ -140,8 +113,6 @@ pub fn do_update_test() {
     == "ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name"
 }
 
-// ---- Join Appenders ----
-
 pub fn inner_join_test() {
   assert fmt.inner_join("SELECT * FROM users", "posts")
     == "SELECT * FROM users INNER JOIN posts"
@@ -161,8 +132,6 @@ pub fn full_join_test() {
   assert fmt.full_join("SELECT * FROM users", "posts")
     == "SELECT * FROM users FULL JOIN posts"
 }
-
-// ---- Comparison Operators ----
 
 pub fn eq_test() {
   assert fmt.eq("name", ":param:") == "name = :param:"
@@ -204,14 +173,6 @@ pub fn in_placeholder_test() {
   assert fmt.in_("status", ":param:, :param:") == "status IN (:param:, :param:)"
 }
 
-pub fn is_test() {
-  assert fmt.is("value", "NULL") == "value IS NULL"
-}
-
-pub fn is_not_test() {
-  assert fmt.is_not("value", "NULL") == "value IS NOT NULL"
-}
-
 pub fn is_null_test() {
   assert fmt.is_null("email") == "email IS NULL"
 }
@@ -237,8 +198,6 @@ pub fn between_placeholder_test() {
     == "created_at BETWEEN :param: AND :param:"
 }
 
-// ---- Logical Operators ----
-
 pub fn not_test() {
   assert fmt.not("active = TRUE") == "NOT (active = TRUE)"
 }
@@ -261,8 +220,6 @@ pub fn nested_logical_ops_test() {
   assert result == "((a = 1 OR a = 2) AND b = 3)"
 }
 
-// ---- Subquery / Quantifier Constructors ----
-
 pub fn any_test() {
   assert fmt.any("SELECT id FROM users") == "ANY (SELECT id FROM users)"
 }
@@ -274,8 +231,6 @@ pub fn all_test() {
 pub fn subquery_test() {
   assert fmt.subquery("SELECT id FROM users") == "(SELECT id FROM users)"
 }
-
-// ---- Aggregate Functions ----
 
 pub fn count_test() {
   assert fmt.count("*") == "COUNT(*)"
@@ -301,8 +256,6 @@ pub fn min_test() {
   assert fmt.min("score") == "MIN(score)"
 }
 
-// ---- CTE Helpers ----
-
 pub fn with_cte_test() {
   assert fmt.with_cte("active_users AS (SELECT * FROM users WHERE active)")
     == "WITH active_users AS (SELECT * FROM users WHERE active)"
@@ -318,17 +271,6 @@ pub fn cte_test() {
     == "active_users AS (SELECT * FROM users WHERE active)"
 }
 
-pub fn cte_columns_test() {
-  assert fmt.cte_columns(
-      "totals",
-      "dept, total",
-      "SELECT dept, SUM(s) FROM e GROUP BY dept",
-    )
-    == "totals(dept, total) AS (SELECT dept, SUM(s) FROM e GROUP BY dept)"
-}
-
-// ---- Union Helpers ----
-
 pub fn union_test() {
   assert fmt.union("SELECT * FROM a", "SELECT * FROM b")
     == "SELECT * FROM a UNION SELECT * FROM b"
@@ -338,8 +280,6 @@ pub fn union_all_test() {
   assert fmt.union_all("SELECT * FROM a", "SELECT * FROM b")
     == "SELECT * FROM a UNION ALL SELECT * FROM b"
 }
-
-// ---- General String Helpers ----
 
 pub fn enclose_test() {
   assert fmt.enclose("a + b") == "(a + b)"
@@ -377,28 +317,21 @@ pub fn comma_join_empty_test() {
   assert fmt.comma_join([]) == ""
 }
 
-pub fn append_test() {
-  assert fmt.append("SELECT *", " FROM ", "users") == "SELECT * FROM users"
-}
-
 pub fn value_row_test() {
   assert fmt.value_row(":param:, :param:") == "(:param:, :param:)"
 }
-
-// ---- Composition Tests ----
 
 pub fn full_select_query_test() {
   let result =
     fmt.select("id, name, email")
     |> fmt.from("users")
-    |> fmt.where("active = TRUE")
-    |> fmt.and_where("age > 18")
+    |> fmt.where(fmt.and_op("active = TRUE", "age > 18"))
     |> fmt.order_by("name ASC")
-    |> fmt.limit_int(10)
-    |> fmt.offset_int(20)
+    |> fmt.limit(10)
+    |> fmt.offset(20)
 
   assert result
-    == "SELECT id, name, email FROM users WHERE active = TRUE AND age > 18 ORDER BY name ASC LIMIT 10 OFFSET 20"
+    == "SELECT id, name, email FROM users WHERE (active = TRUE AND age > 18) ORDER BY name ASC LIMIT 10 OFFSET 20"
 }
 
 pub fn full_select_distinct_query_test() {
@@ -497,9 +430,7 @@ pub fn select_for_update_test() {
 
 pub fn cte_with_select_test() {
   let cte_body = fmt.cte("active_users", "SELECT * FROM users WHERE active")
-  let result =
-    fmt.with_cte(cte_body)
-    |> fmt.append(" ", "SELECT * FROM active_users")
+  let result = fmt.with_cte(cte_body) <> " SELECT * FROM active_users"
 
   assert result
     == "WITH active_users AS (SELECT * FROM users WHERE active) SELECT * FROM active_users"
