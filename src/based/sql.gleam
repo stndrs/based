@@ -464,7 +464,7 @@ type Operand(v) {
 ///
 /// Conditions are built using constructor functions like `eq`, `gt`, `like`,
 /// `is_null`, etc. They can be combined with `and`, `or`, and `not`. Raw SQL
-/// conditions are also supported via `raw` and `raw_with_values`.
+/// conditions are also supported via `raw`.
 pub opaque type Condition(v) {
   Equal(left: Operand(v), right: Operand(v))
   NotEqual(left: Operand(v), right: Operand(v))
@@ -484,7 +484,7 @@ pub opaque type Condition(v) {
   Or(left: Condition(v), right: Condition(v))
   Not(condition: Condition(v))
   Exists(QueryBuilder(Select, v))
-  Raw(sql: String, values: List(v))
+  Raw(sql: String)
 }
 
 // ---- Join ----
@@ -798,12 +798,7 @@ pub fn exists(query: QueryBuilder(Select, v)) -> Condition(v) {
 
 /// Creates a raw SQL condition without parameterized values.
 pub fn raw(sql: String) -> Condition(v) {
-  Raw(sql: sql, values: [])
-}
-
-/// Creates a raw SQL condition with parameterized values.
-pub fn raw_with_values(sql: String, values: List(v)) -> Condition(v) {
-  Raw(sql: sql, values: values)
+  Raw(sql:)
 }
 
 /// Starts building a query from a table. This is the entry point for SELECT
@@ -2126,11 +2121,7 @@ fn build_condition(
       let SqlBuilder(sql, vals) = build_single_select(query, adapter)
       #(fmt.exists(sql), list.flatten(vals))
     }
-    Raw(sql:, values:) -> {
-      // Rewrite ? placeholders to sentinel markers
-      let rewritten = string.replace(sql, "?", fmt.placeholder)
-      #(rewritten, values)
-    }
+    Raw(sql:) -> #(sql, [])
   }
 }
 

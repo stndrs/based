@@ -2987,19 +2987,6 @@ pub fn select_where_raw_sql_test() {
   assert q.values == []
 }
 
-pub fn select_where_raw_sql_with_values_test() {
-  let q =
-    sql.from(sql.table("users"))
-    |> sql.select([sql.star])
-    |> sql.where([
-      sql.raw_with_values("age > ? AND active = ?", [sql.int(18), sql.true]),
-    ])
-    |> sql.to_query(a())
-
-  assert q.sql == "SELECT * FROM users WHERE age > $1 AND active = $2"
-  assert q.values == [sql.Int(18), sql.Bool(True)]
-}
-
 pub fn select_where_raw_sql_to_string_test() {
   let s =
     sql.from(sql.table("users"))
@@ -3010,30 +2997,18 @@ pub fn select_where_raw_sql_to_string_test() {
   assert s == "SELECT * FROM users WHERE age > 18 AND active = true"
 }
 
-pub fn select_where_raw_sql_with_values_to_string_test() {
-  let s =
-    sql.from(sql.table("users"))
-    |> sql.select([sql.star])
-    |> sql.where([
-      sql.raw_with_values("age > ? AND active = ?", [sql.int(18), sql.true]),
-    ])
-    |> sql.to_string(a())
-
-  assert s == "SELECT * FROM users WHERE age > 18 AND active = TRUE"
-}
-
 pub fn select_where_raw_combined_with_regular_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
     |> sql.where([
       sql.eq(sql.col("name"), sql.text("Alice"), of: sql.value),
-      sql.raw_with_values("age > ?", [sql.int(18)]),
+      sql.raw("age > 18"),
     ])
     |> sql.to_query(a())
 
-  assert q.sql == "SELECT * FROM users WHERE (name = $1 AND age > $2)"
-  assert q.values == [sql.Text("Alice"), sql.Int(18)]
+  assert q.sql == "SELECT * FROM users WHERE (name = $1 AND age > 18)"
+  assert q.values == [sql.Text("Alice")]
 }
 
 pub fn delete_where_raw_test() {
@@ -3041,12 +3016,12 @@ pub fn delete_where_raw_test() {
     sql.from(sql.table("users"))
     |> sql.delete()
     |> sql.where([
-      sql.raw_with_values("active = ? AND age > ?", [sql.false, sql.int(21)]),
+      sql.raw("active = FALSE AND age > 21"),
     ])
     |> sql.to_query(a())
 
-  assert q.sql == "DELETE FROM users WHERE active = $1 AND age > $2"
-  assert q.values == [sql.Bool(False), sql.Int(21)]
+  assert q.sql == "DELETE FROM users WHERE active = FALSE AND age > 21"
+  assert q.values == []
 }
 
 pub fn update_where_raw_test() {
@@ -3054,12 +3029,13 @@ pub fn update_where_raw_test() {
     sql.update(table: sql.table("users"))
     |> sql.set("status", sql.text("inactive"), of: sql.value)
     |> sql.where([
-      sql.raw_with_values("age > ? AND active = ?", [sql.int(65), sql.true]),
+      sql.raw("age > 65 AND active = TRUE"),
     ])
     |> sql.to_query(a())
 
-  assert q.sql == "UPDATE users SET status = $1 WHERE age > $2 AND active = $3"
-  assert q.values == [sql.Text("inactive"), sql.Int(65), sql.Bool(True)]
+  assert q.sql
+    == "UPDATE users SET status = $1 WHERE age > 65 AND active = TRUE"
+  assert q.values == [sql.Text("inactive")]
 }
 
 pub fn select_where_not_convenience_test() {
