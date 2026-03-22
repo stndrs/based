@@ -1576,7 +1576,7 @@ fn append_where(
 
       builder.sql
       |> fmt.where(ws)
-      |> SqlBuilder(list.prepend(builder.values, wv))
+      |> SqlBuilder(list.prepend(builder.values, list.flatten(wv)))
     }
     [first, ..rest] -> {
       let #(ws, wv) =
@@ -1586,7 +1586,7 @@ fn append_where(
 
       builder.sql
       |> fmt.where(ws)
-      |> SqlBuilder(list.prepend(builder.values, wv))
+      |> SqlBuilder(list.prepend(builder.values, list.flatten(wv)))
     }
   }
 }
@@ -1608,7 +1608,7 @@ fn append_having(
 
       builder.sql
       |> fmt.having(hs)
-      |> SqlBuilder(list.prepend(builder.values, hv))
+      |> SqlBuilder(list.prepend(builder.values, list.flatten(hv)))
     }
     [first, ..rest] -> {
       let #(hs, hv) =
@@ -1618,7 +1618,7 @@ fn append_having(
 
       builder.sql
       |> fmt.having(hs)
-      |> SqlBuilder(list.prepend(builder.values, hv))
+      |> SqlBuilder(list.prepend(builder.values, list.flatten(hv)))
     }
   }
 }
@@ -2001,7 +2001,7 @@ fn append_sets(
   }
 
   let sets_sql = string.join(sets_sql, ", ")
-  let values = list.flatten(values)
+  let values = values |> list.flatten |> list.flatten
 
   builder.sql
   |> fmt.set(sets_sql)
@@ -2022,25 +2022,25 @@ fn build_delete(
   |> append_returning(returning, adapter)
 }
 
-fn build_operand(operand: Operand(v), adapter: Adapter(v)) -> #(String, List(v)) {
+fn build_operand(
+  operand: Operand(v),
+  adapter: Adapter(v),
+) -> #(String, List(List(v))) {
   case operand {
     Col(column) -> #(build_column(column, adapter), [])
-    Val(value) -> #(fmt.placeholder, [value])
-    NullVal -> {
-      let null_val = adapter.handle_null()
-      #(fmt.placeholder, [null_val])
-    }
+    Val(value) -> #(fmt.placeholder, [[value]])
+    NullVal -> #(fmt.placeholder, [[adapter.handle_null()]])
     SubQuery(query) -> {
       let SqlBuilder(sql, vals) = build_single_select(query, adapter)
-      #(fmt.subquery(sql), list.flatten(vals))
+      #(fmt.subquery(sql), vals)
     }
     AnyQuery(query) -> {
       let SqlBuilder(sql, vals) = build_single_select(query, adapter)
-      #(fmt.any(sql), list.flatten(vals))
+      #(fmt.any(sql), vals)
     }
     AllQuery(query) -> {
       let SqlBuilder(sql, vals) = build_single_select(query, adapter)
-      #(fmt.all(sql), list.flatten(vals))
+      #(fmt.all(sql), vals)
     }
   }
 }
@@ -2048,7 +2048,7 @@ fn build_operand(operand: Operand(v), adapter: Adapter(v)) -> #(String, List(v))
 fn build_condition(
   condition: Condition(v),
   adapter: Adapter(v),
-) -> #(String, List(v)) {
+) -> #(String, List(List(v))) {
   case condition {
     Equal(left, right) -> build_binary_condition(left, fmt.eq, right, adapter)
     NotEqual(left, right) ->
@@ -2119,7 +2119,7 @@ fn build_condition(
     }
     Exists(query) -> {
       let SqlBuilder(sql, vals) = build_single_select(query, adapter)
-      #(fmt.exists(sql), list.flatten(vals))
+      #(fmt.exists(sql), vals)
     }
     Raw(sql:) -> #(sql, [])
   }
@@ -2130,10 +2130,11 @@ fn build_binary_condition(
   op: fn(String, String) -> String,
   right: Operand(v),
   adapter: Adapter(v),
-) -> #(String, List(v)) {
+) -> #(String, List(List(v))) {
   let #(ls, lv) = build_operand(left, adapter)
   let #(rs, rv) = build_operand(right, adapter)
-  #(op(ls, rs), list.append(lv, rv))
+
+  #(op(ls, rs), list.prepend(lv, list.flatten(rv)))
 }
 
 fn build_join(
@@ -2163,7 +2164,7 @@ fn build_join(
     |> join_fn(build_table(tbl, adapter))
     |> fmt.on(on_sql)
 
-  SqlBuilder(sql, list.prepend(builder.values, on_vals))
+  SqlBuilder(sql, list.prepend(builder.values, list.flatten(on_vals)))
 }
 
 fn build_union(
