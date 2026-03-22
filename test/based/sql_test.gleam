@@ -865,7 +865,7 @@ pub fn having_test() {
     sql.from(sql.table("employees"))
     |> sql.select([sql.col("department"), sql.count("*") |> sql.col_as("cnt")])
     |> sql.group_by([sql.col("department")])
-    |> sql.having(sql.gt(sql.count("*"), sql.int(5), of: sql.value))
+    |> sql.having([sql.gt(sql.count("*"), sql.int(5), of: sql.value)])
     |> sql.to_query(a())
 
   assert q.sql
@@ -878,8 +878,10 @@ pub fn having_multiple_test() {
     sql.from(sql.table("employees"))
     |> sql.select([sql.col("department")])
     |> sql.group_by([sql.col("department")])
-    |> sql.having(sql.gt(sql.count("*"), sql.int(5), of: sql.value))
-    |> sql.having(sql.gt(sql.avg("salary"), sql.float(50_000.0), of: sql.value))
+    |> sql.having([
+      sql.gt(sql.count("*"), sql.int(5), of: sql.value),
+      sql.gt(sql.avg("salary"), sql.float(50_000.0), of: sql.value),
+    ])
     |> sql.to_query(a())
 
   assert q.sql
@@ -892,7 +894,7 @@ pub fn having_to_string_test() {
     sql.from(sql.table("employees"))
     |> sql.select([sql.col("department"), sql.count("*") |> sql.col_as("cnt")])
     |> sql.group_by([sql.col("department")])
-    |> sql.having(sql.gt(sql.count("*"), sql.int(5), of: sql.value))
+    |> sql.having([sql.gt(sql.count("*"), sql.int(5), of: sql.value)])
     |> sql.to_string(a())
 
   assert s
@@ -1075,7 +1077,7 @@ pub fn complex_query_with_aggregates_having_test() {
     ])
     |> sql.where([sql.eq(sql.col("active"), sql.true, of: sql.value)])
     |> sql.group_by([sql.col("department")])
-    |> sql.having(sql.gt(sql.count("*"), sql.int(3), of: sql.value))
+    |> sql.having([sql.gt(sql.count("*"), sql.int(3), of: sql.value)])
     |> sql.order_by(sql.col("department"), sql.asc)
     |> sql.limit(10)
     |> sql.to_query(a())
@@ -2120,7 +2122,7 @@ pub fn select_group_by_having_to_string_test() {
     sql.from(sql.table("employees"))
     |> sql.select([sql.col("department"), sql.count("*") |> sql.col_as("cnt")])
     |> sql.group_by([sql.col("department")])
-    |> sql.having(sql.gt(sql.count("*"), sql.int(5), of: sql.value))
+    |> sql.having([sql.gt(sql.count("*"), sql.int(5), of: sql.value)])
     |> sql.to_string(a())
 
   assert q

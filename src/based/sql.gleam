@@ -652,7 +652,7 @@ pub opaque type QueryBuilder(kind, v) {
     offset: Option(Int),
     group_by: List(Column),
     distinct: Bool,
-    having: List(Condition(v)),
+    having: List(List(Condition(v))),
     for_update: Bool,
     ctes: List(Cte(v)),
     recursive: Bool,
@@ -1043,14 +1043,14 @@ pub fn distinct(query: QueryBuilder(Select, v)) -> QueryBuilder(Select, v) {
 }
 
 /// Adds a HAVING clause to a SELECT query. Used with GROUP BY to filter
-/// aggregated results.
+/// aggregated results. Multiple `having` calls are combined with AND.
 pub fn having(
   query: QueryBuilder(Select, v),
-  condition: Condition(v),
+  conditions: List(Condition(v)),
 ) -> QueryBuilder(Select, v) {
   case query {
     SelectBuilder(..) ->
-      SelectBuilder(..query, having: list.prepend(query.having, condition))
+      SelectBuilder(..query, having: list.prepend(query.having, conditions))
     _ -> query
   }
 }
@@ -1564,10 +1564,6 @@ type SqlBuilder(v) {
   SqlBuilder(sql: String, values: List(List(v)))
 }
 
-// Each helper takes an accumulator `#(String, List(v))` and appends
-// one optional SQL clause, returning the (possibly unchanged) accumulator.
-// When the clause data is empty/None/False, the acc passes through unchanged.
-
 fn append_where(
   builder: SqlBuilder(v),
   wheres: List(List(Condition(v))),
@@ -1602,12 +1598,13 @@ fn append_where(
 
 fn append_having(
   builder: SqlBuilder(v),
-  having: List(Condition(v)),
+  having: List(List(Condition(v))),
   adapter: Adapter(v),
 ) -> SqlBuilder(v) {
   let having =
     having
     |> list.reverse
+    |> list.flatten
 
   case having {
     [] -> builder
@@ -1863,7 +1860,7 @@ fn build_select(
   offset_val: Option(Int),
   group_by: List(Column),
   distinct: Bool,
-  having: List(Condition(v)),
+  having: List(List(Condition(v))),
   for_update: Bool,
   adapter: Adapter(v),
 ) -> SqlBuilder(v) {
