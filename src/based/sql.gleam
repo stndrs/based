@@ -471,54 +471,55 @@ type Join(v) {
 /// Adds an `INNER JOIN` clause to a SELECT query.
 /// Multiple conditions are combined with AND at render time.
 pub fn inner_join(
-  query: QueryBuilder(Select, v),
+  builder: QueryBuilder(Select, v),
   table table: Table,
   on on: List(Condition(v)),
 ) -> QueryBuilder(Select, v) {
-  prepend_join(query, InnerJoin(table: table, on: on))
+  prepend_join(builder, InnerJoin(table: table, on: on))
 }
 
 /// Adds a `LEFT JOIN` clause to a SELECT query.
 /// Multiple conditions are combined with AND at render time.
 pub fn left_join(
-  query: QueryBuilder(Select, v),
+  builder: QueryBuilder(Select, v),
   table table: Table,
   on on: List(Condition(v)),
 ) -> QueryBuilder(Select, v) {
-  prepend_join(query, LeftJoin(table: table, on: on))
+  prepend_join(builder, LeftJoin(table: table, on: on))
 }
 
 /// Adds a `RIGHT JOIN` clause to a SELECT query.
 /// Multiple conditions are combined with AND at render time.
 pub fn right_join(
-  query: QueryBuilder(Select, v),
+  builder: QueryBuilder(Select, v),
   table table: Table,
   on on: List(Condition(v)),
 ) -> QueryBuilder(Select, v) {
-  prepend_join(query, RightJoin(table: table, on: on))
+  prepend_join(builder, RightJoin(table: table, on: on))
 }
 
 /// Adds a `FULL JOIN` clause to a SELECT query.
 /// Multiple conditions are combined with AND at render time.
 pub fn full_join(
-  query: QueryBuilder(Select, v),
+  builder: QueryBuilder(Select, v),
   table table: Table,
   on on: List(Condition(v)),
 ) -> QueryBuilder(Select, v) {
-  prepend_join(query, FullJoin(table: table, on: on))
+  prepend_join(builder, FullJoin(table: table, on: on))
 }
 
 fn prepend_join(
-  query: QueryBuilder(Select, v),
+  builder: QueryBuilder(Select, v),
   j: Join(v),
 ) -> QueryBuilder(Select, v) {
-  case query {
-    SelectBuilder(..) -> {
+  case builder {
+    SelectBuilder(query:, ctes:, recursive:) -> {
       let joins = list.prepend(query.joins, j)
 
-      SelectBuilder(..query, joins:)
+      SelectQuery(..query, joins:)
+      |> SelectBuilder(ctes:, recursive:)
     }
-    _ -> query
+    _ -> builder
   }
 }
 
@@ -593,16 +594,11 @@ type UnionType {
 
 type FromClause(v) {
   FromTable(Table)
-  FromSubQuery(query: QueryBuilder(Select, v), alias: String)
+  FromSubQuery(builder: QueryBuilder(Select, v), alias: String)
 }
 
-/// The main query builder type, parameterized by a phantom `kind` type
-/// (`Select`, `Insert`, `Update`, `Delete`, or `From(a)`) and a value type `v`.
-///
-/// The phantom type restricts which modifier functions can be applied,
-/// preventing some invalid combinations at compile time.
-pub opaque type QueryBuilder(kind, v) {
-  SelectBuilder(
+type SelectQuery(v) {
+  SelectQuery(
     columns: List(Column),
     from: FromClause(v),
     wheres: List(List(Condition(v))),
@@ -614,18 +610,27 @@ pub opaque type QueryBuilder(kind, v) {
     distinct: Bool,
     having: List(List(Condition(v))),
     for_update: Bool,
-    ctes: List(Cte(v)),
-    recursive: Bool,
   )
-  InsertBuilder(
+}
+
+type InsertQuery(v) {
+  InsertQuery(
     into: Table,
     columns: List(String),
     values: List(List(v)),
     returning: List(Column),
     on_conflict: Option(OnConflict(v)),
-    ctes: List(Cte(v)),
-    recursive: Bool,
   )
+}
+
+/// The main query builder type, parameterized by a phantom `kind` type
+/// (`Select`, `Insert`, `Update`, `Delete`, or `From(a)`) and a value type `v`.
+///
+/// The phantom type restricts which modifier functions can be applied,
+/// preventing some invalid combinations at compile time.
+pub opaque type QueryBuilder(kind, v) {
+  SelectBuilder(query: SelectQuery(v), ctes: List(Cte(v)), recursive: Bool)
+  InsertBuilder(query: InsertQuery(v), ctes: List(Cte(v)), recursive: Bool)
   UpdateBuilder(
     table: Table,
     sets: List(#(String, Operand(v))),
@@ -651,14 +656,14 @@ pub opaque type QueryBuilder(kind, v) {
     recursive: Bool,
   )
   FromTableBuilder(table: Table)
-  FromSubQueryBuilder(query: QueryBuilder(Select, v), alias: String)
+  FromSubQueryBuilder(builder: QueryBuilder(Select, v), alias: String)
 }
 
 /// A Common Table Expression (CTE) for use with `WITH` clauses.
 ///
 /// Created with `cte` and optionally refined with `cte_columns`.
 pub opaque type Cte(v) {
-  Cte(name: String, columns: List(String), query: QueryBuilder(Select, v))
+  Cte(name: String, columns: List(String), builder: QueryBuilder(Select, v))
 }
 
 /// Creates an equality condition.
@@ -752,8 +757,8 @@ pub fn not(condition: Condition(v)) -> Condition(v) {
 }
 
 /// Creates an EXISTS condition.
-pub fn exists(query: QueryBuilder(Select, v)) -> Condition(v) {
-  Exists(query)
+pub fn exists(builder: QueryBuilder(Select, v)) -> Condition(v) {
+  Exists(builder)
 }
 
 /// Creates a raw SQL condition without parameterized values.
@@ -771,16 +776,16 @@ pub fn from(table: Table) -> QueryBuilder(From(Table), v) {
 
 /// Converts a `From` builder into a SELECT query with the given columns.
 pub fn select(
-  query: QueryBuilder(From(a), v),
+  builder: QueryBuilder(From(a), v),
   columns: List(Column),
 ) -> QueryBuilder(Select, v) {
-  let from = case query {
+  let from = case builder {
     FromTableBuilder(table:) -> FromTable(table)
-    FromSubQueryBuilder(query:, alias:) -> FromSubQuery(query:, alias:)
+    FromSubQueryBuilder(builder:, alias:) -> FromSubQuery(builder:, alias:)
     _ -> panic as "select called on non-From builder"
   }
 
-  SelectBuilder(
+  SelectQuery(
     columns: columns,
     from:,
     wheres: [],
@@ -792,22 +797,20 @@ pub fn select(
     distinct: False,
     having: [],
     for_update: False,
-    ctes: [],
-    recursive: False,
   )
+  |> SelectBuilder(ctes: [], recursive: False)
 }
 
 /// Creates a new INSERT query builder for the given table.
 pub fn insert(into tbl: Table) -> QueryBuilder(Insert, v) {
-  InsertBuilder(
+  InsertQuery(
     into: tbl,
     columns: [],
     values: [],
     returning: [],
     on_conflict: None,
-    ctes: [],
-    recursive: False,
   )
+  |> InsertBuilder(ctes: [], recursive: False)
 }
 
 /// Creates a new UPDATE query builder for the given table.
@@ -826,8 +829,8 @@ pub fn update(table tbl: Table) -> QueryBuilder(Update, v) {
 }
 
 /// Converts a `From` builder into a DELETE query.
-pub fn delete(query: QueryBuilder(From(Table), v)) -> QueryBuilder(Delete, v) {
-  case query {
+pub fn delete(builder: QueryBuilder(From(Table), v)) -> QueryBuilder(Delete, v) {
+  case builder {
     FromTableBuilder(table:) -> {
       DeleteBuilder(
         from: table,
@@ -843,10 +846,10 @@ pub fn delete(query: QueryBuilder(From(Table), v)) -> QueryBuilder(Delete, v) {
 
 /// Creates a `From` builder that selects from a subquery instead of a table.
 pub fn from_subquery(
-  query: QueryBuilder(Select, v),
+  builder: QueryBuilder(Select, v),
   alias a: String,
 ) -> QueryBuilder(From(Subquery), v) {
-  FromSubQueryBuilder(query:, alias: a)
+  FromSubQueryBuilder(builder:, alias: a)
 }
 
 /// Adds a WHERE condition to the query. Multiple `where` calls are combined
@@ -854,144 +857,156 @@ pub fn from_subquery(
 ///
 /// Applies to SELECT, UPDATE, and DELETE queries. No-ops on other builder types.
 pub fn where(
-  query: QueryBuilder(a, v),
+  builder: QueryBuilder(a, v),
   conditions: List(Condition(v)),
 ) -> QueryBuilder(a, v) {
-  case query {
-    SelectBuilder(..) ->
-      SelectBuilder(..query, wheres: list.prepend(query.wheres, conditions))
+  case builder {
+    SelectBuilder(query:, ctes:, recursive:) ->
+      SelectQuery(..query, wheres: list.prepend(query.wheres, conditions))
+      |> SelectBuilder(ctes:, recursive:)
+
     UpdateBuilder(..) ->
-      UpdateBuilder(..query, wheres: list.prepend(query.wheres, conditions))
+      UpdateBuilder(..builder, wheres: list.prepend(builder.wheres, conditions))
     DeleteBuilder(..) ->
-      DeleteBuilder(..query, wheres: list.prepend(query.wheres, conditions))
-    _ -> query
+      DeleteBuilder(..builder, wheres: list.prepend(builder.wheres, conditions))
+    _ -> builder
   }
 }
 
 /// Adds a RETURNING clause. Applies to INSERT, UPDATE, and DELETE queries.
 pub fn returning(
-  query: QueryBuilder(a, v),
+  builder: QueryBuilder(a, v),
   columns: List(Column),
 ) -> QueryBuilder(a, v) {
-  case query {
-    InsertBuilder(..) -> InsertBuilder(..query, returning: columns)
-    UpdateBuilder(..) -> UpdateBuilder(..query, returning: columns)
-    DeleteBuilder(..) -> DeleteBuilder(..query, returning: columns)
-    _ -> query
+  case builder {
+    InsertBuilder(query:, ctes:, recursive:) ->
+      InsertQuery(..query, returning: columns)
+      |> InsertBuilder(ctes:, recursive:)
+    UpdateBuilder(..) -> UpdateBuilder(..builder, returning: columns)
+    DeleteBuilder(..) -> DeleteBuilder(..builder, returning: columns)
+    _ -> builder
   }
 }
 
 /// Adds an ORDER BY clause. Can be called multiple times to sort by
 /// multiple columns. Applies to SELECT and UPDATE queries.
 pub fn order_by(
-  query: QueryBuilder(a, v),
+  builder: QueryBuilder(a, v),
   column: Column,
   direction: Order,
 ) -> QueryBuilder(a, v) {
-  case query {
-    SelectBuilder(..) ->
-      SelectBuilder(
+  case builder {
+    SelectBuilder(query:, ctes:, recursive:) ->
+      SelectQuery(
         ..query,
         order_by: list.prepend(query.order_by, OrderBy(column, direction)),
       )
+      |> SelectBuilder(ctes:, recursive:)
     UpdateBuilder(..) ->
       UpdateBuilder(
-        ..query,
-        order_by: list.prepend(query.order_by, OrderBy(column, direction)),
+        ..builder,
+        order_by: list.prepend(builder.order_by, OrderBy(column, direction)),
       )
-    _ -> query
+    _ -> builder
   }
 }
 
 /// Adds a GROUP BY clause to a SELECT query.
 pub fn group_by(
-  query: QueryBuilder(Select, v),
+  builder: QueryBuilder(Select, v),
   columns: List(Column),
 ) -> QueryBuilder(Select, v) {
-  case query {
-    SelectBuilder(..) ->
-      SelectBuilder(..query, group_by: list.append(query.group_by, columns))
-    _ -> query
+  case builder {
+    SelectBuilder(query:, ctes:, recursive:) ->
+      SelectQuery(..query, group_by: list.append(query.group_by, columns))
+      |> SelectBuilder(ctes:, recursive:)
+    _ -> builder
   }
 }
 
 /// Adds a LIMIT clause. Applies to SELECT and UPDATE queries.
-pub fn limit(query: QueryBuilder(a, v), n: Int) -> QueryBuilder(a, v) {
-  case query {
-    SelectBuilder(..) -> SelectBuilder(..query, limit: Some(n))
-    UpdateBuilder(..) -> UpdateBuilder(..query, limit: Some(n))
-    _ -> query
+pub fn limit(builder: QueryBuilder(a, v), n: Int) -> QueryBuilder(a, v) {
+  case builder {
+    SelectBuilder(query:, ctes:, recursive:) ->
+      SelectQuery(..query, limit: Some(n)) |> SelectBuilder(ctes:, recursive:)
+    UpdateBuilder(..) -> UpdateBuilder(..builder, limit: Some(n))
+    _ -> builder
   }
 }
 
 /// Adds an OFFSET clause. Applies to SELECT and UPDATE queries.
-pub fn offset(query: QueryBuilder(a, v), n: Int) -> QueryBuilder(a, v) {
-  case query {
-    SelectBuilder(..) -> SelectBuilder(..query, offset: Some(n))
-    UpdateBuilder(..) -> UpdateBuilder(..query, offset: Some(n))
-    _ -> query
+pub fn offset(builder: QueryBuilder(a, v), n: Int) -> QueryBuilder(a, v) {
+  case builder {
+    SelectBuilder(query:, ctes:, recursive:) ->
+      SelectQuery(..query, offset: Some(n)) |> SelectBuilder(ctes:, recursive:)
+    UpdateBuilder(..) -> UpdateBuilder(..builder, offset: Some(n))
+    _ -> builder
   }
 }
 
 /// Adds `SELECT DISTINCT` to a SELECT query.
-pub fn distinct(query: QueryBuilder(Select, v)) -> QueryBuilder(Select, v) {
-  case query {
-    SelectBuilder(..) -> SelectBuilder(..query, distinct: True)
-    _ -> query
+pub fn distinct(builder: QueryBuilder(Select, v)) -> QueryBuilder(Select, v) {
+  case builder {
+    SelectBuilder(query:, ctes:, recursive:) ->
+      SelectQuery(..query, distinct: True) |> SelectBuilder(ctes:, recursive:)
+    _ -> builder
   }
 }
 
 /// Adds a HAVING clause to a SELECT query. Used with GROUP BY to filter
 /// aggregated results. Multiple `having` calls are combined with AND.
 pub fn having(
-  query: QueryBuilder(Select, v),
+  builder: QueryBuilder(Select, v),
   conditions: List(Condition(v)),
 ) -> QueryBuilder(Select, v) {
-  case query {
-    SelectBuilder(..) ->
-      SelectBuilder(..query, having: list.prepend(query.having, conditions))
-    _ -> query
+  case builder {
+    SelectBuilder(query:, ctes:, recursive:) ->
+      SelectQuery(..query, having: list.prepend(query.having, conditions))
+      |> SelectBuilder(ctes:, recursive:)
+    _ -> builder
   }
 }
 
 /// Adds `FOR UPDATE` to a SELECT query for row-level locking.
-pub fn for_update(query: QueryBuilder(Select, v)) -> QueryBuilder(Select, v) {
-  case query {
-    SelectBuilder(..) -> SelectBuilder(..query, for_update: True)
-    _ -> query
+pub fn for_update(builder: QueryBuilder(Select, v)) -> QueryBuilder(Select, v) {
+  case builder {
+    SelectBuilder(query:, ctes:, recursive:) ->
+      SelectQuery(..query, for_update: True) |> SelectBuilder(ctes:, recursive:)
+    _ -> builder
   }
 }
 
 /// Sets the rows to insert. Columns are extracted from the first row.
 /// Replaces any previously set values.
 pub fn values(
-  query: QueryBuilder(Insert, v),
+  builder: QueryBuilder(Insert, v),
   rows: List(Row(v)),
 ) -> QueryBuilder(Insert, v) {
-  case query {
-    InsertBuilder(..) -> {
+  case builder {
+    InsertBuilder(query:, ctes:, recursive:) -> {
       let extracted = list.map(rows, fn(row) { row_to_columns_and_values(row) })
       let columns = case extracted {
         [#(cols, _), ..] -> cols
         [] -> []
       }
       let value_rows = list.map(extracted, fn(pair) { pair.1 })
-      InsertBuilder(..query, columns: columns, values: value_rows)
+      InsertQuery(..query, columns: columns, values: value_rows)
+      |> InsertBuilder(ctes:, recursive:)
     }
-    _ -> query
+    _ -> builder
   }
 }
 
 /// Adds an ON CONFLICT clause to an INSERT query (upsert).
 pub fn on_conflict(
-  query: QueryBuilder(Insert, v),
+  builder: QueryBuilder(Insert, v),
   target target: String,
   action action: ConflictAction(v),
   where wheres: List(Condition(v)),
 ) -> QueryBuilder(Insert, v) {
-  case query {
-    InsertBuilder(..) ->
-      InsertBuilder(
+  case builder {
+    InsertBuilder(query:, ctes:, recursive:) ->
+      InsertQuery(
         ..query,
         on_conflict: Some(OnConflict(
           target: target,
@@ -999,7 +1014,8 @@ pub fn on_conflict(
           wheres: wheres,
         )),
       )
-    _ -> query
+      |> InsertBuilder(ctes:, recursive:)
+    _ -> builder
   }
 }
 
@@ -1057,24 +1073,24 @@ pub fn list(of map: fn(a) -> v) -> Kind(a, v) {
 
 /// Sets a column to a value in an UPDATE query. Can be called multiple times.
 pub fn set(
-  query: QueryBuilder(Update, v),
+  builder: QueryBuilder(Update, v),
   column: String,
   input: a,
   of kind: Kind(a, v),
 ) -> QueryBuilder(Update, v) {
-  case query {
+  case builder {
     UpdateBuilder(..) ->
       UpdateBuilder(
-        ..query,
-        sets: list.prepend(query.sets, #(column, kind.to_operand(input))),
+        ..builder,
+        sets: list.prepend(builder.sets, #(column, kind.to_operand(input))),
       )
-    _ -> query
+    _ -> builder
   }
 }
 
 /// Creates a Common Table Expression (CTE).
-pub fn cte(name name: String, query query: QueryBuilder(Select, v)) -> Cte(v) {
-  Cte(name: name, columns: [], query: query)
+pub fn cte(name name: String, query builder: QueryBuilder(Select, v)) -> Cte(v) {
+  Cte(name: name, columns: [], builder: builder)
 }
 
 /// Sets explicit column names on a CTE. Renders as `name(col1, col2) AS (...)`.
@@ -1084,30 +1100,30 @@ pub fn cte_columns(cte c: Cte(v), columns cols: List(String)) -> Cte(v) {
 
 /// Attaches CTEs to a query as a `WITH` clause.
 pub fn with(
-  query: QueryBuilder(a, v),
+  builder: QueryBuilder(a, v),
   ctes ctes: List(Cte(v)),
 ) -> QueryBuilder(a, v) {
-  case query {
-    SelectBuilder(..) -> SelectBuilder(..query, ctes: ctes)
-    InsertBuilder(..) -> InsertBuilder(..query, ctes: ctes)
-    UpdateBuilder(..) -> UpdateBuilder(..query, ctes: ctes)
-    DeleteBuilder(..) -> DeleteBuilder(..query, ctes: ctes)
-    UnionBuilder(..) -> UnionBuilder(..query, ctes: ctes)
-    FromTableBuilder(..) -> query
-    FromSubQueryBuilder(..) -> query
+  case builder {
+    SelectBuilder(..) -> SelectBuilder(..builder, ctes:)
+    InsertBuilder(..) -> InsertBuilder(..builder, ctes:)
+    UpdateBuilder(..) -> UpdateBuilder(..builder, ctes: ctes)
+    DeleteBuilder(..) -> DeleteBuilder(..builder, ctes: ctes)
+    UnionBuilder(..) -> UnionBuilder(..builder, ctes: ctes)
+    FromTableBuilder(..) -> builder
+    FromSubQueryBuilder(..) -> builder
   }
 }
 
 /// Marks the query's WITH clause as `WITH RECURSIVE`.
-pub fn recursive(query: QueryBuilder(a, v)) -> QueryBuilder(a, v) {
-  case query {
-    SelectBuilder(..) -> SelectBuilder(..query, recursive: True)
-    InsertBuilder(..) -> InsertBuilder(..query, recursive: True)
-    UpdateBuilder(..) -> UpdateBuilder(..query, recursive: True)
-    DeleteBuilder(..) -> DeleteBuilder(..query, recursive: True)
-    UnionBuilder(..) -> UnionBuilder(..query, recursive: True)
-    FromTableBuilder(..) -> query
-    FromSubQueryBuilder(..) -> query
+pub fn recursive(builder: QueryBuilder(a, v)) -> QueryBuilder(a, v) {
+  case builder {
+    SelectBuilder(..) -> SelectBuilder(..builder, recursive: True)
+    InsertBuilder(..) -> InsertBuilder(..builder, recursive: True)
+    UpdateBuilder(..) -> UpdateBuilder(..builder, recursive: True)
+    DeleteBuilder(..) -> DeleteBuilder(..builder, recursive: True)
+    UnionBuilder(..) -> UnionBuilder(..builder, recursive: True)
+    FromTableBuilder(..) -> builder
+    FromSubQueryBuilder(..) -> builder
   }
 }
 
@@ -1115,15 +1131,15 @@ pub fn recursive(query: QueryBuilder(a, v)) -> QueryBuilder(a, v) {
 ///
 /// Can be chained to union multiple queries.
 pub fn union(
-  query: QueryBuilder(Select, v),
+  builder: QueryBuilder(Select, v),
   other: QueryBuilder(Select, v),
 ) -> QueryBuilder(Select, v) {
-  case query {
+  case builder {
     UnionBuilder(selects:, union_type: Union, ..) ->
-      UnionBuilder(..query, selects: list.prepend(selects, other))
+      UnionBuilder(..builder, selects: list.prepend(selects, other))
     _ ->
       UnionBuilder(
-        selects: [other, query],
+        selects: [other, builder],
         union_type: Union,
         ctes: [],
         recursive: False,
@@ -1133,15 +1149,15 @@ pub fn union(
 
 /// Combines two SELECT queries with `UNION ALL`.
 pub fn union_all(
-  query: QueryBuilder(Select, v),
+  builder: QueryBuilder(Select, v),
   other: QueryBuilder(Select, v),
 ) -> QueryBuilder(Select, v) {
-  case query {
+  case builder {
     UnionBuilder(selects:, union_type: UnionAll, ..) ->
-      UnionBuilder(..query, selects: list.prepend(selects, other))
+      UnionBuilder(..builder, selects: list.prepend(selects, other))
     _ ->
       UnionBuilder(
-        selects: [other, query],
+        selects: [other, builder],
         union_type: UnionAll,
         ctes: [],
         recursive: False,
@@ -1153,8 +1169,8 @@ pub fn union_all(
 ///
 /// Returns a `Query` record with `.sql` containing the SQL string with
 /// placeholders and `.values` containing the parameter values in order.
-pub fn to_query(query: QueryBuilder(a, v), adapter: Adapter(v)) -> Query(v) {
-  let SqlBuilder(sql, values) = build_query(query, adapter)
+pub fn to_query(builder: QueryBuilder(a, v), adapter: Adapter(v)) -> Query(v) {
+  let SqlBuilder(sql, values) = build_query(builder, adapter)
   let sql = replace_placeholders(sql, adapter)
   let values = values |> list.reverse |> list.flatten
 
@@ -1165,8 +1181,8 @@ pub fn to_query(query: QueryBuilder(a, v), adapter: Adapter(v)) -> Query(v) {
 ///
 /// Values are formatted using the adapter's `on_value` handler. This is useful
 /// for debugging and logging — use `to_query` for actual database execution.
-pub fn to_string(query: QueryBuilder(a, v), adapter: Adapter(v)) -> String {
-  let SqlBuilder(sql, values) = build_query(query, adapter)
+pub fn to_string(builder: QueryBuilder(a, v), adapter: Adapter(v)) -> String {
+  let SqlBuilder(sql, values) = build_query(builder, adapter)
   let values = values |> list.reverse |> list.flatten
 
   replace_with_values(sql, values, adapter)
@@ -1521,8 +1537,11 @@ fn append_returning(
   }
 }
 
-fn build_query(query: QueryBuilder(a, v), adapter: Adapter(v)) -> SqlBuilder(v) {
-  let #(ctes, recursive) = case query {
+fn build_query(
+  builder: QueryBuilder(a, v),
+  adapter: Adapter(v),
+) -> SqlBuilder(v) {
+  let #(ctes, recursive) = case builder {
     SelectBuilder(ctes:, recursive:, ..) -> #(ctes, recursive)
     InsertBuilder(ctes:, recursive:, ..) -> #(ctes, recursive)
     UpdateBuilder(ctes:, recursive:, ..) -> #(ctes, recursive)
@@ -1534,37 +1553,9 @@ fn build_query(query: QueryBuilder(a, v), adapter: Adapter(v)) -> SqlBuilder(v) 
 
   let SqlBuilder(cte_prefix, cte_vals) = build_ctes(ctes, recursive, adapter)
 
-  let SqlBuilder(sql, values) = case query {
-    SelectBuilder(
-      columns:,
-      from:,
-      wheres:,
-      joins:,
-      order_by:,
-      limit:,
-      offset:,
-      group_by:,
-      distinct:,
-      having:,
-      for_update:,
-      ..,
-    ) ->
-      build_select(
-        columns,
-        from,
-        wheres,
-        joins,
-        order_by,
-        limit,
-        offset,
-        group_by,
-        distinct,
-        having,
-        for_update,
-        adapter,
-      )
-    InsertBuilder(into:, columns:, values:, returning:, on_conflict:, ..) ->
-      build_insert(into, columns, values, returning, on_conflict, adapter)
+  let SqlBuilder(sql, values) = case builder {
+    SelectBuilder(query:, ..) -> build_select(query, adapter)
+    InsertBuilder(query:, ..) -> build_insert(query, adapter)
     UpdateBuilder(
       table:,
       sets:,
@@ -1614,7 +1605,7 @@ fn build_ctes(
       let #(cte_parts, all_vals) = {
         use #(parts, vals), cte <- list.fold(ctes, #([], []))
 
-        let sql_builder = build_single_select(cte.query, adapter)
+        let sql_builder = build_single_select(cte.builder, adapter)
         let col_part = case cte.columns {
           [] -> ""
           cols -> fmt.enclose(string.join(cols, ", "))
@@ -1645,31 +1636,18 @@ fn build_ctes(
   }
 }
 
-fn build_select(
-  columns: List(Column),
-  from: FromClause(v),
-  wheres: List(List(Condition(v))),
-  joins: List(Join(v)),
-  order_by: List(OrderBy),
-  limit_val: Option(Int),
-  offset_val: Option(Int),
-  group_by: List(Column),
-  distinct: Bool,
-  having: List(List(Condition(v))),
-  for_update: Bool,
-  adapter: Adapter(v),
-) -> SqlBuilder(v) {
-  let select_fn = case distinct {
+fn build_select(query: SelectQuery(v), adapter: Adapter(v)) -> SqlBuilder(v) {
+  let select_fn = case query.distinct {
     True -> fmt.select_distinct
     False -> fmt.select
   }
 
   let select_start =
-    columns
+    query.columns
     |> build_columns(adapter)
     |> select_fn
 
-  let builder = case from {
+  let builder = case query.from {
     FromTable(table) -> {
       table
       |> build_table(adapter)
@@ -1687,26 +1665,19 @@ fn build_select(
 
   fmt.from(select_start, builder.sql)
   |> SqlBuilder(builder.values)
-  |> append_joins(joins, adapter)
-  |> append_where(wheres, adapter)
-  |> append_group_by(group_by, adapter)
-  |> append_having(having, adapter)
-  |> append_order_by(order_by, adapter)
-  |> append_limit(limit_val)
-  |> append_offset(offset_val)
-  |> append_for_update(for_update)
+  |> append_joins(query.joins, adapter)
+  |> append_where(query.wheres, adapter)
+  |> append_group_by(query.group_by, adapter)
+  |> append_having(query.having, adapter)
+  |> append_order_by(query.order_by, adapter)
+  |> append_limit(query.limit)
+  |> append_offset(query.offset)
+  |> append_for_update(query.for_update)
 }
 
-fn build_insert(
-  into: Table,
-  columns: List(String),
-  values: List(List(v)),
-  returning: List(Column),
-  on_conflict: Option(OnConflict(v)),
-  adapter: Adapter(v),
-) -> SqlBuilder(v) {
+fn build_insert(query: InsertQuery(v), adapter: Adapter(v)) -> SqlBuilder(v) {
   let #(placeholders, values) = {
-    use #(rows, vals), row <- list.fold(values, #([], []))
+    use #(rows, vals), row <- list.fold(query.values, #([], []))
 
     let row_placeholders =
       row
@@ -1717,16 +1688,16 @@ fn build_insert(
     #(list.prepend(rows, row_placeholders), list.prepend(vals, row))
   }
 
-  let columns = list.map(columns, adapter.handle_identifier)
+  let columns = list.map(query.columns, adapter.handle_identifier)
 
   let sql =
-    into
+    query.into
     |> build_table(adapter)
     |> fmt.insert(columns:, values: placeholders)
 
   SqlBuilder(sql:, values:)
-  |> append_on_conflict(on_conflict, adapter)
-  |> append_returning(returning, adapter)
+  |> append_on_conflict(query.on_conflict, adapter)
+  |> append_returning(query.returning, adapter)
 }
 
 fn append_on_conflict(
@@ -1996,38 +1967,11 @@ fn build_union(
 }
 
 fn build_single_select(
-  query: QueryBuilder(Select, v),
+  builder: QueryBuilder(Select, v),
   adapter: Adapter(v),
 ) -> SqlBuilder(v) {
-  case query {
-    SelectBuilder(
-      columns:,
-      from:,
-      wheres:,
-      joins:,
-      order_by:,
-      limit:,
-      offset:,
-      group_by:,
-      distinct:,
-      having:,
-      for_update:,
-      ..,
-    ) ->
-      build_select(
-        columns,
-        from,
-        wheres,
-        joins,
-        order_by,
-        limit,
-        offset,
-        group_by,
-        distinct,
-        having,
-        for_update,
-        adapter,
-      )
+  case builder {
+    SelectBuilder(query:, ..) -> build_select(query, adapter)
     UnionBuilder(selects:, union_type:, ..) ->
       build_union(selects, union_type, adapter)
     _ -> SqlBuilder("", [])
