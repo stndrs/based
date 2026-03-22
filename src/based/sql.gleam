@@ -623,6 +623,26 @@ type InsertQuery(v) {
   )
 }
 
+type UpdateQuery(v) {
+  UpdateQuery(
+    table: Table,
+    sets: List(#(String, Operand(v))),
+    wheres: List(List(Condition(v))),
+    returning: List(Column),
+    order_by: List(OrderBy),
+    limit: Option(Int),
+    offset: Option(Int),
+  )
+}
+
+type DeleteQuery(v) {
+  DeleteQuery(
+    from: Table,
+    wheres: List(List(Condition(v))),
+    returning: List(Column),
+  )
+}
+
 /// The main query builder type, parameterized by a phantom `kind` type
 /// (`Select`, `Insert`, `Update`, `Delete`, or `From(a)`) and a value type `v`.
 ///
@@ -631,24 +651,8 @@ type InsertQuery(v) {
 pub opaque type QueryBuilder(kind, v) {
   SelectBuilder(query: SelectQuery(v), ctes: List(Cte(v)), recursive: Bool)
   InsertBuilder(query: InsertQuery(v), ctes: List(Cte(v)), recursive: Bool)
-  UpdateBuilder(
-    table: Table,
-    sets: List(#(String, Operand(v))),
-    wheres: List(List(Condition(v))),
-    returning: List(Column),
-    order_by: List(OrderBy),
-    limit: Option(Int),
-    offset: Option(Int),
-    ctes: List(Cte(v)),
-    recursive: Bool,
-  )
-  DeleteBuilder(
-    from: Table,
-    wheres: List(List(Condition(v))),
-    returning: List(Column),
-    ctes: List(Cte(v)),
-    recursive: Bool,
-  )
+  UpdateBuilder(query: UpdateQuery(v), ctes: List(Cte(v)), recursive: Bool)
+  DeleteBuilder(query: DeleteQuery(v), ctes: List(Cte(v)), recursive: Bool)
   UnionBuilder(
     selects: List(QueryBuilder(Select, v)),
     union_type: UnionType,
@@ -815,7 +819,7 @@ pub fn insert(into tbl: Table) -> QueryBuilder(Insert, v) {
 
 /// Creates a new UPDATE query builder for the given table.
 pub fn update(table tbl: Table) -> QueryBuilder(Update, v) {
-  UpdateBuilder(
+  UpdateQuery(
     table: tbl,
     sets: [],
     wheres: [],
@@ -823,22 +827,16 @@ pub fn update(table tbl: Table) -> QueryBuilder(Update, v) {
     order_by: [],
     limit: None,
     offset: None,
-    ctes: [],
-    recursive: False,
   )
+  |> UpdateBuilder(ctes: [], recursive: False)
 }
 
 /// Converts a `From` builder into a DELETE query.
 pub fn delete(builder: QueryBuilder(From(Table), v)) -> QueryBuilder(Delete, v) {
   case builder {
     FromTableBuilder(table:) -> {
-      DeleteBuilder(
-        from: table,
-        wheres: [],
-        returning: [],
-        ctes: [],
-        recursive: False,
-      )
+      DeleteQuery(from: table, wheres: [], returning: [])
+      |> DeleteBuilder(ctes: [], recursive: False)
     }
     _ -> panic as "delete called on non-From(Table) builder"
   }
@@ -865,10 +863,12 @@ pub fn where(
       SelectQuery(..query, wheres: list.prepend(query.wheres, conditions))
       |> SelectBuilder(ctes:, recursive:)
 
-    UpdateBuilder(..) ->
-      UpdateBuilder(..builder, wheres: list.prepend(builder.wheres, conditions))
-    DeleteBuilder(..) ->
-      DeleteBuilder(..builder, wheres: list.prepend(builder.wheres, conditions))
+    UpdateBuilder(query:, ctes:, recursive:) ->
+      UpdateQuery(..query, wheres: list.prepend(query.wheres, conditions))
+      |> UpdateBuilder(ctes:, recursive:)
+    DeleteBuilder(query:, ctes:, recursive:) ->
+      DeleteQuery(..query, wheres: list.prepend(query.wheres, conditions))
+      |> DeleteBuilder(ctes:, recursive:)
     _ -> builder
   }
 }
@@ -882,8 +882,12 @@ pub fn returning(
     InsertBuilder(query:, ctes:, recursive:) ->
       InsertQuery(..query, returning: columns)
       |> InsertBuilder(ctes:, recursive:)
-    UpdateBuilder(..) -> UpdateBuilder(..builder, returning: columns)
-    DeleteBuilder(..) -> DeleteBuilder(..builder, returning: columns)
+    UpdateBuilder(query:, ctes:, recursive:) ->
+      UpdateQuery(..query, returning: columns)
+      |> UpdateBuilder(ctes:, recursive:)
+    DeleteBuilder(query:, ctes:, recursive:) ->
+      DeleteQuery(..query, returning: columns)
+      |> DeleteBuilder(ctes:, recursive:)
     _ -> builder
   }
 }
@@ -902,11 +906,12 @@ pub fn order_by(
         order_by: list.prepend(query.order_by, OrderBy(column, direction)),
       )
       |> SelectBuilder(ctes:, recursive:)
-    UpdateBuilder(..) ->
-      UpdateBuilder(
-        ..builder,
-        order_by: list.prepend(builder.order_by, OrderBy(column, direction)),
+    UpdateBuilder(query:, ctes:, recursive:) ->
+      UpdateQuery(
+        ..query,
+        order_by: list.prepend(query.order_by, OrderBy(column, direction)),
       )
+      |> UpdateBuilder(ctes:, recursive:)
     _ -> builder
   }
 }
@@ -929,7 +934,8 @@ pub fn limit(builder: QueryBuilder(a, v), n: Int) -> QueryBuilder(a, v) {
   case builder {
     SelectBuilder(query:, ctes:, recursive:) ->
       SelectQuery(..query, limit: Some(n)) |> SelectBuilder(ctes:, recursive:)
-    UpdateBuilder(..) -> UpdateBuilder(..builder, limit: Some(n))
+    UpdateBuilder(query:, ctes:, recursive:) ->
+      UpdateQuery(..query, limit: Some(n)) |> UpdateBuilder(ctes:, recursive:)
     _ -> builder
   }
 }
@@ -939,7 +945,8 @@ pub fn offset(builder: QueryBuilder(a, v), n: Int) -> QueryBuilder(a, v) {
   case builder {
     SelectBuilder(query:, ctes:, recursive:) ->
       SelectQuery(..query, offset: Some(n)) |> SelectBuilder(ctes:, recursive:)
-    UpdateBuilder(..) -> UpdateBuilder(..builder, offset: Some(n))
+    UpdateBuilder(query:, ctes:, recursive:) ->
+      UpdateQuery(..query, offset: Some(n)) |> UpdateBuilder(ctes:, recursive:)
     _ -> builder
   }
 }
@@ -1079,11 +1086,12 @@ pub fn set(
   of kind: Kind(a, v),
 ) -> QueryBuilder(Update, v) {
   case builder {
-    UpdateBuilder(..) ->
-      UpdateBuilder(
-        ..builder,
-        sets: list.prepend(builder.sets, #(column, kind.to_operand(input))),
+    UpdateBuilder(query:, ctes:, recursive:) ->
+      UpdateQuery(
+        ..query,
+        sets: list.prepend(query.sets, #(column, kind.to_operand(input))),
       )
+      |> UpdateBuilder(ctes:, recursive:)
     _ -> builder
   }
 }
@@ -1556,28 +1564,8 @@ fn build_query(
   let SqlBuilder(sql, values) = case builder {
     SelectBuilder(query:, ..) -> build_select(query, adapter)
     InsertBuilder(query:, ..) -> build_insert(query, adapter)
-    UpdateBuilder(
-      table:,
-      sets:,
-      wheres:,
-      returning:,
-      order_by:,
-      limit: limit_val,
-      offset: offset_val,
-      ..,
-    ) ->
-      build_update(
-        table,
-        sets,
-        wheres,
-        returning,
-        order_by,
-        limit_val,
-        offset_val,
-        adapter,
-      )
-    DeleteBuilder(from:, wheres:, returning:, ..) ->
-      build_delete(from, wheres, returning, adapter)
+    UpdateBuilder(query:, ..) -> build_update(query, adapter)
+    DeleteBuilder(query:, ..) -> build_delete(query, adapter)
     UnionBuilder(selects:, union_type:, ..) ->
       build_union(selects, union_type, adapter)
     FromTableBuilder(..) -> SqlBuilder("", [])
@@ -1729,26 +1717,17 @@ fn append_on_conflict(
   }
 }
 
-fn build_update(
-  table: Table,
-  sets: List(#(String, Operand(v))),
-  wheres: List(List(Condition(v))),
-  returning: List(Column),
-  order_by: List(OrderBy),
-  limit_val: Option(Int),
-  offset_val: Option(Int),
-  adapter: Adapter(v),
-) -> SqlBuilder(v) {
-  table
+fn build_update(query: UpdateQuery(v), adapter: Adapter(v)) -> SqlBuilder(v) {
+  query.table
   |> build_table(adapter)
   |> fmt.update
   |> SqlBuilder([])
-  |> append_sets(sets, adapter)
-  |> append_where(wheres, adapter)
-  |> append_order_by(order_by, adapter)
-  |> append_limit(limit_val)
-  |> append_offset(offset_val)
-  |> append_returning(returning, adapter)
+  |> append_sets(query.sets, adapter)
+  |> append_where(query.wheres, adapter)
+  |> append_order_by(query.order_by, adapter)
+  |> append_limit(query.limit)
+  |> append_offset(query.offset)
+  |> append_returning(query.returning, adapter)
 }
 
 fn append_sets(
@@ -1779,18 +1758,13 @@ fn append_sets(
   |> SqlBuilder(list.prepend(builder.values, values))
 }
 
-fn build_delete(
-  from: Table,
-  wheres: List(List(Condition(v))),
-  returning: List(Column),
-  adapter: Adapter(v),
-) -> SqlBuilder(v) {
-  from
+fn build_delete(query: DeleteQuery(v), adapter: Adapter(v)) -> SqlBuilder(v) {
+  query.from
   |> build_table(adapter)
   |> fmt.delete
   |> SqlBuilder([])
-  |> append_where(wheres, adapter)
-  |> append_returning(returning, adapter)
+  |> append_where(query.wheres, adapter)
+  |> append_returning(query.returning, adapter)
 }
 
 fn build_operand(
