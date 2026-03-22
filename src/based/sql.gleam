@@ -645,7 +645,7 @@ pub opaque type QueryBuilder(kind, v) {
   SelectBuilder(
     columns: List(Column),
     from: FromClause(v),
-    wheres: List(Condition(v)),
+    wheres: List(List(Condition(v))),
     joins: List(Join(v)),
     order_by: List(OrderBy),
     limit: Option(Int),
@@ -669,7 +669,7 @@ pub opaque type QueryBuilder(kind, v) {
   UpdateBuilder(
     table: Table,
     sets: List(#(String, Operand(v))),
-    wheres: List(Condition(v)),
+    wheres: List(List(Condition(v))),
     returning: List(Column),
     order_by: List(OrderBy),
     limit: Option(Int),
@@ -679,7 +679,7 @@ pub opaque type QueryBuilder(kind, v) {
   )
   DeleteBuilder(
     from: Table,
-    wheres: List(Condition(v)),
+    wheres: List(List(Condition(v))),
     returning: List(Column),
     ctes: List(Cte(v)),
     recursive: Bool,
@@ -948,70 +948,17 @@ pub fn from_subquery(
 /// Applies to SELECT, UPDATE, and DELETE queries. No-ops on other builder types.
 pub fn where(
   query: QueryBuilder(a, v),
-  condition: Condition(v),
+  conditions: List(Condition(v)),
 ) -> QueryBuilder(a, v) {
   case query {
     SelectBuilder(..) ->
-      SelectBuilder(..query, wheres: list.prepend(query.wheres, condition))
+      SelectBuilder(..query, wheres: list.prepend(query.wheres, conditions))
     UpdateBuilder(..) ->
-      UpdateBuilder(..query, wheres: list.prepend(query.wheres, condition))
+      UpdateBuilder(..query, wheres: list.prepend(query.wheres, conditions))
     DeleteBuilder(..) ->
-      DeleteBuilder(..query, wheres: list.prepend(query.wheres, condition))
+      DeleteBuilder(..query, wheres: list.prepend(query.wheres, conditions))
     _ -> query
   }
-}
-
-/// Adds a WHERE condition combined with OR against the existing conditions.
-///
-/// If there are no existing conditions, behaves like `where`. Otherwise,
-/// wraps all existing conditions in an AND group and ORs with the new condition.
-pub fn or_where(
-  query: QueryBuilder(a, v),
-  condition: Condition(v),
-) -> QueryBuilder(a, v) {
-  case query {
-    SelectBuilder(..) ->
-      case query.wheres {
-        [] -> SelectBuilder(..query, wheres: [condition])
-        existing ->
-          SelectBuilder(..query, wheres: [
-            Or(combine_conditions(existing), condition),
-          ])
-      }
-    UpdateBuilder(..) ->
-      case query.wheres {
-        [] -> UpdateBuilder(..query, wheres: [condition])
-        existing ->
-          UpdateBuilder(..query, wheres: [
-            Or(combine_conditions(existing), condition),
-          ])
-      }
-    DeleteBuilder(..) ->
-      case query.wheres {
-        [] -> DeleteBuilder(..query, wheres: [condition])
-        existing ->
-          DeleteBuilder(..query, wheres: [
-            Or(combine_conditions(existing), condition),
-          ])
-      }
-    _ -> query
-  }
-}
-
-/// Adds a negated WHERE condition (`WHERE NOT condition`).
-pub fn where_not(
-  query: QueryBuilder(a, v),
-  condition: Condition(v),
-) -> QueryBuilder(a, v) {
-  where(query, Not(condition))
-}
-
-/// Adds a `WHERE EXISTS (subquery)` condition to a SELECT query.
-pub fn where_exists(
-  query: QueryBuilder(Select, v),
-  subquery sub: QueryBuilder(Select, v),
-) -> QueryBuilder(Select, v) {
-  where(query, Exists(sub))
 }
 
 /// Adds a RETURNING clause. Applies to INSERT, UPDATE, and DELETE queries.
@@ -1623,18 +1570,28 @@ type SqlBuilder(v) {
 
 fn append_where(
   builder: SqlBuilder(v),
-  wheres: List(Condition(v)),
+  wheres: List(List(Condition(v))),
   adapter: Adapter(v),
 ) -> SqlBuilder(v) {
+  let wheres =
+    wheres
+    |> list.reverse
+    |> list.flatten
+
   case wheres {
     [] -> builder
-    _ -> {
-      let combined =
-        wheres
-        |> list.reverse
-        |> combine_conditions
+    [where] -> {
+      let #(ws, wv) = build_condition(where, adapter)
 
-      let #(ws, wv) = build_condition(combined, adapter)
+      builder.sql
+      |> fmt.where(ws)
+      |> SqlBuilder(list.prepend(builder.values, wv))
+    }
+    [first, ..rest] -> {
+      let #(ws, wv) =
+        rest
+        |> list.fold(first, And)
+        |> build_condition(adapter)
 
       builder.sql
       |> fmt.where(ws)
@@ -1648,15 +1605,25 @@ fn append_having(
   having: List(Condition(v)),
   adapter: Adapter(v),
 ) -> SqlBuilder(v) {
+  let having =
+    having
+    |> list.reverse
+
   case having {
     [] -> builder
-    _ -> {
-      let combined =
-        having
-        |> list.reverse
-        |> combine_conditions
+    [single] -> {
+      let #(hs, hv) = build_condition(single, adapter)
 
-      let #(hs, hv) = build_condition(combined, adapter)
+      builder.sql
+      |> fmt.having(hs)
+      |> SqlBuilder(list.prepend(builder.values, hv))
+    }
+    [first, ..rest] -> {
+      let #(hs, hv) =
+        rest
+        |> list.fold(first, And)
+        |> build_condition(adapter)
+
       builder.sql
       |> fmt.having(hs)
       |> SqlBuilder(list.prepend(builder.values, hv))
@@ -1672,9 +1639,7 @@ fn append_joins(
   joins
   |> list.reverse
   |> list.fold(builder, fn(builder1, join) {
-    let #(joins, join_values) = build_join(builder1.sql, join, adapter)
-
-    SqlBuilder(joins, list.prepend(builder1.values, join_values))
+    build_join(builder1, join, adapter)
   })
 }
 
@@ -1886,7 +1851,7 @@ fn build_ctes(
 fn build_select(
   columns: List(Column),
   from: FromClause(v),
-  wheres: List(Condition(v)),
+  wheres: List(List(Condition(v))),
   joins: List(Join(v)),
   order_by: List(OrderBy),
   limit_val: Option(Int),
@@ -1897,22 +1862,34 @@ fn build_select(
   for_update: Bool,
   adapter: Adapter(v),
 ) -> SqlBuilder(v) {
-  let cols_sql = build_columns(columns, adapter)
-  let select_start = case distinct {
-    True -> fmt.select_distinct(cols_sql)
-    False -> fmt.select(cols_sql)
+  let select_fn = case distinct {
+    True -> fmt.select_distinct
+    False -> fmt.select
   }
-  let #(from_sql, from_vals) = case from {
-    FromTable(tbl) -> #(build_table(tbl, adapter), [])
-    FromSubQuery(query, alias) -> {
-      let SqlBuilder(sql, vals) = build_single_select(query, adapter)
 
-      #(fmt.alias_as(fmt.enclose(sql), adapter.handle_identifier(alias)), vals)
+  let select_start =
+    columns
+    |> build_columns(adapter)
+    |> select_fn
+
+  let builder = case from {
+    FromTable(table) -> {
+      table
+      |> build_table(adapter)
+      |> SqlBuilder([])
+    }
+    FromSubQuery(query, alias) -> {
+      let builder = build_single_select(query, adapter)
+
+      builder.sql
+      |> fmt.enclose
+      |> fmt.alias_as(adapter.handle_identifier(alias))
+      |> SqlBuilder(builder.values)
     }
   }
 
-  fmt.from(select_start, from_sql)
-  |> SqlBuilder(from_vals)
+  fmt.from(select_start, builder.sql)
+  |> SqlBuilder(builder.values)
   |> append_joins(joins, adapter)
   |> append_where(wheres, adapter)
   |> append_group_by(group_by, adapter)
@@ -1979,7 +1956,7 @@ fn append_on_conflict(
         }
       }
       |> SqlBuilder(builder.values)
-      |> append_where(conflict_wheres, adapter)
+      |> append_where([conflict_wheres], adapter)
     }
   }
 }
@@ -1987,7 +1964,7 @@ fn append_on_conflict(
 fn build_update(
   tbl: Table,
   sets: List(#(String, Operand(v))),
-  wheres: List(Condition(v)),
+  wheres: List(List(Condition(v))),
   returning: List(Column),
   order_by: List(OrderBy),
   limit_val: Option(Int),
@@ -2038,7 +2015,7 @@ fn sets_to_set_values(
 
 fn build_delete(
   from: Table,
-  wheres: List(Condition(v)),
+  wheres: List(List(Condition(v))),
   returning: List(Column),
   adapter: Adapter(v),
 ) -> SqlBuilder(v) {
@@ -2169,20 +2146,33 @@ fn build_binary_condition(
 }
 
 fn build_join(
-  sql: String,
+  builder: SqlBuilder(v),
   join: Join(v),
   adapter: Adapter(v),
-) -> #(String, List(v)) {
+) -> SqlBuilder(v) {
   let #(join_fn, tbl, on_conditions) = case join {
     InnerJoin(table:, on:) -> #(fmt.inner_join, table, on)
     LeftJoin(table:, on:) -> #(fmt.left_join, table, on)
     RightJoin(table:, on:) -> #(fmt.right_join, table, on)
     FullJoin(table:, on:) -> #(fmt.full_join, table, on)
   }
-  let combined = combine_conditions(on_conditions)
-  let #(on_sql, on_vals) = build_condition(combined, adapter)
-  let sql = join_fn(sql, build_table(tbl, adapter)) |> fmt.on(on_sql)
-  #(sql, on_vals)
+
+  let #(on_sql, on_vals) = case on_conditions {
+    [] -> #("", [])
+    [single] -> build_condition(single, adapter)
+    [first, ..rest] -> {
+      rest
+      |> list.fold(first, And)
+      |> build_condition(adapter)
+    }
+  }
+
+  let sql =
+    builder.sql
+    |> join_fn(build_table(tbl, adapter))
+    |> fmt.on(on_sql)
+
+  SqlBuilder(sql, list.prepend(builder.values, on_vals))
 }
 
 fn build_union(
@@ -2199,9 +2189,9 @@ fn build_union(
     selects
     |> list.fold(#([], []), fn(acc, q) {
       let #(parts, vals) = acc
-      let SqlBuilder(sub_sql, sub_vals) = build_single_select(q, adapter)
+      let builder = build_single_select(q, adapter)
 
-      #(list.prepend(parts, sub_sql), list.prepend(vals, sub_vals))
+      #(list.prepend(parts, builder.sql), list.prepend(vals, builder.values))
     })
 
   let values = list.flatten(values) |> list.reverse
@@ -2321,14 +2311,4 @@ fn build_order_by(orders: List(OrderBy), adapter: Adapter(v)) -> String {
     }
   })
   |> fmt.comma_join
-}
-
-fn combine_conditions(wheres: List(Condition(v))) -> Condition(v) {
-  case wheres {
-    [single] -> single
-    [first, ..rest] -> list.fold(rest, first, fn(acc, w) { And(acc, w) })
-    // This case should never happen when called correctly,
-    // but we need to handle it for exhaustiveness.
-    [] -> panic as "shouldn't happen"
-  }
 }

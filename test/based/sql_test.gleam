@@ -46,7 +46,6 @@ fn default_a() -> sql.Adapter(sql.Value) {
   |> sql.on_placeholder(fn(idx) { "$" <> int.to_string(idx + 1) })
 }
 
-
 pub fn table_test() {
   let t = sql.table("users")
   assert t == sql.table("users")
@@ -56,7 +55,6 @@ pub fn table_alias_test() {
   let t = sql.table("users") |> sql.table_as("u")
   assert t == sql.table("users") |> sql.table_as("u")
 }
-
 
 pub fn col_test() {
   let c = sql.col("email")
@@ -72,7 +70,6 @@ pub fn col_alias_test() {
   let c = sql.col("email") |> sql.col_for("users") |> sql.col_as("e")
   assert c == sql.col("email") |> sql.col_for("users") |> sql.col_as("e")
 }
-
 
 pub fn select_all_to_query_test() {
   let q =
@@ -117,12 +114,11 @@ pub fn select_aliased_column_test() {
   assert q.sql == "SELECT u.email AS user_email FROM users AS u"
 }
 
-
 pub fn select_where_eq_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(sql.col("age"), sql.int(21), of: sql.value))
+    |> sql.where([sql.eq(sql.col("age"), sql.int(21), of: sql.value)])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM users WHERE age = $1"
@@ -133,8 +129,10 @@ pub fn select_multiple_wheres_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(sql.col("active"), sql.true, of: sql.value))
-    |> sql.where(sql.gt(sql.col("age"), sql.int(18), of: sql.value))
+    |> sql.where([
+      sql.eq(sql.col("active"), sql.true, of: sql.value),
+      sql.gt(sql.col("age"), sql.int(18), of: sql.value),
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM users WHERE (active = $1 AND age > $2)"
@@ -145,12 +143,12 @@ pub fn select_or_where_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(sql.col("role"), sql.text("admin"), of: sql.value))
-    |> sql.or_where(sql.eq(
-      sql.col("role"),
-      sql.text("superadmin"),
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.or(
+        sql.eq(sql.col("role"), sql.text("admin"), of: sql.value),
+        sql.eq(sql.col("role"), sql.text("superadmin"), of: sql.value),
+      ),
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM users WHERE (role = $1 OR role = $2)"
@@ -161,12 +159,14 @@ pub fn select_where_between_test() {
   let q =
     sql.from(sql.table("products"))
     |> sql.select([sql.star])
-    |> sql.where(sql.between(
-      sql.col("price"),
-      sql.float(10.0),
-      sql.float(100.0),
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.between(
+        sql.col("price"),
+        sql.float(10.0),
+        sql.float(100.0),
+        of: sql.value,
+      ),
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM products WHERE price BETWEEN $1 AND $2"
@@ -177,15 +177,17 @@ pub fn select_where_in_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.in(
-      sql.col("id"),
-      [
-        sql.int(1),
-        sql.int(2),
-        sql.int(3),
-      ],
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.in(
+        sql.col("id"),
+        [
+          sql.int(1),
+          sql.int(2),
+          sql.int(3),
+        ],
+        of: sql.value,
+      ),
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM users WHERE id IN ($1, $2, $3)"
@@ -196,7 +198,7 @@ pub fn select_where_is_null_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.is_null(sql.col("deleted_at")))
+    |> sql.where([sql.is_null(sql.col("deleted_at"))])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM users WHERE deleted_at IS NULL"
@@ -207,7 +209,7 @@ pub fn select_where_is_not_null_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.is_not_null(sql.col("email")))
+    |> sql.where([sql.is_not_null(sql.col("email"))])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM users WHERE email IS NOT NULL"
@@ -218,7 +220,7 @@ pub fn select_where_not_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.not(sql.eq(sql.col("active"), sql.true, of: sql.value)))
+    |> sql.where([sql.not(sql.eq(sql.col("active"), sql.true, of: sql.value))])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM users WHERE NOT (active = $1)"
@@ -229,13 +231,12 @@ pub fn select_where_like_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.like(sql.col("name"), sql.text("%john%"), of: sql.value))
+    |> sql.where([sql.like(sql.col("name"), sql.text("%john%"), of: sql.value)])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM users WHERE name LIKE $1"
   assert q.values == [sql.text("%john%")]
 }
-
 
 pub fn select_inner_join_test() {
   let q =
@@ -272,7 +273,6 @@ pub fn select_left_join_test() {
     == "SELECT * FROM users AS u LEFT JOIN profiles AS p ON u.id = p.user_id"
 }
 
-
 pub fn select_order_by_test() {
   let q =
     sql.from(sql.table("users"))
@@ -304,7 +304,6 @@ pub fn select_group_by_test() {
 
   assert q.sql == "SELECT department, count FROM employees GROUP BY department"
 }
-
 
 pub fn insert_single_row_test() {
   let q =
@@ -341,13 +340,12 @@ pub fn insert_multiple_rows_test() {
     == [sql.text("Alice"), sql.int(30), sql.text("Bob"), sql.int(25)]
 }
 
-
 pub fn update_test() {
   let q =
     sql.update(table: sql.table("users"))
     |> sql.set("name", sql.text("Alice"), of: sql.value)
     |> sql.set("age", sql.int(31), of: sql.value)
-    |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.int(1), of: sql.value)])
     |> sql.to_query(a())
 
   assert q.sql == "UPDATE users SET name = $1, age = $2 WHERE id = $3"
@@ -364,12 +362,11 @@ pub fn update_no_where_test() {
   assert q.values == [sql.false]
 }
 
-
 pub fn delete_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.delete()
-    |> sql.where(sql.eq(sql.col("id"), sql.int(42), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.int(42), of: sql.value)])
     |> sql.to_query(a())
 
   assert q.sql == "DELETE FROM users WHERE id = $1"
@@ -386,12 +383,11 @@ pub fn delete_no_where_test() {
   assert q.values == []
 }
 
-
 pub fn to_string_select_test() {
   let s =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("name"), sql.col("age")])
-    |> sql.where(sql.eq(sql.col("age"), sql.int(21), of: sql.value))
+    |> sql.where([sql.eq(sql.col("age"), sql.int(21), of: sql.value)])
     |> sql.to_string(a())
 
   assert s == "SELECT name, age FROM users WHERE age = 21"
@@ -415,7 +411,7 @@ pub fn to_string_update_test() {
   let s =
     sql.update(table: sql.table("users"))
     |> sql.set("name", sql.text("Bob"), of: sql.value)
-    |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.int(1), of: sql.value)])
     |> sql.to_string(a())
 
   assert s == "UPDATE users SET name = 'Bob' WHERE id = 1"
@@ -425,12 +421,11 @@ pub fn to_string_delete_test() {
   let s =
     sql.from(sql.table("users"))
     |> sql.delete()
-    |> sql.where(sql.lt(sql.col("age"), sql.int(18), of: sql.value))
+    |> sql.where([sql.lt(sql.col("age"), sql.int(18), of: sql.value)])
     |> sql.to_string(a())
 
   assert s == "DELETE FROM users WHERE age < 18"
 }
-
 
 pub fn default_formatter_placeholder_test() {
   let r =
@@ -446,7 +441,7 @@ pub fn default_formatter_placeholder_test() {
       sql.col("d"),
       sql.col("e"),
     ])
-    |> sql.where(sql.eq(sql.col("x"), sql.int(1), of: sql.value))
+    |> sql.where([sql.eq(sql.col("x"), sql.int(1), of: sql.value)])
     |> sql.to_query(r)
   // Verifies placeholder starts at $1
   assert q.sql == "SELECT a, b, c, d, e FROM users WHERE x = $1"
@@ -475,27 +470,28 @@ pub fn default_formatter_value_to_string_test() {
     |> sql.select([sql.col("x")])
 
   assert sql.to_string(
-      base |> sql.where(sql.eq(sql.col("x"), sql.int(42), of: sql.value)),
+      base |> sql.where([sql.eq(sql.col("x"), sql.int(42), of: sql.value)]),
       r,
     )
     == "SELECT x FROM t WHERE x = 42"
   assert sql.to_string(
-      base |> sql.where(sql.eq(sql.col("x"), sql.text("hello"), of: sql.value)),
+      base
+        |> sql.where([sql.eq(sql.col("x"), sql.text("hello"), of: sql.value)]),
       r,
     )
     == "SELECT x FROM t WHERE x = 'hello'"
   assert sql.to_string(
-      base |> sql.where(sql.eq(sql.col("x"), sql.true, of: sql.value)),
+      base |> sql.where([sql.eq(sql.col("x"), sql.true, of: sql.value)]),
       r,
     )
     == "SELECT x FROM t WHERE x = TRUE"
   assert sql.to_string(
-      base |> sql.where(sql.eq(sql.col("x"), sql.false, of: sql.value)),
+      base |> sql.where([sql.eq(sql.col("x"), sql.false, of: sql.value)]),
       r,
     )
     == "SELECT x FROM t WHERE x = FALSE"
   assert sql.to_string(
-      base |> sql.where(sql.eq(sql.col("x"), sql.null, of: sql.value)),
+      base |> sql.where([sql.eq(sql.col("x"), sql.null, of: sql.value)]),
       r,
     )
     == "SELECT x FROM t WHERE x = NULL"
@@ -509,11 +505,10 @@ pub fn default_formatter_escapes_quotes_test() {
   let s =
     sql.from(sql.table("t"))
     |> sql.select([sql.col("x")])
-    |> sql.where(sql.eq(sql.col("x"), sql.text("it's"), of: sql.value))
+    |> sql.where([sql.eq(sql.col("x"), sql.text("it's"), of: sql.value)])
     |> sql.to_string(r)
   assert s == "SELECT x FROM t WHERE x = 'it''s'"
 }
-
 
 pub fn default_formatter_to_query_test() {
   let r =
@@ -523,14 +518,13 @@ pub fn default_formatter_to_query_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("name"), sql.col("email")])
-    |> sql.where(sql.eq(sql.col("active"), sql.true, of: sql.value))
+    |> sql.where([sql.eq(sql.col("active"), sql.true, of: sql.value)])
     |> sql.limit(5)
     |> sql.to_query(r)
 
   assert q.sql == "SELECT name, email FROM users WHERE active = $1 LIMIT 5"
   assert q.values == [sql.true]
 }
-
 
 pub fn custom_backtick_formatter_test() {
   let backtick_r =
@@ -545,13 +539,12 @@ pub fn custom_backtick_formatter_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("name")])
-    |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.int(1), of: sql.value)])
     |> sql.to_query(backtick_r)
 
   assert q.sql == "SELECT `name` FROM `users` WHERE `id` = ?"
   assert q.values == [sql.int(1)]
 }
-
 
 pub fn backtick_quote_identifier_test() {
   let f =
@@ -566,7 +559,7 @@ pub fn backtick_quote_identifier_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("name")])
-    |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.int(1), of: sql.value)])
     |> sql.to_query(f)
 
   assert q.sql == "SELECT `name` FROM `users` WHERE `id` = ?"
@@ -574,7 +567,7 @@ pub fn backtick_quote_identifier_test() {
   let s =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("name")])
-    |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.int(1), of: sql.value)])
     |> sql.to_string(f)
 
   assert s == "SELECT `name` FROM `users` WHERE `id` = 1"
@@ -593,7 +586,7 @@ pub fn double_quote_quote_identifier_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("name")])
-    |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.int(1), of: sql.value)])
     |> sql.to_query(f)
 
   assert q.sql == "SELECT \"name\" FROM \"users\" WHERE \"id\" = $1"
@@ -601,7 +594,7 @@ pub fn double_quote_quote_identifier_test() {
   let s =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("name")])
-    |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.int(1), of: sql.value)])
     |> sql.to_string(f)
 
   assert s == "SELECT \"name\" FROM \"users\" WHERE \"id\" = 1"
@@ -630,11 +623,9 @@ pub fn double_quote_aliased_identifiers_test() {
         of: sql.column,
       ),
     ])
-    |> sql.where(sql.eq(
-      sql.col("active") |> sql.col_for("u"),
-      sql.true,
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.eq(sql.col("active") |> sql.col_for("u"), sql.true, of: sql.value),
+    ])
     |> sql.to_query(f)
 
   assert q.sql
@@ -655,7 +646,7 @@ pub fn double_quote_question_mark_identifier_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("name")])
-    |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.int(1), of: sql.value)])
     |> sql.to_query(f)
 
   assert q.sql == "SELECT \"name\" FROM \"users\" WHERE \"id\" = ?"
@@ -663,12 +654,11 @@ pub fn double_quote_question_mark_identifier_test() {
   let s =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("name")])
-    |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.int(1), of: sql.value)])
     |> sql.to_string(f)
 
   assert s == "SELECT \"name\" FROM \"users\" WHERE \"id\" = 1"
 }
-
 
 pub type MyValue {
   MyInt(Int)
@@ -693,7 +683,7 @@ pub fn generic_value_type_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("name")])
-    |> sql.where(sql.eq(sql.col("id"), MyInt(42), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), MyInt(42), of: sql.value)])
     |> sql.to_query(my_adapter)
 
   assert q.sql == "SELECT [name] FROM [users] WHERE [id] = ?1"
@@ -702,12 +692,11 @@ pub fn generic_value_type_test() {
   let s =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("name")])
-    |> sql.where(sql.eq(sql.col("id"), MyInt(42), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), MyInt(42), of: sql.value)])
     |> sql.to_string(my_adapter)
 
   assert s == "SELECT [name] FROM [users] WHERE [id] = 42"
 }
-
 
 pub fn complex_query_test() {
   let q =
@@ -724,16 +713,14 @@ pub fn complex_query_test() {
         of: sql.column,
       ),
     ])
-    |> sql.where(sql.gt(
-      sql.col("total") |> sql.col_for("o"),
-      sql.float(50.0),
-      of: sql.value,
-    ))
-    |> sql.where(sql.eq(
-      sql.col("active") |> sql.col_for("u"),
-      sql.true,
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.gt(
+        sql.col("total") |> sql.col_for("o"),
+        sql.float(50.0),
+        of: sql.value,
+      ),
+      sql.eq(sql.col("active") |> sql.col_for("u"), sql.true, of: sql.value),
+    ])
     |> sql.order_by(sql.col("total") |> sql.col_for("o"), sql.desc)
     |> sql.limit(10)
     |> sql.offset(0)
@@ -744,18 +731,16 @@ pub fn complex_query_test() {
   assert q.values == [sql.float(50.0), sql.true]
 }
 
-
 pub fn column_to_column_where_test() {
   let q =
     sql.from(sql.table("products"))
     |> sql.select([sql.star])
-    |> sql.where(sql.gt(sql.col("price"), sql.col("cost"), of: sql.column))
+    |> sql.where([sql.gt(sql.col("price"), sql.col("cost"), of: sql.column)])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM products WHERE price > cost"
   assert q.values == []
 }
-
 
 pub fn select_distinct_test() {
   let q =
@@ -787,7 +772,6 @@ pub fn select_distinct_to_string_test() {
 
   assert s == "SELECT DISTINCT value FROM readings"
 }
-
 
 pub fn count_column_test() {
   let q =
@@ -876,7 +860,6 @@ pub fn multiple_aggregates_test() {
     == "SELECT department, COUNT(*) AS cnt, AVG(salary) AS avg_salary FROM employees GROUP BY department"
 }
 
-
 pub fn having_test() {
   let q =
     sql.from(sql.table("employees"))
@@ -916,7 +899,6 @@ pub fn having_to_string_test() {
     == "SELECT department, COUNT(*) AS cnt FROM employees GROUP BY department HAVING COUNT(*) > 5"
 }
 
-
 pub fn insert_returning_test() {
   let q =
     sql.insert(into: sql.table("users"))
@@ -934,7 +916,7 @@ pub fn update_returning_test() {
   let q =
     sql.update(table: sql.table("users"))
     |> sql.set("name", sql.text("Bob"), of: sql.value)
-    |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.int(1), of: sql.value)])
     |> sql.returning([sql.col("id"), sql.col("name")])
     |> sql.to_query(a())
 
@@ -946,7 +928,7 @@ pub fn delete_returning_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.delete()
-    |> sql.where(sql.eq(sql.col("id"), sql.int(42), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.int(42), of: sql.value)])
     |> sql.returning([sql.col("id")])
     |> sql.to_query(a())
 
@@ -965,7 +947,6 @@ pub fn returning_to_string_test() {
 
   assert s == "INSERT INTO users (name) VALUES ('Alice') RETURNING id"
 }
-
 
 pub fn on_conflict_do_nothing_test() {
   let q =
@@ -1084,7 +1065,6 @@ pub fn on_conflict_where_to_string_test() {
     == "INSERT INTO counts (id, quantity) VALUES (1, 10) ON CONFLICT (id) DO UPDATE SET quantity = excluded.quantity WHERE quantity > 5"
 }
 
-
 pub fn complex_query_with_aggregates_having_test() {
   let q =
     sql.from(sql.table("employees"))
@@ -1093,7 +1073,7 @@ pub fn complex_query_with_aggregates_having_test() {
       sql.count("*") |> sql.col_as("emp_count"),
       sql.sum("salary") |> sql.col_as("total_salary"),
     ])
-    |> sql.where(sql.eq(sql.col("active"), sql.true, of: sql.value))
+    |> sql.where([sql.eq(sql.col("active"), sql.true, of: sql.value)])
     |> sql.group_by([sql.col("department")])
     |> sql.having(sql.gt(sql.count("*"), sql.int(3), of: sql.value))
     |> sql.order_by(sql.col("department"), sql.asc)
@@ -1104,7 +1084,6 @@ pub fn complex_query_with_aggregates_having_test() {
     == "SELECT department, COUNT(*) AS emp_count, SUM(salary) AS total_salary FROM employees WHERE active = $1 GROUP BY department HAVING COUNT(*) > $2 ORDER BY department ASC LIMIT 10"
   assert q.values == [sql.true, sql.int(3)]
 }
-
 
 pub fn union_basic_test() {
   let q =
@@ -1159,19 +1138,15 @@ pub fn union_with_where_sequential_placeholders_test() {
   let q =
     sql.from(sql.table("employees"))
     |> sql.select([sql.col("name")])
-    |> sql.where(sql.eq(
-      sql.col("department"),
-      sql.text("Engineering"),
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.eq(sql.col("department"), sql.text("Engineering"), of: sql.value),
+    ])
     |> sql.union(
       sql.from(sql.table("contractors"))
       |> sql.select([sql.col("name")])
-      |> sql.where(sql.eq(
-        sql.col("department"),
-        sql.text("Engineering"),
-        of: sql.value,
-      )),
+      |> sql.where([
+        sql.eq(sql.col("department"), sql.text("Engineering"), of: sql.value),
+      ]),
     )
     |> sql.to_query(a())
 
@@ -1184,20 +1159,16 @@ pub fn union_multi_params_sequential_test() {
   let q =
     sql.from(sql.table("employees"))
     |> sql.select([sql.col("name")])
-    |> sql.where(sql.eq(
-      sql.col("department"),
-      sql.text("Engineering"),
-      of: sql.value,
-    ))
-    |> sql.where(sql.gt(sql.col("salary"), sql.int(50_000), of: sql.value))
+    |> sql.where([
+      sql.eq(sql.col("department"), sql.text("Engineering"), of: sql.value),
+      sql.gt(sql.col("salary"), sql.int(50_000), of: sql.value),
+    ])
     |> sql.union(
       sql.from(sql.table("contractors"))
       |> sql.select([sql.col("name")])
-      |> sql.where(sql.eq(
-        sql.col("department"),
-        sql.text("Sales"),
-        of: sql.value,
-      )),
+      |> sql.where([
+        sql.eq(sql.col("department"), sql.text("Sales"), of: sql.value),
+      ]),
     )
     |> sql.to_query(a())
 
@@ -1211,17 +1182,19 @@ pub fn union_three_way_params_test() {
   let q =
     sql.from(sql.table("a"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(sql.col("x"), sql.int(1), of: sql.value))
+    |> sql.where([sql.eq(sql.col("x"), sql.int(1), of: sql.value)])
     |> sql.union(
       sql.from(sql.table("b"))
       |> sql.select([sql.star])
-      |> sql.where(sql.eq(sql.col("x"), sql.int(2), of: sql.value))
-      |> sql.where(sql.eq(sql.col("y"), sql.int(3), of: sql.value)),
+      |> sql.where([
+        sql.eq(sql.col("x"), sql.int(2), of: sql.value),
+        sql.eq(sql.col("y"), sql.int(3), of: sql.value),
+      ]),
     )
     |> sql.union(
       sql.from(sql.table("c"))
       |> sql.select([sql.star])
-      |> sql.where(sql.eq(sql.col("x"), sql.int(4), of: sql.value)),
+      |> sql.where([sql.eq(sql.col("x"), sql.int(4), of: sql.value)]),
     )
     |> sql.to_query(a())
 
@@ -1234,19 +1207,15 @@ pub fn union_to_string_test() {
   let s =
     sql.from(sql.table("employees"))
     |> sql.select([sql.col("name")])
-    |> sql.where(sql.eq(
-      sql.col("department"),
-      sql.text("Engineering"),
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.eq(sql.col("department"), sql.text("Engineering"), of: sql.value),
+    ])
     |> sql.union(
       sql.from(sql.table("contractors"))
       |> sql.select([sql.col("name")])
-      |> sql.where(sql.eq(
-        sql.col("department"),
-        sql.text("Engineering"),
-        of: sql.value,
-      )),
+      |> sql.where([
+        sql.eq(sql.col("department"), sql.text("Engineering"), of: sql.value),
+      ]),
     )
     |> sql.to_string(a())
 
@@ -1286,14 +1255,13 @@ pub fn union_three_way_to_string_test() {
     == "SELECT name FROM a UNION SELECT name FROM b UNION SELECT name FROM c"
 }
 
-
 pub fn cte_basic_to_query_test() {
   let active_users =
     sql.cte(
       name: "active_users",
       query: sql.from(sql.table("users"))
         |> sql.select([sql.col("id"), sql.col("name")])
-        |> sql.where(sql.eq(sql.col("active"), sql.true, of: sql.value)),
+        |> sql.where([sql.eq(sql.col("active"), sql.true, of: sql.value)]),
     )
 
   let q =
@@ -1313,7 +1281,7 @@ pub fn cte_basic_to_string_test() {
       name: "active_users",
       query: sql.from(sql.table("users"))
         |> sql.select([sql.col("id"), sql.col("name")])
-        |> sql.where(sql.eq(sql.col("active"), sql.true, of: sql.value)),
+        |> sql.where([sql.eq(sql.col("active"), sql.true, of: sql.value)]),
     )
 
   let s =
@@ -1332,7 +1300,7 @@ pub fn cte_multiple_test() {
       name: "active_users",
       query: sql.from(sql.table("users"))
         |> sql.select([sql.col("id")])
-        |> sql.where(sql.eq(sql.col("active"), sql.true, of: sql.value)),
+        |> sql.where([sql.eq(sql.col("active"), sql.true, of: sql.value)]),
     )
 
   let recent_orders =
@@ -1340,7 +1308,7 @@ pub fn cte_multiple_test() {
       name: "recent_orders",
       query: sql.from(sql.table("orders"))
         |> sql.select([sql.col("user_id"), sql.col("total")])
-        |> sql.where(sql.gt(sql.col("total"), sql.float(100.0), of: sql.value)),
+        |> sql.where([sql.gt(sql.col("total"), sql.float(100.0), of: sql.value)]),
     )
 
   let q =
@@ -1384,7 +1352,7 @@ pub fn cte_recursive_test() {
   let base =
     sql.from(sql.table("categories"))
     |> sql.select([sql.col("id"), sql.col("parent_id"), sql.col("name")])
-    |> sql.where(sql.is_null(sql.col("parent_id")))
+    |> sql.where([sql.is_null(sql.col("parent_id"))])
 
   let recursive_part =
     sql.from(sql.table_as(sql.table("categories"), "c"))
@@ -1424,7 +1392,7 @@ pub fn cte_with_insert_test() {
       name: "new_users",
       query: sql.from(sql.table("users"))
         |> sql.select([sql.col("id")])
-        |> sql.where(sql.eq(sql.col("status"), sql.text("new"), of: sql.value)),
+        |> sql.where([sql.eq(sql.col("status"), sql.text("new"), of: sql.value)]),
     )
 
   let q =
@@ -1449,13 +1417,15 @@ pub fn cte_with_update_test() {
       name: "target_users",
       query: sql.from(sql.table("users"))
         |> sql.select([sql.col("id")])
-        |> sql.where(sql.lt(sql.col("score"), sql.int(10), of: sql.value)),
+        |> sql.where([sql.lt(sql.col("score"), sql.int(10), of: sql.value)]),
     )
 
   let q =
     sql.update(table: sql.table("users"))
     |> sql.set("status", sql.text("inactive"), of: sql.value)
-    |> sql.where(sql.in(sql.col("id"), [sql.int(1), sql.int(2)], of: sql.value))
+    |> sql.where([
+      sql.in(sql.col("id"), [sql.int(1), sql.int(2)], of: sql.value),
+    ])
     |> sql.with(ctes: [target_users])
     |> sql.to_query(a())
 
@@ -1476,20 +1446,22 @@ pub fn cte_with_delete_test() {
       name: "old_orders",
       query: sql.from(sql.table("orders"))
         |> sql.select([sql.col("id")])
-        |> sql.where(sql.lt(sql.col("year"), sql.int(2020), of: sql.value)),
+        |> sql.where([sql.lt(sql.col("year"), sql.int(2020), of: sql.value)]),
     )
 
   let q =
     sql.from(sql.table("order_items"))
     |> sql.delete()
-    |> sql.where(sql.in(
-      sql.col("order_id"),
-      [
-        sql.int(100),
-        sql.int(200),
-      ],
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.in(
+        sql.col("order_id"),
+        [
+          sql.int(100),
+          sql.int(200),
+        ],
+        of: sql.value,
+      ),
+    ])
     |> sql.with(ctes: [old_orders])
     |> sql.to_query(a())
 
@@ -1504,7 +1476,7 @@ pub fn cte_placeholder_threading_test() {
       name: "cte1",
       query: sql.from(sql.table("t1"))
         |> sql.select([sql.col("id")])
-        |> sql.where(sql.eq(sql.col("a"), sql.int(1), of: sql.value)),
+        |> sql.where([sql.eq(sql.col("a"), sql.int(1), of: sql.value)]),
     )
 
   let cte2 =
@@ -1512,13 +1484,13 @@ pub fn cte_placeholder_threading_test() {
       name: "cte2",
       query: sql.from(sql.table("t2"))
         |> sql.select([sql.col("id")])
-        |> sql.where(sql.eq(sql.col("b"), sql.int(2), of: sql.value)),
+        |> sql.where([sql.eq(sql.col("b"), sql.int(2), of: sql.value)]),
     )
 
   let q =
     sql.from(sql.table("cte1"))
     |> sql.select([sql.col("id")])
-    |> sql.where(sql.eq(sql.col("c"), sql.int(3), of: sql.value))
+    |> sql.where([sql.eq(sql.col("c"), sql.int(3), of: sql.value)])
     |> sql.with(ctes: [cte1, cte2])
     |> sql.to_query(a())
 
@@ -1528,12 +1500,11 @@ pub fn cte_placeholder_threading_test() {
   assert q.values == [sql.Int(1), sql.Int(2), sql.Int(3)]
 }
 
-
 pub fn for_update_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.int(1), of: sql.value)])
     |> sql.for_update
     |> sql.to_query(a())
 
@@ -1545,7 +1516,7 @@ pub fn for_update_with_order_by_and_limit_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("name")])
-    |> sql.where(sql.gt(sql.col("age"), sql.int(18), of: sql.value))
+    |> sql.where([sql.gt(sql.col("age"), sql.int(18), of: sql.value)])
     |> sql.order_by(sql.col("name"), sql.asc)
     |> sql.limit(10)
     |> sql.for_update
@@ -1570,11 +1541,9 @@ pub fn for_update_with_join_test() {
         of: sql.column,
       ),
     ])
-    |> sql.where(sql.eq(
-      sql.col("id") |> sql.col_for("u"),
-      sql.int(1),
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.eq(sql.col("id") |> sql.col_for("u"), sql.int(1), of: sql.value),
+    ])
     |> sql.for_update
     |> sql.to_query(a())
 
@@ -1587,19 +1556,18 @@ pub fn for_update_to_string_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(sql.col("id"), sql.int(42), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.int(42), of: sql.value)])
     |> sql.for_update
     |> sql.to_string(a())
 
   assert q == "SELECT * FROM users WHERE id = 42 FOR UPDATE"
 }
 
-
 pub fn backtick_select_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("name")])
-    |> sql.where(sql.eq(sql.col("active"), sql.true, of: sql.value))
+    |> sql.where([sql.eq(sql.col("active"), sql.true, of: sql.value)])
     |> sql.to_query(backtick_a())
 
   assert q.sql == "SELECT `id`, `name` FROM `users` WHERE `active` = ?"
@@ -1610,8 +1578,10 @@ pub fn backtick_select_multiple_wheres_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("name")])
-    |> sql.where(sql.eq(sql.col("active"), sql.true, of: sql.value))
-    |> sql.where(sql.gt(sql.col("age"), sql.int(18), of: sql.value))
+    |> sql.where([
+      sql.eq(sql.col("active"), sql.true, of: sql.value),
+      sql.gt(sql.col("age"), sql.int(18), of: sql.value),
+    ])
     |> sql.to_query(backtick_a())
 
   assert q.sql
@@ -1638,7 +1608,7 @@ pub fn backtick_update_test() {
   let q =
     sql.update(table: sql.table("users"))
     |> sql.set("name", sql.text("Bob"), of: sql.value)
-    |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.int(1), of: sql.value)])
     |> sql.to_query(backtick_a())
 
   assert q.sql == "UPDATE `users` SET `name` = ? WHERE `id` = ?"
@@ -1649,7 +1619,7 @@ pub fn backtick_delete_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.delete()
-    |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.int(1), of: sql.value)])
     |> sql.to_query(backtick_a())
 
   assert q.sql == "DELETE FROM `users` WHERE `id` = ?"
@@ -1660,12 +1630,12 @@ pub fn backtick_union_test() {
   let q1 =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id")])
-    |> sql.where(sql.eq(sql.col("active"), sql.true, of: sql.value))
+    |> sql.where([sql.eq(sql.col("active"), sql.true, of: sql.value)])
 
   let q2 =
     sql.from(sql.table("admins"))
     |> sql.select([sql.col("id")])
-    |> sql.where(sql.eq(sql.col("active"), sql.true, of: sql.value))
+    |> sql.where([sql.eq(sql.col("active"), sql.true, of: sql.value)])
 
   let q =
     q1
@@ -1681,7 +1651,7 @@ pub fn backtick_to_string_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("name")])
-    |> sql.where(sql.eq(sql.col("active"), sql.true, of: sql.value))
+    |> sql.where([sql.eq(sql.col("active"), sql.true, of: sql.value)])
     |> sql.to_string(backtick_a())
 
   assert q == "SELECT `id`, `name` FROM `users` WHERE `active` = TRUE"
@@ -1701,11 +1671,9 @@ pub fn backtick_aliased_identifiers_test() {
         of: sql.column,
       ),
     ])
-    |> sql.where(sql.eq(
-      sql.col("active") |> sql.col_for("u"),
-      sql.true,
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.eq(sql.col("active") |> sql.col_for("u"), sql.true, of: sql.value),
+    ])
     |> sql.to_query(backtick_a())
 
   assert q.sql
@@ -1713,16 +1681,13 @@ pub fn backtick_aliased_identifiers_test() {
   assert q.values == [sql.Bool(True)]
 }
 
-
 pub fn select_not_like_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("name")])
-    |> sql.where(sql.not_like(
-      sql.col("name"),
-      sql.text("%admin%"),
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.not_like(sql.col("name"), sql.text("%admin%"), of: sql.value),
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT id, name FROM users WHERE name NOT LIKE $1"
@@ -1733,11 +1698,9 @@ pub fn select_not_like_to_string_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("name")])
-    |> sql.where(sql.not_like(
-      sql.col("name"),
-      sql.text("%admin%"),
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.not_like(sql.col("name"), sql.text("%admin%"), of: sql.value),
+    ])
     |> sql.to_string(a())
 
   assert q == "SELECT id, name FROM users WHERE name NOT LIKE '%admin%'"
@@ -1747,14 +1710,14 @@ pub fn select_not_between_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("age")])
-    |> sql.where(
+    |> sql.where([
       sql.not(sql.between(
         sql.col("age"),
         sql.int(18),
         sql.int(65),
         of: sql.value,
       )),
-    )
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT id, age FROM users WHERE NOT (age BETWEEN $1 AND $2)"
@@ -1765,14 +1728,14 @@ pub fn select_not_between_to_string_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("age")])
-    |> sql.where(
+    |> sql.where([
       sql.not(sql.between(
         sql.col("age"),
         sql.int(18),
         sql.int(65),
         of: sql.value,
       )),
-    )
+    ])
     |> sql.to_string(a())
 
   assert q == "SELECT id, age FROM users WHERE NOT (age BETWEEN 18 AND 65)"
@@ -1940,8 +1903,10 @@ pub fn select_where_gt_lt_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("name")])
-    |> sql.where(sql.gt(sql.col("age"), sql.int(18), of: sql.value))
-    |> sql.where(sql.lt(sql.col("age"), sql.int(65), of: sql.value))
+    |> sql.where([
+      sql.gt(sql.col("age"), sql.int(18), of: sql.value),
+      sql.lt(sql.col("age"), sql.int(65), of: sql.value),
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT id, name FROM users WHERE (age > $1 AND age < $2)"
@@ -1952,8 +1917,10 @@ pub fn select_where_gt_eq_lt_eq_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id")])
-    |> sql.where(sql.gt_eq(sql.col("age"), sql.int(18), of: sql.value))
-    |> sql.where(sql.lt_eq(sql.col("age"), sql.int(65), of: sql.value))
+    |> sql.where([
+      sql.gt_eq(sql.col("age"), sql.int(18), of: sql.value),
+      sql.lt_eq(sql.col("age"), sql.int(65), of: sql.value),
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT id FROM users WHERE (age >= $1 AND age <= $2)"
@@ -1964,11 +1931,9 @@ pub fn select_where_not_eq_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("name")])
-    |> sql.where(sql.not_eq(
-      sql.col("status"),
-      sql.text("banned"),
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.not_eq(sql.col("status"), sql.text("banned"), of: sql.value),
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT id, name FROM users WHERE status != $1"
@@ -1979,13 +1944,10 @@ pub fn select_complex_between_with_conditions_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("name"), sql.col("age")])
-    |> sql.where(sql.between(
-      sql.col("age"),
-      sql.int(18),
-      sql.int(65),
-      of: sql.value,
-    ))
-    |> sql.where(sql.eq(sql.col("active"), sql.true, of: sql.value))
+    |> sql.where([
+      sql.between(sql.col("age"), sql.int(18), sql.int(65), of: sql.value),
+      sql.eq(sql.col("active"), sql.true, of: sql.value),
+    ])
     |> sql.to_query(a())
 
   assert q.sql
@@ -1997,9 +1959,11 @@ pub fn select_chained_three_wheres_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id")])
-    |> sql.where(sql.eq(sql.col("a"), sql.int(1), of: sql.value))
-    |> sql.where(sql.eq(sql.col("b"), sql.int(2), of: sql.value))
-    |> sql.where(sql.eq(sql.col("c"), sql.int(3), of: sql.value))
+    |> sql.where([
+      sql.eq(sql.col("a"), sql.int(1), of: sql.value),
+      sql.eq(sql.col("b"), sql.int(2), of: sql.value),
+      sql.eq(sql.col("c"), sql.int(3), of: sql.value),
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT id FROM users WHERE ((a = $1 AND b = $2) AND c = $3)"
@@ -2010,11 +1974,9 @@ pub fn select_where_not_eq_to_string_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("name")])
-    |> sql.where(sql.not_eq(
-      sql.col("status"),
-      sql.text("banned"),
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.not_eq(sql.col("status"), sql.text("banned"), of: sql.value),
+    ])
     |> sql.to_string(a())
 
   assert q == "SELECT id, name FROM users WHERE status != 'banned'"
@@ -2025,7 +1987,7 @@ pub fn select_date_to_string_test() {
   let q =
     sql.from(sql.table("events"))
     |> sql.select([sql.col("id")])
-    |> sql.where(sql.eq(sql.col("event_date"), sql.date(d), of: sql.value))
+    |> sql.where([sql.eq(sql.col("event_date"), sql.date(d), of: sql.value)])
     |> sql.to_string(sql.adapter())
 
   assert q == "SELECT id FROM events WHERE event_date = '2024-01-15'"
@@ -2036,7 +1998,7 @@ pub fn select_time_to_string_test() {
   let q =
     sql.from(sql.table("events"))
     |> sql.select([sql.col("id")])
-    |> sql.where(sql.eq(sql.col("event_time"), sql.time(t), of: sql.value))
+    |> sql.where([sql.eq(sql.col("event_time"), sql.time(t), of: sql.value)])
     |> sql.to_string(sql.adapter())
 
   assert q == "SELECT id FROM events WHERE event_time = '14:30:00'"
@@ -2048,7 +2010,9 @@ pub fn select_datetime_to_string_test() {
   let q =
     sql.from(sql.table("events"))
     |> sql.select([sql.col("id")])
-    |> sql.where(sql.eq(sql.col("event_at"), sql.datetime(d, t), of: sql.value))
+    |> sql.where([
+      sql.eq(sql.col("event_at"), sql.datetime(d, t), of: sql.value),
+    ])
     |> sql.to_string(sql.adapter())
 
   assert q == "SELECT id FROM events WHERE event_at = '2024-01-15 14:30:00'"
@@ -2058,7 +2022,7 @@ pub fn select_like_to_string_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("name")])
-    |> sql.where(sql.like(sql.col("name"), sql.text("%alice%"), of: sql.value))
+    |> sql.where([sql.like(sql.col("name"), sql.text("%alice%"), of: sql.value)])
     |> sql.to_string(a())
 
   assert q == "SELECT id, name FROM users WHERE name LIKE '%alice%'"
@@ -2068,15 +2032,17 @@ pub fn select_in_to_string_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("name")])
-    |> sql.where(sql.in(
-      sql.col("id"),
-      [
-        sql.int(1),
-        sql.int(2),
-        sql.int(3),
-      ],
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.in(
+        sql.col("id"),
+        [
+          sql.int(1),
+          sql.int(2),
+          sql.int(3),
+        ],
+        of: sql.value,
+      ),
+    ])
     |> sql.to_string(a())
 
   assert q == "SELECT id, name FROM users WHERE id IN (1, 2, 3)"
@@ -2086,7 +2052,7 @@ pub fn select_is_null_to_string_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("name")])
-    |> sql.where(sql.is_null(sql.col("deleted_at")))
+    |> sql.where([sql.is_null(sql.col("deleted_at"))])
     |> sql.to_string(a())
 
   assert q == "SELECT id, name FROM users WHERE deleted_at IS NULL"
@@ -2096,7 +2062,7 @@ pub fn select_is_not_null_to_string_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("name")])
-    |> sql.where(sql.is_not_null(sql.col("email")))
+    |> sql.where([sql.is_not_null(sql.col("email"))])
     |> sql.to_string(a())
 
   assert q == "SELECT id, name FROM users WHERE email IS NOT NULL"
@@ -2106,12 +2072,9 @@ pub fn select_between_to_string_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("age")])
-    |> sql.where(sql.between(
-      sql.col("age"),
-      sql.int(18),
-      sql.int(65),
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.between(sql.col("age"), sql.int(18), sql.int(65), of: sql.value),
+    ])
     |> sql.to_string(a())
 
   assert q == "SELECT id, age FROM users WHERE age BETWEEN 18 AND 65"
@@ -2121,8 +2084,12 @@ pub fn select_or_where_to_string_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id")])
-    |> sql.where(sql.eq(sql.col("active"), sql.true, of: sql.value))
-    |> sql.or_where(sql.eq(sql.col("role"), sql.text("admin"), of: sql.value))
+    |> sql.where([
+      sql.or(
+        sql.eq(sql.col("active"), sql.true, of: sql.value),
+        sql.eq(sql.col("role"), sql.text("admin"), of: sql.value),
+      ),
+    ])
     |> sql.to_string(a())
 
   assert q == "SELECT id FROM users WHERE (active = TRUE OR role = 'admin')"
@@ -2197,13 +2164,15 @@ pub fn select_where_and_or_combined_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id")])
-    |> sql.where(sql.or(
-      sql.eq(sql.col("role"), sql.text("admin"), of: sql.value),
-      sql.and(
-        sql.eq(sql.col("active"), sql.true, of: sql.value),
-        sql.gt(sql.col("age"), sql.int(18), of: sql.value),
+    |> sql.where([
+      sql.or(
+        sql.eq(sql.col("role"), sql.text("admin"), of: sql.value),
+        sql.and(
+          sql.eq(sql.col("active"), sql.true, of: sql.value),
+          sql.gt(sql.col("age"), sql.int(18), of: sql.value),
+        ),
       ),
-    ))
+    ])
     |> sql.to_query(a())
 
   assert q.sql
@@ -2215,7 +2184,7 @@ pub fn select_where_not_is_null_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id")])
-    |> sql.where(sql.not(sql.is_null(sql.col("email"))))
+    |> sql.where([sql.not(sql.is_null(sql.col("email")))])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT id FROM users WHERE NOT (email IS NULL)"
@@ -2250,7 +2219,6 @@ pub fn select_multiple_joins_right_full_test() {
     == "SELECT u.id, o.oid, p.pid FROM users AS u RIGHT JOIN orders AS o ON u.id = o.user_id FULL JOIN products AS p ON o.product_id = p.id"
   assert q.values == []
 }
-
 
 pub fn insert_with_null_test() {
   let q =
@@ -2374,14 +2342,13 @@ pub fn insert_returning_backtick_test() {
   assert q.values == [sql.Text("Alice"), sql.Text("alice@example.com")]
 }
 
-
 pub fn update_where_not_test() {
   let q =
     sql.update(table: sql.table("users"))
     |> sql.set("active", sql.false, of: sql.value)
-    |> sql.where(
+    |> sql.where([
       sql.not(sql.eq(sql.col("role"), sql.text("admin"), of: sql.value)),
-    )
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "UPDATE users SET active = $1 WHERE NOT (role = $2)"
@@ -2392,11 +2359,9 @@ pub fn update_where_like_test() {
   let q =
     sql.update(table: sql.table("users"))
     |> sql.set("category", sql.text("vip"), of: sql.value)
-    |> sql.where(sql.like(
-      sql.col("email"),
-      sql.text("%@company.com"),
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.like(sql.col("email"), sql.text("%@company.com"), of: sql.value),
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "UPDATE users SET category = $1 WHERE email LIKE $2"
@@ -2407,11 +2372,9 @@ pub fn update_where_not_like_test() {
   let q =
     sql.update(table: sql.table("users"))
     |> sql.set("category", sql.text("standard"), of: sql.value)
-    |> sql.where(sql.not_like(
-      sql.col("email"),
-      sql.text("%@company.com"),
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.not_like(sql.col("email"), sql.text("%@company.com"), of: sql.value),
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "UPDATE users SET category = $1 WHERE email NOT LIKE $2"
@@ -2424,7 +2387,7 @@ pub fn update_multiple_sets_test() {
     |> sql.set("name", sql.text("Bob"), of: sql.value)
     |> sql.set("age", sql.int(30), of: sql.value)
     |> sql.set("active", sql.true, of: sql.value)
-    |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.int(1), of: sql.value)])
     |> sql.to_query(a())
 
   assert q.sql
@@ -2443,7 +2406,7 @@ pub fn update_multiple_sets_to_string_test() {
     sql.update(table: sql.table("users"))
     |> sql.set("name", sql.text("Bob"), of: sql.value)
     |> sql.set("age", sql.int(30), of: sql.value)
-    |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.int(1), of: sql.value)])
     |> sql.to_string(a())
 
   assert q == "UPDATE users SET name = 'Bob', age = 30 WHERE id = 1"
@@ -2453,9 +2416,9 @@ pub fn update_where_not_to_string_test() {
   let q =
     sql.update(table: sql.table("users"))
     |> sql.set("active", sql.false, of: sql.value)
-    |> sql.where(
+    |> sql.where([
       sql.not(sql.eq(sql.col("role"), sql.text("admin"), of: sql.value)),
-    )
+    ])
     |> sql.to_string(a())
 
   assert q == "UPDATE users SET active = FALSE WHERE NOT (role = 'admin')"
@@ -2465,7 +2428,7 @@ pub fn update_returning_to_string_test() {
   let q =
     sql.update(table: sql.table("users"))
     |> sql.set("active", sql.true, of: sql.value)
-    |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.int(1), of: sql.value)])
     |> sql.returning([sql.col("id"), sql.col("active")])
     |> sql.to_string(a())
 
@@ -2476,21 +2439,20 @@ pub fn update_backtick_test() {
   let q =
     sql.update(table: sql.table("users"))
     |> sql.set("name", sql.text("Bob"), of: sql.value)
-    |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.int(1), of: sql.value)])
     |> sql.to_query(backtick_a())
 
   assert q.sql == "UPDATE `users` SET `name` = ? WHERE `id` = ?"
   assert q.values == [sql.Text("Bob"), sql.Int(1)]
 }
 
-
 pub fn delete_where_not_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.delete()
-    |> sql.where(
+    |> sql.where([
       sql.not(sql.eq(sql.col("role"), sql.text("admin"), of: sql.value)),
-    )
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "DELETE FROM users WHERE NOT (role = $1)"
@@ -2501,11 +2463,9 @@ pub fn delete_where_like_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.delete()
-    |> sql.where(sql.like(
-      sql.col("email"),
-      sql.text("%@spam.com"),
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.like(sql.col("email"), sql.text("%@spam.com"), of: sql.value),
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "DELETE FROM users WHERE email LIKE $1"
@@ -2516,11 +2476,9 @@ pub fn delete_where_not_like_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.delete()
-    |> sql.where(sql.not_like(
-      sql.col("email"),
-      sql.text("%@company.com"),
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.not_like(sql.col("email"), sql.text("%@company.com"), of: sql.value),
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "DELETE FROM users WHERE email NOT LIKE $1"
@@ -2531,8 +2489,10 @@ pub fn delete_chained_wheres_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.delete()
-    |> sql.where(sql.eq(sql.col("active"), sql.false, of: sql.value))
-    |> sql.where(sql.lt(sql.col("age"), sql.int(18), of: sql.value))
+    |> sql.where([
+      sql.eq(sql.col("active"), sql.false, of: sql.value),
+      sql.lt(sql.col("age"), sql.int(18), of: sql.value),
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "DELETE FROM users WHERE (active = $1 AND age < $2)"
@@ -2544,7 +2504,7 @@ pub fn delete_to_string_with_date_test() {
   let q =
     sql.from(sql.table("events"))
     |> sql.delete()
-    |> sql.where(sql.lt(sql.col("event_date"), sql.date(d), of: sql.value))
+    |> sql.where([sql.lt(sql.col("event_date"), sql.date(d), of: sql.value)])
     |> sql.to_string(sql.adapter())
 
   assert q == "DELETE FROM events WHERE event_date < '2024-01-01'"
@@ -2554,9 +2514,9 @@ pub fn delete_where_not_to_string_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.delete()
-    |> sql.where(
+    |> sql.where([
       sql.not(sql.eq(sql.col("role"), sql.text("admin"), of: sql.value)),
-    )
+    ])
     |> sql.to_string(a())
 
   assert q == "DELETE FROM users WHERE NOT (role = 'admin')"
@@ -2566,7 +2526,7 @@ pub fn delete_returning_to_string_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.delete()
-    |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.int(1), of: sql.value)])
     |> sql.returning([sql.col("id")])
     |> sql.to_string(a())
 
@@ -2577,13 +2537,12 @@ pub fn delete_backtick_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.delete()
-    |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.int(1), of: sql.value)])
     |> sql.to_query(backtick_a())
 
   assert q.sql == "DELETE FROM `users` WHERE `id` = ?"
   assert q.values == [sql.Int(1)]
 }
-
 
 pub fn union_all_backtick_test() {
   let q1 =
@@ -2630,12 +2589,12 @@ pub fn union_to_string_with_values_test() {
   let q1 =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("name")])
-    |> sql.where(sql.eq(sql.col("active"), sql.true, of: sql.value))
+    |> sql.where([sql.eq(sql.col("active"), sql.true, of: sql.value)])
 
   let q2 =
     sql.from(sql.table("admins"))
     |> sql.select([sql.col("id"), sql.col("name")])
-    |> sql.where(sql.eq(sql.col("active"), sql.true, of: sql.value))
+    |> sql.where([sql.eq(sql.col("active"), sql.true, of: sql.value)])
 
   let q =
     q1
@@ -2646,12 +2605,11 @@ pub fn union_to_string_with_values_test() {
     == "SELECT id, name FROM users WHERE active = TRUE UNION SELECT id, name FROM admins WHERE active = TRUE"
 }
 
-
 pub fn cte_with_join_test() {
   let cte_query =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("name")])
-    |> sql.where(sql.eq(sql.col("active"), sql.true, of: sql.value))
+    |> sql.where([sql.eq(sql.col("active"), sql.true, of: sql.value)])
 
   let q =
     sql.from(sql.table("active_users") |> sql.table_as("au"))
@@ -2678,7 +2636,7 @@ pub fn cte_with_union_body_test() {
   let cte_query1 =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("name")])
-    |> sql.where(sql.eq(sql.col("active"), sql.true, of: sql.value))
+    |> sql.where([sql.eq(sql.col("active"), sql.true, of: sql.value)])
 
   // NOTE: CTE bodies must be QueryBuilder(Select, v), so union as CTE body
   // would require CombinedSelectBuilder support in Cte — this may need
@@ -2708,7 +2666,7 @@ pub fn cte_basic_to_string_with_values_test() {
   let cte_query =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("name")])
-    |> sql.where(sql.eq(sql.col("active"), sql.true, of: sql.value))
+    |> sql.where([sql.eq(sql.col("active"), sql.true, of: sql.value)])
 
   let q =
     sql.from(sql.table("active_users"))
@@ -2727,7 +2685,7 @@ pub fn cte_recursive_union_all_test() {
   let base_query =
     sql.from(sql.table("categories"))
     |> sql.select([sql.col("id"), sql.col("parent_id"), sql.col("name")])
-    |> sql.where(sql.is_null(sql.col("parent_id")))
+    |> sql.where([sql.is_null(sql.col("parent_id"))])
 
   let q =
     sql.from(sql.table("category_tree"))
@@ -2745,7 +2703,7 @@ pub fn cte_multiple_to_string_test() {
   let cte1 =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("name")])
-    |> sql.where(sql.eq(sql.col("active"), sql.true, of: sql.value))
+    |> sql.where([sql.eq(sql.col("active"), sql.true, of: sql.value)])
 
   let cte2 =
     sql.from(sql.table("orders"))
@@ -2778,12 +2736,11 @@ pub fn cte_multiple_to_string_test() {
     == "WITH active_users AS (SELECT id, name FROM users WHERE active = TRUE), user_orders AS (SELECT user_id, SUM(amount) AS total FROM orders GROUP BY user_id) SELECT au.name, uo.total FROM active_users AS au INNER JOIN user_orders AS uo ON au.id = uo.user_id;"
 }
 
-
 pub fn select_all_with_where_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.int(1), of: sql.value)])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM users WHERE id = $1"
@@ -2853,15 +2810,17 @@ pub fn select_where_in_multiple_values_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("name")])
-    |> sql.where(sql.in(
-      sql.col("status"),
-      [
-        sql.text("active"),
-        sql.text("pending"),
-        sql.text("verified"),
-      ],
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.in(
+        sql.col("status"),
+        [
+          sql.text("active"),
+          sql.text("pending"),
+          sql.text("verified"),
+        ],
+        of: sql.value,
+      ),
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT id, name FROM users WHERE status IN ($1, $2, $3)"
@@ -2909,17 +2868,16 @@ pub fn on_conflict_do_nothing_to_string_test() {
     == "INSERT INTO users (name, email) VALUES ('Alice', 'alice@example.com') ON CONFLICT (email) DO NOTHING"
 }
 
-
 pub fn select_where_subquery_test() {
   let sub =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id")])
-    |> sql.where(sql.eq(sql.col("name"), sql.text("Alice"), of: sql.value))
+    |> sql.where([sql.eq(sql.col("name"), sql.text("Alice"), of: sql.value)])
 
   let q =
     sql.from(sql.table("orders"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(sql.col("user_id"), sub, of: sql.subquery))
+    |> sql.where([sql.eq(sql.col("user_id"), sub, of: sql.subquery)])
     |> sql.to_query(a())
 
   assert q.sql
@@ -2936,7 +2894,7 @@ pub fn select_from_subquery_test() {
   let q =
     sql.from_subquery(sub, "order_totals")
     |> sql.select([sql.col("user_id"), sql.col("total")])
-    |> sql.where(sql.gt(sql.col("total"), sql.int(100), of: sql.value))
+    |> sql.where([sql.gt(sql.col("total"), sql.int(100), of: sql.value)])
     |> sql.to_query(a())
 
   assert q.sql
@@ -2948,16 +2906,18 @@ pub fn select_where_exists_test() {
   let sub =
     sql.from(sql.table("orders"))
     |> sql.select([sql.col("id")])
-    |> sql.where(sql.eq(
-      sql.col("user_id") |> sql.col_for("orders"),
-      sql.col("id") |> sql.col_for("users"),
-      of: sql.column,
-    ))
+    |> sql.where([
+      sql.eq(
+        sql.col("user_id") |> sql.col_for("orders"),
+        sql.col("id") |> sql.col_for("users"),
+        of: sql.column,
+      ),
+    ])
 
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.exists(sub))
+    |> sql.where([sql.exists(sub)])
     |> sql.to_query(a())
 
   assert q.sql
@@ -2972,7 +2932,7 @@ pub fn select_where_any_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(sql.col("id"), sub, of: sql.any))
+    |> sql.where([sql.eq(sql.col("id"), sub, of: sql.any)])
     |> sql.to_query(a())
 
   assert q.sql
@@ -2987,19 +2947,18 @@ pub fn select_where_all_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.gt(sql.col("age"), sub, of: sql.all))
+    |> sql.where([sql.gt(sql.col("age"), sub, of: sql.all)])
     |> sql.to_query(a())
 
   assert q.sql
     == "SELECT * FROM users WHERE age > ALL (SELECT min_age FROM requirements)"
 }
 
-
 pub fn select_where_is_true_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id")])
-    |> sql.where(sql.is_true(sql.col("active")))
+    |> sql.where([sql.is_true(sql.col("active"))])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT id FROM users WHERE active IS TRUE"
@@ -3009,18 +2968,17 @@ pub fn select_where_is_false_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id")])
-    |> sql.where(sql.is_false(sql.col("active")))
+    |> sql.where([sql.is_false(sql.col("active"))])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT id FROM users WHERE active IS FALSE"
 }
 
-
 pub fn select_where_raw_sql_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.raw("age > 18 AND active = true"))
+    |> sql.where([sql.raw("age > 18 AND active = true")])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM users WHERE age > 18 AND active = true"
@@ -3031,9 +2989,9 @@ pub fn select_where_raw_sql_with_values_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(
+    |> sql.where([
       sql.raw_with_values("age > ? AND active = ?", [sql.int(18), sql.true]),
-    )
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM users WHERE age > $1 AND active = $2"
@@ -3044,7 +3002,7 @@ pub fn select_where_raw_sql_to_string_test() {
   let s =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.raw("age > 18 AND active = true"))
+    |> sql.where([sql.raw("age > 18 AND active = true")])
     |> sql.to_string(a())
 
   assert s == "SELECT * FROM users WHERE age > 18 AND active = true"
@@ -3054,9 +3012,9 @@ pub fn select_where_raw_sql_with_values_to_string_test() {
   let s =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(
+    |> sql.where([
       sql.raw_with_values("age > ? AND active = ?", [sql.int(18), sql.true]),
-    )
+    ])
     |> sql.to_string(a())
 
   assert s == "SELECT * FROM users WHERE age > 18 AND active = TRUE"
@@ -3066,8 +3024,10 @@ pub fn select_where_raw_combined_with_regular_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(sql.col("name"), sql.text("Alice"), of: sql.value))
-    |> sql.where(sql.raw_with_values("age > ?", [sql.int(18)]))
+    |> sql.where([
+      sql.eq(sql.col("name"), sql.text("Alice"), of: sql.value),
+      sql.raw_with_values("age > ?", [sql.int(18)]),
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM users WHERE (name = $1 AND age > $2)"
@@ -3078,9 +3038,9 @@ pub fn delete_where_raw_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.delete()
-    |> sql.where(
+    |> sql.where([
       sql.raw_with_values("active = ? AND age > ?", [sql.false, sql.int(21)]),
-    )
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "DELETE FROM users WHERE active = $1 AND age > $2"
@@ -3091,21 +3051,20 @@ pub fn update_where_raw_test() {
   let q =
     sql.update(table: sql.table("users"))
     |> sql.set("status", sql.text("inactive"), of: sql.value)
-    |> sql.where(
+    |> sql.where([
       sql.raw_with_values("age > ? AND active = ?", [sql.int(65), sql.true]),
-    )
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "UPDATE users SET status = $1 WHERE age > $2 AND active = $3"
   assert q.values == [sql.Text("inactive"), sql.Int(65), sql.Bool(True)]
 }
 
-
 pub fn select_where_not_convenience_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where_not(sql.eq(sql.col("active"), sql.false, of: sql.value))
+    |> sql.where([sql.not(sql.eq(sql.col("active"), sql.false, of: sql.value))])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM users WHERE NOT (active = $1)"
@@ -3116,27 +3075,28 @@ pub fn select_where_not_to_string_convenience_test() {
   let s =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where_not(sql.eq(sql.col("active"), sql.false, of: sql.value))
+    |> sql.where([sql.not(sql.eq(sql.col("active"), sql.false, of: sql.value))])
     |> sql.to_string(a())
 
   assert s == "SELECT * FROM users WHERE NOT (active = FALSE)"
 }
 
-
 pub fn select_where_exists_convenience_test() {
   let subquery =
     sql.from(sql.table("orders"))
     |> sql.select([sql.col("id")])
-    |> sql.where(sql.eq(
-      sql.col("user_id") |> sql.col_for("orders"),
-      sql.col("id") |> sql.col_for("users"),
-      of: sql.column,
-    ))
+    |> sql.where([
+      sql.eq(
+        sql.col("user_id") |> sql.col_for("orders"),
+        sql.col("id") |> sql.col_for("users"),
+        of: sql.column,
+      ),
+    ])
 
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where_exists(subquery)
+    |> sql.where([sql.exists(subquery)])
     |> sql.to_query(a())
 
   assert q.sql
@@ -3144,16 +3104,13 @@ pub fn select_where_exists_convenience_test() {
   assert q.values == []
 }
 
-
 pub fn select_where_nullable_some_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(
-      sql.col("age"),
-      Some(sql.int(25)),
-      of: sql.nullable(of: sql.value),
-    ))
+    |> sql.where([
+      sql.eq(sql.col("age"), Some(sql.int(25)), of: sql.nullable(of: sql.value)),
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM users WHERE age = $1"
@@ -3164,7 +3121,7 @@ pub fn select_where_nullable_none_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(sql.col("age"), None, of: sql.nullable(of: sql.value)))
+    |> sql.where([sql.eq(sql.col("age"), None, of: sql.nullable(of: sql.value))])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM users WHERE age = $1"
@@ -3175,22 +3132,19 @@ pub fn select_where_nullable_none_to_string_test() {
   let s =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(sql.col("age"), None, of: sql.nullable(of: sql.value)))
+    |> sql.where([sql.eq(sql.col("age"), None, of: sql.nullable(of: sql.value))])
     |> sql.to_string(a())
 
   assert s == "SELECT * FROM users WHERE age = NULL"
 }
 
-
 pub fn select_where_in_list_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.in(
-      sql.col("id"),
-      [1, 2, 3],
-      of: sql.list(of: fn(i) { sql.int(i) }),
-    ))
+    |> sql.where([
+      sql.in(sql.col("id"), [1, 2, 3], of: sql.list(of: fn(i) { sql.int(i) })),
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM users WHERE id IN ($1, $2, $3)"
@@ -3201,11 +3155,13 @@ pub fn select_where_in_list_strings_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.in(
-      sql.col("name"),
-      ["Alice", "Bob"],
-      of: sql.list(of: fn(s) { sql.text(s) }),
-    ))
+    |> sql.where([
+      sql.in(
+        sql.col("name"),
+        ["Alice", "Bob"],
+        of: sql.list(of: fn(s) { sql.text(s) }),
+      ),
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM users WHERE name IN ($1, $2)"
@@ -3216,16 +3172,13 @@ pub fn select_where_in_list_to_string_test() {
   let s =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.in(
-      sql.col("id"),
-      [1, 2, 3],
-      of: sql.list(of: fn(i) { sql.int(i) }),
-    ))
+    |> sql.where([
+      sql.in(sql.col("id"), [1, 2, 3], of: sql.list(of: fn(i) { sql.int(i) })),
+    ])
     |> sql.to_string(a())
 
   assert s == "SELECT * FROM users WHERE id IN (1, 2, 3)"
 }
-
 
 pub fn adapter_test() {
   let r =
@@ -3235,13 +3188,12 @@ pub fn adapter_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("name")])
-    |> sql.where(sql.eq(sql.col("active"), sql.true, of: sql.value))
+    |> sql.where([sql.eq(sql.col("active"), sql.true, of: sql.value)])
     |> sql.to_query(r)
 
   assert q.sql == "SELECT name FROM users WHERE active = $1"
   assert q.values == [sql.true]
 }
-
 
 pub fn mapper_handle_null_test() {
   let r =
@@ -3255,13 +3207,14 @@ pub fn mapper_handle_null_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(sql.col("name"), None, of: sql.nullable(of: sql.value)))
+    |> sql.where([
+      sql.eq(sql.col("name"), None, of: sql.nullable(of: sql.value)),
+    ])
     |> sql.to_query(r)
 
   assert q.sql == "SELECT * FROM users WHERE name = $1"
   assert q.values == [sql.Null]
 }
-
 
 pub fn update_with_order_by_test() {
   let q =
@@ -3274,7 +3227,6 @@ pub fn update_with_order_by_test() {
   assert q.values == [sql.Bool(False)]
 }
 
-
 pub fn update_with_limit_test() {
   let q =
     sql.update(table: sql.table("users"))
@@ -3285,7 +3237,6 @@ pub fn update_with_limit_test() {
   assert q.sql == "UPDATE users SET active = $1 LIMIT 10"
   assert q.values == [sql.Bool(False)]
 }
-
 
 pub fn update_with_order_by_limit_returning_test() {
   let q =
@@ -3301,7 +3252,6 @@ pub fn update_with_order_by_limit_returning_test() {
   assert q.values == [sql.Bool(False)]
 }
 
-
 pub fn update_with_limit_offset_test() {
   let q =
     sql.update(table: sql.table("users"))
@@ -3314,7 +3264,6 @@ pub fn update_with_limit_offset_test() {
   assert q.values == [sql.Bool(False)]
 }
 
-
 pub fn update_offset_without_limit_test() {
   let q =
     sql.update(table: sql.table("users"))
@@ -3326,16 +3275,17 @@ pub fn update_offset_without_limit_test() {
   assert q.values == [sql.Bool(False)]
 }
 
-
 pub fn update_set_from_subquery_test() {
   let sub =
     sql.from(sql.table("new_emails"))
     |> sql.select([sql.col("email")])
-    |> sql.where(sql.eq(
-      sql.col("user_id") |> sql.col_for("new_emails"),
-      sql.col("id") |> sql.col_for("users"),
-      of: sql.column,
-    ))
+    |> sql.where([
+      sql.eq(
+        sql.col("user_id") |> sql.col_for("new_emails"),
+        sql.col("id") |> sql.col_for("users"),
+        of: sql.column,
+      ),
+    ])
 
   let q =
     sql.update(table: sql.table("users"))
@@ -3351,11 +3301,13 @@ pub fn update_set_from_subquery_literal_test() {
   let sub =
     sql.from(sql.table("new_emails"))
     |> sql.select([sql.col("email")])
-    |> sql.where(sql.eq(
-      sql.col("user_id") |> sql.col_for("new_emails"),
-      sql.col("id") |> sql.col_for("users"),
-      of: sql.column,
-    ))
+    |> sql.where([
+      sql.eq(
+        sql.col("user_id") |> sql.col_for("new_emails"),
+        sql.col("id") |> sql.col_for("users"),
+        of: sql.column,
+      ),
+    ])
 
   let q =
     sql.update(table: sql.table("users"))
@@ -3370,11 +3322,13 @@ pub fn update_set_from_subquery_with_scalar_test() {
   let sub =
     sql.from(sql.table("new_emails"))
     |> sql.select([sql.col("email")])
-    |> sql.where(sql.eq(
-      sql.col("user_id") |> sql.col_for("new_emails"),
-      sql.col("id") |> sql.col_for("users"),
-      of: sql.column,
-    ))
+    |> sql.where([
+      sql.eq(
+        sql.col("user_id") |> sql.col_for("new_emails"),
+        sql.col("id") |> sql.col_for("users"),
+        of: sql.column,
+      ),
+    ])
 
   let q =
     sql.update(table: sql.table("users"))
@@ -3387,12 +3341,11 @@ pub fn update_set_from_subquery_with_scalar_test() {
   assert q.values == [sql.text("Alice")]
 }
 
-
 pub fn cte_basic_with_semicolon_test() {
   let cte_query =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("name")])
-    |> sql.where(sql.eq(sql.col("active"), sql.true, of: sql.value))
+    |> sql.where([sql.eq(sql.col("active"), sql.true, of: sql.value)])
 
   let q =
     sql.from(sql.table("active_users"))
@@ -3408,7 +3361,7 @@ pub fn cte_multiple_with_semicolon_test() {
   let cte1 =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("name")])
-    |> sql.where(sql.eq(sql.col("active"), sql.true, of: sql.value))
+    |> sql.where([sql.eq(sql.col("active"), sql.true, of: sql.value)])
 
   let cte2 =
     sql.from(sql.table("orders"))
@@ -3463,7 +3416,7 @@ pub fn cte_recursive_union_all_semicolon_test() {
   let base_query =
     sql.from(sql.table("categories"))
     |> sql.select([sql.col("id"), sql.col("parent_id"), sql.col("name")])
-    |> sql.where(sql.is_null(sql.col("parent_id")))
+    |> sql.where([sql.is_null(sql.col("parent_id"))])
 
   let q =
     sql.from(sql.table("category_tree"))
@@ -3476,24 +3429,24 @@ pub fn cte_recursive_union_all_semicolon_test() {
     == "WITH RECURSIVE category_tree AS (SELECT id, parent_id, name FROM categories WHERE parent_id IS NULL) SELECT id, parent_id, name FROM category_tree;"
 }
 
-
 pub fn update_where_is_false_test() {
   let q =
     sql.update(table: sql.table("users"))
     |> sql.set("status", sql.text("inactive"), of: sql.value)
-    |> sql.where(sql.is_false(sql.col("active")))
+    |> sql.where([sql.is_false(sql.col("active"))])
     |> sql.to_query(a())
 
   assert q.sql == "UPDATE users SET status = $1 WHERE active IS FALSE"
   assert q.values == [sql.Text("inactive")]
 }
 
-
 pub fn bytea_to_string_test() {
   let s =
     sql.from(sql.table("data"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(sql.col("blob"), sql.bytea(<<1, 2, 3>>), of: sql.value))
+    |> sql.where([
+      sql.eq(sql.col("blob"), sql.bytea(<<1, 2, 3>>), of: sql.value),
+    ])
     |> sql.to_string(default_a())
 
   assert s == "SELECT * FROM data WHERE blob = '\\x010203'"
@@ -3503,7 +3456,7 @@ pub fn bytea_empty_to_string_test() {
   let s =
     sql.from(sql.table("data"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(sql.col("blob"), sql.bytea(<<>>), of: sql.value))
+    |> sql.where([sql.eq(sql.col("blob"), sql.bytea(<<>>), of: sql.value)])
     |> sql.to_string(default_a())
 
   assert s == "SELECT * FROM data WHERE blob = '\\x'"
@@ -3513,20 +3466,23 @@ pub fn bytea_to_query_test() {
   let q =
     sql.from(sql.table("data"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(sql.col("blob"), sql.bytea(<<1, 2, 3>>), of: sql.value))
+    |> sql.where([
+      sql.eq(sql.col("blob"), sql.bytea(<<1, 2, 3>>), of: sql.value),
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM data WHERE blob = $1"
   assert q.values == [sql.Bytea(<<1, 2, 3>>)]
 }
 
-
 pub fn timestamp_to_string_test() {
   let ts = timestamp.from_unix_seconds(0)
   let s =
     sql.from(sql.table("events"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(sql.col("created_at"), sql.timestamp(ts), of: sql.value))
+    |> sql.where([
+      sql.eq(sql.col("created_at"), sql.timestamp(ts), of: sql.value),
+    ])
     |> sql.to_string(default_a())
 
   // Epoch timestamp rendered as RFC3339 UTC
@@ -3538,13 +3494,14 @@ pub fn timestamp_to_query_test() {
   let q =
     sql.from(sql.table("events"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(sql.col("created_at"), sql.timestamp(ts), of: sql.value))
+    |> sql.where([
+      sql.eq(sql.col("created_at"), sql.timestamp(ts), of: sql.value),
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM events WHERE created_at = $1"
   assert q.values == [sql.Timestamp(ts)]
 }
-
 
 pub fn timestamptz_zero_offset_to_string_test() {
   let ts = timestamp.from_unix_seconds(0)
@@ -3552,11 +3509,9 @@ pub fn timestamptz_zero_offset_to_string_test() {
   let s =
     sql.from(sql.table("events"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(
-      sql.col("ts"),
-      sql.timestamptz(ts, offset),
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.eq(sql.col("ts"), sql.timestamptz(ts, offset), of: sql.value),
+    ])
     |> sql.to_string(default_a())
 
   // Zero offset should be identity — same as plain timestamp at epoch
@@ -3571,11 +3526,9 @@ pub fn timestamptz_positive_offset_to_string_test() {
   let s =
     sql.from(sql.table("events"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(
-      sql.col("ts"),
-      sql.timestamptz(ts, offset),
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.eq(sql.col("ts"), sql.timestamptz(ts, offset), of: sql.value),
+    ])
     |> sql.to_string(default_a())
 
   // +5 offset subtracts 5 hours → back to epoch
@@ -3588,27 +3541,26 @@ pub fn timestamptz_to_query_test() {
   let q =
     sql.from(sql.table("events"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(
-      sql.col("ts"),
-      sql.timestamptz(ts, offset),
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.eq(sql.col("ts"), sql.timestamptz(ts, offset), of: sql.value),
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM events WHERE ts = $1"
   assert q.values == [sql.Timestamptz(ts, sql.Offset(hours: 5, minutes: 0))]
 }
 
-
 pub fn interval_to_string_test() {
   let s =
     sql.from(sql.table("tasks"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(
-      sql.col("duration"),
-      sql.interval(interval.months(2)),
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.eq(
+        sql.col("duration"),
+        sql.interval(interval.months(2)),
+        of: sql.value,
+      ),
+    ])
     |> sql.to_string(default_a())
 
   assert s == "SELECT * FROM tasks WHERE duration = P2M"
@@ -3619,19 +3571,18 @@ pub fn interval_to_query_test() {
   let q =
     sql.from(sql.table("tasks"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(sql.col("duration"), sql.interval(iv), of: sql.value))
+    |> sql.where([sql.eq(sql.col("duration"), sql.interval(iv), of: sql.value)])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM tasks WHERE duration = $1"
   assert q.values == [sql.Interval(iv)]
 }
 
-
 pub fn uuid_nil_to_string_test() {
   let s =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(sql.col("id"), sql.uuid(uuid.nil), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.uuid(uuid.nil), of: sql.value)])
     |> sql.to_string(default_a())
 
   assert s
@@ -3642,23 +3593,20 @@ pub fn uuid_to_query_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(sql.col("id"), sql.uuid(uuid.nil), of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.uuid(uuid.nil), of: sql.value)])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM users WHERE id = $1"
   assert q.values == [sql.Uuid(uuid.nil)]
 }
 
-
 pub fn array_to_string_test() {
   let s =
     sql.from(sql.table("data"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(
-      sql.col("tags"),
-      sql.array([1, 2, 3], of: sql.int),
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.eq(sql.col("tags"), sql.array([1, 2, 3], of: sql.int), of: sql.value),
+    ])
     |> sql.to_string(default_a())
 
   assert s == "SELECT * FROM data WHERE tags = [1, 2, 3]"
@@ -3668,11 +3616,9 @@ pub fn array_empty_to_string_test() {
   let s =
     sql.from(sql.table("data"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(
-      sql.col("tags"),
-      sql.array([], of: sql.int),
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.eq(sql.col("tags"), sql.array([], of: sql.int), of: sql.value),
+    ])
     |> sql.to_string(default_a())
 
   assert s == "SELECT * FROM data WHERE tags = []"
@@ -3682,11 +3628,9 @@ pub fn array_single_to_string_test() {
   let s =
     sql.from(sql.table("data"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(
-      sql.col("tags"),
-      sql.array(["hello"], of: sql.text),
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.eq(sql.col("tags"), sql.array(["hello"], of: sql.text), of: sql.value),
+    ])
     |> sql.to_string(default_a())
 
   assert s == "SELECT * FROM data WHERE tags = ['hello']"
@@ -3696,17 +3640,14 @@ pub fn array_to_query_test() {
   let q =
     sql.from(sql.table("data"))
     |> sql.select([sql.star])
-    |> sql.where(sql.eq(
-      sql.col("tags"),
-      sql.array([1, 2], of: sql.int),
-      of: sql.value,
-    ))
+    |> sql.where([
+      sql.eq(sql.col("tags"), sql.array([1, 2], of: sql.int), of: sql.value),
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM data WHERE tags = $1"
   assert q.values == [sql.Array([sql.Int(1), sql.Int(2)])]
 }
-
 
 pub fn utc_offset_test() {
   assert sql.utc_offset(5) == sql.Offset(hours: 5, minutes: 0)
@@ -3725,12 +3666,11 @@ pub fn utc_offset_with_minutes_test() {
     == sql.Offset(hours: 5, minutes: 30)
 }
 
-
 pub fn in_empty_list_to_string_test() {
   let s =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.in(sql.col("id"), [], of: sql.value))
+    |> sql.where([sql.in(sql.col("id"), [], of: sql.value)])
     |> sql.to_string(a())
 
   assert s == "SELECT * FROM users WHERE id IN ()"
@@ -3740,13 +3680,12 @@ pub fn in_empty_list_to_query_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where(sql.in(sql.col("id"), [], of: sql.value))
+    |> sql.where([sql.in(sql.col("id"), [], of: sql.value)])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM users WHERE id IN ()"
   assert q.values == []
 }
-
 
 pub fn insert_empty_values_to_string_test() {
   let s =
