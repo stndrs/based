@@ -251,11 +251,6 @@ pub opaque type Column {
 }
 
 /// Creates a plain column reference.
-///
-/// ```gleam
-/// sql.col("email")
-/// // Renders as: email
-/// ```
 pub fn col(name: String) -> Column {
   Column(table: None, name: name, alias: None, func: None)
 }
@@ -287,11 +282,6 @@ pub fn min(name: String) -> Column {
 
 /// Qualifies a column with a table name. Renders as `table.column`.
 /// No-ops on `star`.
-///
-/// ```gleam
-/// sql.col("email") |> sql.col_for("users")
-/// // Renders as: users.email
-/// ```
 pub fn col_for(column: Column, table: String) -> Column {
   case column {
     Column(..) -> Column(..column, table: Some(table))
@@ -359,12 +349,6 @@ pub fn new_adapter() -> Adapter(v) {
 }
 
 /// Sets the placeholder format function.
-///
-/// ```gleam
-/// adapter |> sql.on_placeholder(with: fn(_) { "?" })
-///
-/// adapter |> sql.on_placeholder(fn(idx) { "$" <> int.to_string(idx + 1) })
-/// ```
 pub fn on_placeholder(
   adapter: Adapter(v),
   with handle_placeholder: fn(Int) -> String,
@@ -383,11 +367,6 @@ pub fn on_value(
 }
 
 /// Sets the identifier quoting function.
-///
-/// ```gleam
-/// // Quote with double quotes
-/// adapter |> sql.on_identifier(with: fn(name) { "\"" <> name <> "\"" })
-/// ```
 pub fn on_identifier(
   adapter: Adapter(v),
   with handle_identifier: fn(String) -> String,
@@ -422,12 +401,6 @@ pub opaque type Row(v) {
 }
 
 /// Adds a column/value pair to a row, with a continuation for the next field.
-///
-/// ```gleam
-/// use <- sql.field(column: "name", value: sql.text("Alice"))
-/// use <- sql.field(column: "email", value: sql.text("alice@example.com"))
-/// sql.final(column: "age", value: sql.int(30))
-/// ```
 pub fn field(
   column column: String,
   value value: v,
@@ -486,8 +459,6 @@ pub opaque type Condition(v) {
   Exists(QueryBuilder(Select, v))
   Raw(sql: String)
 }
-
-// ---- Join ----
 
 /// Internal representation of a JOIN clause.
 type Join(v) {
@@ -580,9 +551,6 @@ pub type ConflictAction(v) {
   DoUpdate(sets: List(#(String, String)))
 }
 
-// An ON CONFLICT clause for INSERT statements.
-//
-// Created by the `on_conflict` function — not constructed directly.
 type OnConflict(v) {
   OnConflict(
     target: String,
@@ -596,14 +564,6 @@ type OnConflict(v) {
 ///
 /// Use the built-in kind constants `value`, `subquery`, `column`, `any`, and
 /// `all`, or create custom kinds with `nullable` and `list`.
-///
-/// ```gleam
-/// // Compare a column to a plain value
-/// sql.eq(sql.col("age"), 21, of: sql.value)
-///
-/// // Compare with a nullable value
-/// sql.eq(sql.col("name"), Some("Alice"), of: sql.nullable(of: sql.value))
-/// ```
 pub opaque type Kind(a, v) {
   Kind(to_operand: fn(a) -> Operand(v))
 }
@@ -804,27 +764,12 @@ pub fn raw(sql: String) -> Condition(v) {
 /// Starts building a query from a table. This is the entry point for SELECT
 /// and DELETE queries.
 ///
-/// Pipe into `select` or `delete` to choose the query kind.
-///
-/// ```gleam
-/// let users = sql.table("users")
-///
-/// // SELECT
-/// sql.from(users) |> sql.select([sql.star])
-///
-/// // DELETE
-/// sql.from(users) |> sql.delete()
-/// ```
+/// Pass into `select` or `delete` to choose the query kind.
 pub fn from(table: Table) -> QueryBuilder(From(Table), v) {
   FromTableBuilder(table:)
 }
 
 /// Converts a `From` builder into a SELECT query with the given columns.
-///
-/// ```gleam
-/// sql.from(sql.table("users"))
-/// |> sql.select([sql.col("name"), sql.col("email")])
-/// ```
 pub fn select(
   query: QueryBuilder(From(a), v),
   columns: List(Column),
@@ -853,12 +798,6 @@ pub fn select(
 }
 
 /// Creates a new INSERT query builder for the given table.
-///
-/// ```gleam
-/// sql.insert(into: sql.table("users"))
-/// |> sql.values([row1, row2])
-/// |> sql.to_query(adapter)
-/// ```
 pub fn insert(into tbl: Table) -> QueryBuilder(Insert, v) {
   InsertBuilder(
     into: tbl,
@@ -872,13 +811,6 @@ pub fn insert(into tbl: Table) -> QueryBuilder(Insert, v) {
 }
 
 /// Creates a new UPDATE query builder for the given table.
-///
-/// ```gleam
-/// sql.update(table: sql.table("users"))
-/// |> sql.set("name", "Bob", of: sql.value)
-/// |> sql.where(sql.eq(sql.col("id"), 1, of: sql.value))
-/// |> sql.to_query(adapter)
-/// ```
 pub fn update(table tbl: Table) -> QueryBuilder(Update, v) {
   UpdateBuilder(
     table: tbl,
@@ -894,13 +826,6 @@ pub fn update(table tbl: Table) -> QueryBuilder(Update, v) {
 }
 
 /// Converts a `From` builder into a DELETE query.
-///
-/// ```gleam
-/// sql.from(sql.table("users"))
-/// |> sql.delete()
-/// |> sql.where(sql.eq(sql.col("id"), 1, of: sql.value))
-/// |> sql.to_query(adapter)
-/// ```
 pub fn delete(query: QueryBuilder(From(Table), v)) -> QueryBuilder(Delete, v) {
   case query {
     FromTableBuilder(table:) -> {
@@ -916,20 +841,7 @@ pub fn delete(query: QueryBuilder(From(Table), v)) -> QueryBuilder(Delete, v) {
   }
 }
 
-// ---- Query Builder Modifiers (generic) ----
-
 /// Creates a `From` builder that selects from a subquery instead of a table.
-///
-/// ```gleam
-/// let sub =
-///   sql.from(sql.table("orders"))
-///   |> sql.select([sql.col("user_id"), sql.count("id") |> sql.col_as("cnt")])
-///   |> sql.group_by([sql.col("user_id")])
-///
-/// sql.from_subquery(sub, alias: "order_counts")
-/// |> sql.select([sql.star])
-/// |> sql.to_query(adapter)
-/// ```
 pub fn from_subquery(
   query: QueryBuilder(Select, v),
   alias a: String,
@@ -957,12 +869,6 @@ pub fn where(
 }
 
 /// Adds a RETURNING clause. Applies to INSERT, UPDATE, and DELETE queries.
-///
-/// ```gleam
-/// sql.insert(into: users)
-/// |> sql.values([row])
-/// |> sql.returning([sql.col("id"), sql.col("name")])
-/// ```
 pub fn returning(
   query: QueryBuilder(a, v),
   columns: List(Column),
@@ -974,8 +880,6 @@ pub fn returning(
     _ -> query
   }
 }
-
-// ---- Query Builder Modifiers (Select-only) ----
 
 /// Adds an ORDER BY clause. Can be called multiple times to sort by
 /// multiple columns. Applies to SELECT and UPDATE queries.
@@ -1058,19 +962,8 @@ pub fn for_update(query: QueryBuilder(Select, v)) -> QueryBuilder(Select, v) {
   }
 }
 
-// ---- Query Builder Modifiers (Insert-only) ----
-
 /// Sets the rows to insert. Columns are extracted from the first row.
 /// Replaces any previously set values.
-///
-/// ```gleam
-/// let row1 = {
-///   use <- sql.field(column: "name", value: sql.text("Alice"))
-///   sql.final(column: "age", value: sql.int(30))
-/// }
-///
-/// sql.insert(into: users) |> sql.values([row1])
-/// ```
 pub fn values(
   query: QueryBuilder(Insert, v),
   rows: List(Row(v)),
@@ -1090,16 +983,6 @@ pub fn values(
 }
 
 /// Adds an ON CONFLICT clause to an INSERT query (upsert).
-///
-/// ```gleam
-/// sql.insert(into: users)
-/// |> sql.values([row])
-/// |> sql.on_conflict(
-///   target: "email",
-///   action: sql.DoNothing,
-///   where: [],
-/// )
-/// ```
 pub fn on_conflict(
   query: QueryBuilder(Insert, v),
   target target: String,
@@ -1120,15 +1003,7 @@ pub fn on_conflict(
   }
 }
 
-// ---- Query Builder Modifiers (Update-only) ----
-
 /// Kind that treats the input as a parameterized value.
-///
-/// This is the most common kind — use it when comparing a column to a literal.
-///
-/// ```gleam
-/// sql.eq(sql.col("name"), "Alice", of: sql.value)
-/// ```
 pub const value = Kind(to_operand: value_to_operand)
 
 fn value_to_operand(v) -> Operand(v) {
@@ -1136,11 +1011,6 @@ fn value_to_operand(v) -> Operand(v) {
 }
 
 /// Kind that treats the input as a subquery for scalar comparisons.
-///
-/// ```gleam
-/// sql.eq(sql.col("id"), subquery, of: sql.subquery)
-/// // Renders as: id = (SELECT ...)
-/// ```
 pub const subquery = Kind(to_operand: subquery_to_operand)
 
 fn subquery_to_operand(q) -> Operand(v) {
@@ -1149,11 +1019,6 @@ fn subquery_to_operand(q) -> Operand(v) {
 
 /// Kind that treats the input as a column reference for column-to-column
 /// comparisons.
-///
-/// ```gleam
-/// sql.eq(sql.col("id") |> sql.col_for("users"), sql.col("user_id") |> sql.col_for("posts"), of: sql.column)
-/// // Renders as: users.id = posts.user_id
-/// ```
 pub const column = Kind(to_operand: column_to_operand)
 
 fn column_to_operand(c) -> Operand(v) {
@@ -1161,11 +1026,6 @@ fn column_to_operand(c) -> Operand(v) {
 }
 
 /// Kind that wraps a subquery with `ANY(...)`.
-///
-/// ```gleam
-/// sql.eq(sql.col("id"), subquery, of: sql.any)
-/// // Renders as: id = ANY(SELECT ...)
-/// ```
 pub const any = Kind(to_operand: any_to_operand)
 
 fn any_to_operand(q) -> Operand(v) {
@@ -1173,11 +1033,6 @@ fn any_to_operand(q) -> Operand(v) {
 }
 
 /// Kind that wraps a subquery with `ALL(...)`.
-///
-/// ```gleam
-/// sql.gt(sql.col("score"), subquery, of: sql.all)
-/// // Renders as: score > ALL(SELECT ...)
-/// ```
 pub const all = Kind(to_operand: all_to_operand)
 
 fn all_to_operand(q) -> Operand(v) {
@@ -1185,14 +1040,6 @@ fn all_to_operand(q) -> Operand(v) {
 }
 
 /// Wraps a kind to accept `Option(a)`, mapping `None` to SQL NULL.
-///
-/// ```gleam
-/// sql.eq(sql.col("name"), Some("Alice"), of: sql.nullable(of: sql.value))
-/// // Some("Alice") renders as: name = $1
-///
-/// sql.eq(sql.col("name"), None, of: sql.nullable(of: sql.value))
-/// // None renders as: name = NULL
-/// ```
 pub fn nullable(of kind: Kind(a, v)) -> Kind(Option(a), v) {
   Kind(to_operand: fn(opt) {
     case opt {
@@ -1204,21 +1051,11 @@ pub fn nullable(of kind: Kind(a, v)) -> Kind(Option(a), v) {
 
 /// Creates a kind that maps an arbitrary type to a value using a conversion
 /// function. Useful for `in` clauses with custom types.
-///
-/// ```gleam
-/// sql.in(sql.col("id"), [1, 2, 3], of: sql.list(of: sql.int))
-/// ```
 pub fn list(of map: fn(a) -> v) -> Kind(a, v) {
   Kind(to_operand: fn(x) { Val(map(x)) })
 }
 
 /// Sets a column to a value in an UPDATE query. Can be called multiple times.
-///
-/// ```gleam
-/// sql.update(table: users)
-/// |> sql.set("name", "Bob", of: sql.value)
-/// |> sql.set("age", 25, of: sql.value)
-/// ```
 pub fn set(
   query: QueryBuilder(Update, v),
   column: String,
@@ -1235,17 +1072,7 @@ pub fn set(
   }
 }
 
-// ---- CTE Builder Functions ----
-
 /// Creates a Common Table Expression (CTE).
-///
-/// ```gleam
-/// let active_users =
-///   sql.cte(
-///     name: "active_users",
-///     query: sql.from(users) |> sql.select([sql.star]) |> sql.where(...)
-///   )
-/// ```
 pub fn cte(name name: String, query query: QueryBuilder(Select, v)) -> Cte(v) {
   Cte(name: name, columns: [], query: query)
 }
@@ -1256,10 +1083,6 @@ pub fn cte_columns(cte c: Cte(v), columns cols: List(String)) -> Cte(v) {
 }
 
 /// Attaches CTEs to a query as a `WITH` clause.
-///
-/// ```gleam
-/// query |> sql.with(ctes: [active_users_cte])
-/// ```
 pub fn with(
   query: QueryBuilder(a, v),
   ctes ctes: List(Cte(v)),
@@ -1288,16 +1111,9 @@ pub fn recursive(query: QueryBuilder(a, v)) -> QueryBuilder(a, v) {
   }
 }
 
-// ---- Union ----
-
-/// Combines two SELECT queries with `UNION` (removes duplicates).
+/// Combines two SELECT queries with `UNION`.
 ///
 /// Can be chained to union multiple queries.
-///
-/// ```gleam
-/// query_a |> sql.union(query_b) |> sql.union(query_c)
-/// // Renders as: SELECT ... UNION SELECT ... UNION SELECT ...
-/// ```
 pub fn union(
   query: QueryBuilder(Select, v),
   other: QueryBuilder(Select, v),
@@ -1315,7 +1131,7 @@ pub fn union(
   }
 }
 
-/// Combines two SELECT queries with `UNION ALL` (preserves duplicates).
+/// Combines two SELECT queries with `UNION ALL`.
 pub fn union_all(
   query: QueryBuilder(Select, v),
   other: QueryBuilder(Select, v),
@@ -1337,17 +1153,6 @@ pub fn union_all(
 ///
 /// Returns a `Query` record with `.sql` containing the SQL string with
 /// placeholders and `.values` containing the parameter values in order.
-///
-/// ```gleam
-/// let query =
-///   sql.from(users)
-///   |> sql.select([sql.star])
-///   |> sql.where(sql.eq(sql.col("id"), 1, of: sql.value))
-///   |> sql.to_query(adapter)
-///
-/// query.sql     // "SELECT * FROM users WHERE id = $1"
-/// query.values  // [Integer(1)]
-/// ```
 pub fn to_query(query: QueryBuilder(a, v), adapter: Adapter(v)) -> Query(v) {
   let SqlBuilder(sql, values) = build_query(query, adapter)
   let sql = replace_placeholders(sql, adapter)
@@ -1366,8 +1171,6 @@ pub fn to_string(query: QueryBuilder(a, v), adapter: Adapter(v)) -> String {
 
   replace_with_values(sql, values, adapter)
 }
-
-// ---- Default Adapter ----
 
 fn value_to_string(value: Value) -> String {
   case value {
@@ -1717,9 +1520,6 @@ fn append_returning(
     }
   }
 }
-
-// Single-path functions that produce SQL with `:param:` sentinels
-// and collect values in order. No idx threading needed.
 
 fn build_query(query: QueryBuilder(a, v), adapter: Adapter(v)) -> SqlBuilder(v) {
   let #(ctes, recursive) = case query {
@@ -2234,13 +2034,10 @@ fn build_single_select(
   }
 }
 
-// ---- Internal: Shared Helpers ----
-
 fn build_column(column: Column, adapter: Adapter(v)) -> String {
   case column {
     All -> "*"
     Column(table:, name:, alias:, func:) -> {
-      // Build the base column reference (possibly table-qualified)
       let col_ref = case name {
         "*" -> {
           case table {
@@ -2258,7 +2055,7 @@ fn build_column(column: Column, adapter: Adapter(v)) -> String {
           }
         }
       }
-      // Wrap in aggregate function if present
+
       let col_ref = case func {
         None -> col_ref
         Some(Count) -> fmt.count(col_ref)
@@ -2267,7 +2064,7 @@ fn build_column(column: Column, adapter: Adapter(v)) -> String {
         Some(Max) -> fmt.max(col_ref)
         Some(Min) -> fmt.min(col_ref)
       }
-      // Add alias if present
+
       case alias {
         None -> col_ref
         Some(a) -> fmt.alias_as(col_ref, adapter.handle_identifier(a))
