@@ -1871,26 +1871,25 @@ fn build_select(
   for_update: Bool,
   adapter: Adapter(v),
 ) -> #(String, List(v)) {
-  let fmt = adapter
-  let cols_sql = build_columns(columns, fmt)
+  let cols_sql = build_columns(columns, adapter)
   let select_start = case distinct {
     True -> fmt.select_distinct(cols_sql)
     False -> fmt.select(cols_sql)
   }
   let #(from_sql, from_vals) = case from {
-    FromTable(tbl) -> #(build_table(tbl, fmt), [])
+    FromTable(tbl) -> #(build_table(tbl, adapter), [])
     FromSubQuery(query, alias) -> {
       let #(sql, vals) = build_single_select(query, adapter)
-      #(fmt.alias_as(fmt.enclose(sql), fmt.handle_identifier(alias)), vals)
+      #(fmt.alias_as(fmt.enclose(sql), adapter.handle_identifier(alias)), vals)
     }
   }
 
   #(fmt.from(select_start, from_sql), from_vals)
   |> append_joins(joins, adapter)
   |> append_where(wheres, adapter)
-  |> append_group_by(group_by, fmt)
+  |> append_group_by(group_by, adapter)
   |> append_having(having, adapter)
-  |> append_order_by(order_by, fmt)
+  |> append_order_by(order_by, adapter)
   |> append_limit(limit_val)
   |> append_offset(offset_val)
   |> append_for_update(for_update)
@@ -2016,11 +2015,9 @@ fn build_delete(
   returning: List(Column),
   adapter: Adapter(v),
 ) -> #(String, List(v)) {
-  let fmt = adapter
-
-  #(fmt.delete(from: build_table(from, fmt)), [])
+  #(fmt.delete(from: build_table(from, adapter)), [])
   |> append_where(wheres, adapter)
-  |> append_returning(returning, fmt)
+  |> append_returning(returning, adapter)
 }
 
 fn build_operand(operand: Operand(v), adapter: Adapter(v)) -> #(String, List(v)) {
