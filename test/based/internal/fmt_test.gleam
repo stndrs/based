@@ -17,16 +17,15 @@ pub fn select_distinct_test() {
 }
 
 pub fn insert_test() {
-  assert fmt.insert(into: "users", columns: "name, age", values: "(?, ?)")
+  assert fmt.insert(into: "users", columns: ["name", "age"], values: ["(?, ?)"])
     == "INSERT INTO users (name, age) VALUES (?, ?)"
 }
 
 pub fn insert_multiple_rows_test() {
-  assert fmt.insert(
-      into: "users",
-      columns: "name, age",
-      values: "(?, ?), (?, ?)",
-    )
+  assert fmt.insert(into: "users", columns: ["name", "age"], values: [
+      "(?, ?)",
+      "(?, ?)",
+    ])
     == "INSERT INTO users (name, age) VALUES (?, ?), (?, ?)"
 }
 
@@ -109,7 +108,7 @@ pub fn do_nothing_test() {
 }
 
 pub fn do_update_test() {
-  assert fmt.do_update("ON CONFLICT (name)", "name = EXCLUDED.name")
+  assert fmt.do_update("ON CONFLICT (name)", ["name = EXCLUDED.name"])
     == "ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name"
 }
 
@@ -392,11 +391,9 @@ pub fn select_with_left_join_test() {
 
 pub fn insert_with_conflict_do_nothing_test() {
   let result =
-    fmt.insert(
-      into: "users",
-      columns: "name, email",
-      values: "(:param:, :param:)",
-    )
+    fmt.insert(into: "users", columns: ["name", "email"], values: [
+      "(:param:, :param:)",
+    ])
     |> fmt.on_conflict("email")
     |> fmt.do_nothing()
 
@@ -406,13 +403,11 @@ pub fn insert_with_conflict_do_nothing_test() {
 
 pub fn insert_with_conflict_do_update_test() {
   let result =
-    fmt.insert(
-      into: "users",
-      columns: "name, email",
-      values: "(:param:, :param:)",
-    )
+    fmt.insert(into: "users", columns: ["name", "email"], values: [
+      "(:param:, :param:)",
+    ])
     |> fmt.on_conflict("email")
-    |> fmt.do_update("name = EXCLUDED.name")
+    |> fmt.do_update(["name = EXCLUDED.name"])
 
   assert result
     == "INSERT INTO users (name, email) VALUES (:param:, :param:) ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name"

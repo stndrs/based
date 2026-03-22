@@ -21,9 +21,12 @@ pub fn select_distinct(columns: String) -> String {
 
 pub fn insert(
   into table: String,
-  columns columns: String,
-  values values: String,
+  columns columns: List(String),
+  values values: List(String),
 ) -> String {
+  let columns = string.join(columns, ", ")
+  let values = string.join(values, ", ")
+
   "INSERT INTO " <> table <> " (" <> columns <> ") VALUES " <> values
 }
 
@@ -87,8 +90,8 @@ pub fn do_nothing(st: String) -> String {
   st <> " DO NOTHING"
 }
 
-pub fn do_update(st: String, assignments: String) -> String {
-  st <> " DO UPDATE SET " <> assignments
+pub fn do_update(st: String, assignments: List(String)) -> String {
+  st <> " DO UPDATE SET " <> string.join(assignments, ", ")
 }
 
 pub fn inner_join(st: String, value: String) -> String {
