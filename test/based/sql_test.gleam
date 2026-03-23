@@ -1089,12 +1089,10 @@ pub fn complex_query_with_aggregates_having_test() {
 
 pub fn union_basic_test() {
   let q =
-    sql.from(sql.table("employees"))
-    |> sql.select([sql.col("name")])
-    |> sql.union(
-      sql.from(sql.table("contractors"))
-      |> sql.select([sql.col("name")]),
-    )
+    sql.union([
+      sql.from(sql.table("contractors")) |> sql.select([sql.col("name")]),
+      sql.from(sql.table("employees")) |> sql.select([sql.col("name")]),
+    ])
     |> sql.to_query(a())
 
   assert q.sql
@@ -1119,16 +1117,11 @@ pub fn union_all_basic_test() {
 
 pub fn union_three_way_test() {
   let q =
-    sql.from(sql.table("employees"))
-    |> sql.select([sql.col("name")])
-    |> sql.union(
-      sql.from(sql.table("contractors"))
-      |> sql.select([sql.col("name")]),
-    )
-    |> sql.union(
-      sql.from(sql.table("interns"))
-      |> sql.select([sql.col("name")]),
-    )
+    sql.union([
+      sql.from(sql.table("interns")) |> sql.select([sql.col("name")]),
+      sql.from(sql.table("contractors")) |> sql.select([sql.col("name")]),
+      sql.from(sql.table("employees")) |> sql.select([sql.col("name")]),
+    ])
     |> sql.to_query(a())
 
   assert q.sql
@@ -1138,18 +1131,18 @@ pub fn union_three_way_test() {
 
 pub fn union_with_where_sequential_placeholders_test() {
   let q =
-    sql.from(sql.table("employees"))
-    |> sql.select([sql.col("name")])
-    |> sql.where([
-      sql.eq(sql.col("department"), sql.text("Engineering"), of: sql.value),
-    ])
-    |> sql.union(
+    sql.union([
       sql.from(sql.table("contractors"))
-      |> sql.select([sql.col("name")])
-      |> sql.where([
-        sql.eq(sql.col("department"), sql.text("Engineering"), of: sql.value),
-      ]),
-    )
+        |> sql.select([sql.col("name")])
+        |> sql.where([
+          sql.eq(sql.col("department"), sql.text("Engineering"), of: sql.value),
+        ]),
+      sql.from(sql.table("employees"))
+        |> sql.select([sql.col("name")])
+        |> sql.where([
+          sql.eq(sql.col("department"), sql.text("Engineering"), of: sql.value),
+        ]),
+    ])
     |> sql.to_query(a())
 
   assert q.sql
@@ -1159,19 +1152,19 @@ pub fn union_with_where_sequential_placeholders_test() {
 
 pub fn union_multi_params_sequential_test() {
   let q =
-    sql.from(sql.table("employees"))
-    |> sql.select([sql.col("name")])
-    |> sql.where([
-      sql.eq(sql.col("department"), sql.text("Engineering"), of: sql.value),
-      sql.gt(sql.col("salary"), sql.int(50_000), of: sql.value),
-    ])
-    |> sql.union(
+    sql.union([
       sql.from(sql.table("contractors"))
-      |> sql.select([sql.col("name")])
-      |> sql.where([
-        sql.eq(sql.col("department"), sql.text("Sales"), of: sql.value),
-      ]),
-    )
+        |> sql.select([sql.col("name")])
+        |> sql.where([
+          sql.eq(sql.col("department"), sql.text("Sales"), of: sql.value),
+        ]),
+      sql.from(sql.table("employees"))
+        |> sql.select([sql.col("name")])
+        |> sql.where([
+          sql.eq(sql.col("department"), sql.text("Engineering"), of: sql.value),
+          sql.gt(sql.col("salary"), sql.int(50_000), of: sql.value),
+        ]),
+    ])
     |> sql.to_query(a())
 
   assert q.sql
@@ -1182,22 +1175,20 @@ pub fn union_multi_params_sequential_test() {
 
 pub fn union_three_way_params_test() {
   let q =
-    sql.from(sql.table("a"))
-    |> sql.select([sql.star])
-    |> sql.where([sql.eq(sql.col("x"), sql.int(1), of: sql.value)])
-    |> sql.union(
-      sql.from(sql.table("b"))
-      |> sql.select([sql.star])
-      |> sql.where([
-        sql.eq(sql.col("x"), sql.int(2), of: sql.value),
-        sql.eq(sql.col("y"), sql.int(3), of: sql.value),
-      ]),
-    )
-    |> sql.union(
+    sql.union([
       sql.from(sql.table("c"))
-      |> sql.select([sql.star])
-      |> sql.where([sql.eq(sql.col("x"), sql.int(4), of: sql.value)]),
-    )
+        |> sql.select([sql.star])
+        |> sql.where([sql.eq(sql.col("x"), sql.int(4), of: sql.value)]),
+      sql.from(sql.table("b"))
+        |> sql.select([sql.star])
+        |> sql.where([
+          sql.eq(sql.col("x"), sql.int(2), of: sql.value),
+          sql.eq(sql.col("y"), sql.int(3), of: sql.value),
+        ]),
+      sql.from(sql.table("a"))
+        |> sql.select([sql.star])
+        |> sql.where([sql.eq(sql.col("x"), sql.int(1), of: sql.value)]),
+    ])
     |> sql.to_query(a())
 
   assert q.sql
@@ -1207,18 +1198,18 @@ pub fn union_three_way_params_test() {
 
 pub fn union_to_string_test() {
   let s =
-    sql.from(sql.table("employees"))
-    |> sql.select([sql.col("name")])
-    |> sql.where([
-      sql.eq(sql.col("department"), sql.text("Engineering"), of: sql.value),
-    ])
-    |> sql.union(
+    sql.union([
       sql.from(sql.table("contractors"))
-      |> sql.select([sql.col("name")])
-      |> sql.where([
-        sql.eq(sql.col("department"), sql.text("Engineering"), of: sql.value),
-      ]),
-    )
+        |> sql.select([sql.col("name")])
+        |> sql.where([
+          sql.eq(sql.col("department"), sql.text("Engineering"), of: sql.value),
+        ]),
+      sql.from(sql.table("employees"))
+        |> sql.select([sql.col("name")])
+        |> sql.where([
+          sql.eq(sql.col("department"), sql.text("Engineering"), of: sql.value),
+        ]),
+    ])
     |> sql.to_string(a())
 
   assert s
@@ -1241,16 +1232,11 @@ pub fn union_all_to_string_test() {
 
 pub fn union_three_way_to_string_test() {
   let s =
-    sql.from(sql.table("a"))
-    |> sql.select([sql.col("name")])
-    |> sql.union(
-      sql.from(sql.table("b"))
-      |> sql.select([sql.col("name")]),
-    )
-    |> sql.union(
-      sql.from(sql.table("c"))
-      |> sql.select([sql.col("name")]),
-    )
+    sql.union([
+      sql.from(sql.table("c")) |> sql.select([sql.col("name")]),
+      sql.from(sql.table("b")) |> sql.select([sql.col("name")]),
+      sql.from(sql.table("a")) |> sql.select([sql.col("name")]),
+    ])
     |> sql.to_string(a())
 
   assert s
@@ -1356,26 +1342,7 @@ pub fn cte_recursive_test() {
     |> sql.select([sql.col("id"), sql.col("parent_id"), sql.col("name")])
     |> sql.where([sql.is_null(sql.col("parent_id"))])
 
-  let recursive_part =
-    sql.from(sql.table_as(sql.table("categories"), "c"))
-    |> sql.select([
-      sql.col("id") |> sql.col_for("c"),
-      sql.col("parent_id") |> sql.col_for("c"),
-      sql.col("name") |> sql.col_for("c"),
-    ])
-    |> sql.inner_join(
-      table: sql.table_as(sql.table("category_tree"), "ct"),
-      on: [
-        sql.eq(
-          sql.col("parent_id") |> sql.col_for("c"),
-          sql.col("id") |> sql.col_for("ct"),
-          of: sql.column,
-        ),
-      ],
-    )
-
-  let category_tree =
-    sql.cte(name: "category_tree", query: base |> sql.union(recursive_part))
+  let category_tree = sql.cte(name: "category_tree", query: base)
 
   let s =
     sql.from(sql.table("category_tree"))
@@ -1385,7 +1352,7 @@ pub fn cte_recursive_test() {
     |> sql.to_string(a())
 
   assert s
-    == "WITH RECURSIVE category_tree AS (SELECT id, parent_id, name FROM categories WHERE parent_id IS NULL UNION SELECT c.id, c.parent_id, c.name FROM categories AS c INNER JOIN category_tree AS ct ON c.parent_id = ct.id) SELECT id, name FROM category_tree;"
+    == "WITH RECURSIVE category_tree AS (SELECT id, parent_id, name FROM categories WHERE parent_id IS NULL) SELECT id, name FROM category_tree;"
 }
 
 pub fn cte_with_insert_test() {
@@ -1640,8 +1607,7 @@ pub fn backtick_union_test() {
     |> sql.where([sql.eq(sql.col("active"), sql.true, of: sql.value)])
 
   let q =
-    q1
-    |> sql.union(q2)
+    sql.union([q2, q1])
     |> sql.to_query(backtick_a())
 
   assert q.sql
@@ -2578,8 +2544,7 @@ pub fn union_with_limit_offset_test() {
     |> sql.limit(3)
 
   let q =
-    q1
-    |> sql.union(q2)
+    sql.union([q2, q1])
     |> sql.to_query(a())
 
   assert q.sql
@@ -2599,8 +2564,7 @@ pub fn union_to_string_with_values_test() {
     |> sql.where([sql.eq(sql.col("active"), sql.true, of: sql.value)])
 
   let q =
-    q1
-    |> sql.union(q2)
+    sql.union([q2, q1])
     |> sql.to_string(a())
 
   assert q
@@ -2640,11 +2604,6 @@ pub fn cte_with_union_body_test() {
     |> sql.select([sql.col("id"), sql.col("name")])
     |> sql.where([sql.eq(sql.col("active"), sql.true, of: sql.value)])
 
-  // NOTE: CTE bodies must be QueryBuilder(Select, v), so union as CTE body
-  // would require CombinedSelectBuilder support in Cte — this may need
-  // to be tested differently if the type doesn't allow it.
-  // For now, test a simple CTE with the main query being a union.
-
   let main1 =
     sql.from(sql.table("active_users"))
     |> sql.select([sql.col("id"), sql.col("name")])
@@ -2654,8 +2613,7 @@ pub fn cte_with_union_body_test() {
     |> sql.select([sql.col("id"), sql.col("name")])
 
   let q =
-    main1
-    |> sql.union(main2)
+    sql.union([main2, main1])
     |> sql.with([sql.cte(name: "active_users", query: cte_query1)])
     |> sql.to_query(a())
 

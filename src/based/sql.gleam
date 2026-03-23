@@ -580,6 +580,12 @@ pub type Delete
 /// Phantom type indicating a sub query
 pub type Subquery
 
+/// Phantom type for UNION queries.
+pub type Union
+
+/// Phantom type for UNION ALL queries.
+pub type UnionAll
+
 type UnionType {
   Union
   UnionAll
@@ -1122,22 +1128,12 @@ pub fn recursive(builder: Builder(a, v)) -> Builder(a, v) {
 /// Combines two SELECT queries with `UNION`.
 ///
 /// Can be chained to union multiple queries.
-pub fn union(
-  builder: Builder(Select, v),
-  other: Builder(Select, v),
-) -> Builder(Select, v) {
-  case builder {
-    UnionBuilder(
-      query: UnionQuery(selects:, union_type: Union),
-      ctes:,
-      recursive:,
-    ) ->
-      UnionQuery(selects: list.prepend(selects, other), union_type: Union)
-      |> UnionBuilder(ctes:, recursive:)
-    _ ->
-      UnionQuery(selects: [other, builder], union_type: Union)
-      |> UnionBuilder(ctes: [], recursive: False)
-  }
+pub fn union(selects: List(Builder(Select, v))) -> Builder(Union, v) {
+  UnionBuilder(
+    query: UnionQuery(selects:, union_type: Union),
+    ctes: [],
+    recursive: False,
+  )
 }
 
 /// Combines two SELECT queries with `UNION ALL`.
