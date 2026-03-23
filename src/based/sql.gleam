@@ -583,6 +583,9 @@ pub type Subquery
 /// Phantom type for UNION queries.
 pub type Union
 
+/// Phantom type for UNION ALL queries.
+pub type UnionAll
+
 type UnionType {
   Union
   UnionAll
@@ -1134,22 +1137,13 @@ pub fn union(selects: List(Builder(Select, v))) -> Builder(Union, v) {
 }
 
 /// Combines two SELECT queries with `UNION ALL`.
-pub fn union_all(
-  builder: Builder(Select, v),
-  other: Builder(Select, v),
-) -> Builder(Select, v) {
-  case builder {
-    UnionBuilder(
-      query: UnionQuery(selects:, union_type: UnionAll),
-      ctes:,
-      recursive:,
-    ) ->
-      UnionQuery(selects: list.prepend(selects, other), union_type: UnionAll)
-      |> UnionBuilder(ctes:, recursive:)
-    _ ->
-      UnionQuery(selects: [other, builder], union_type: UnionAll)
-      |> UnionBuilder(ctes: [], recursive: False)
-  }
+/// Combines SELECT queries with `UNION ALL`.
+pub fn union_all(selects: List(Builder(Select, v))) -> Builder(UnionAll, v) {
+  UnionBuilder(
+    query: UnionQuery(selects:, union_type: UnionAll),
+    ctes: [],
+    recursive: False,
+  )
 }
 
 /// Serializes a query builder into a `Query(v)` with parameterized placeholders.

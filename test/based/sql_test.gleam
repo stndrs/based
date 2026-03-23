@@ -1102,12 +1102,10 @@ pub fn union_basic_test() {
 
 pub fn union_all_basic_test() {
   let q =
-    sql.from(sql.table("employees"))
-    |> sql.select([sql.col("name")])
-    |> sql.union_all(
-      sql.from(sql.table("contractors"))
-      |> sql.select([sql.col("name")]),
-    )
+    sql.union_all([
+      sql.from(sql.table("contractors")) |> sql.select([sql.col("name")]),
+      sql.from(sql.table("employees")) |> sql.select([sql.col("name")]),
+    ])
     |> sql.to_query(a())
 
   assert q.sql
@@ -1218,12 +1216,10 @@ pub fn union_to_string_test() {
 
 pub fn union_all_to_string_test() {
   let s =
-    sql.from(sql.table("employees"))
-    |> sql.select([sql.col("name")])
-    |> sql.union_all(
-      sql.from(sql.table("contractors"))
-      |> sql.select([sql.col("name")]),
-    )
+    sql.union_all([
+      sql.from(sql.table("contractors")) |> sql.select([sql.col("name")]),
+      sql.from(sql.table("employees")) |> sql.select([sql.col("name")]),
+    ])
     |> sql.to_string(a())
 
   assert s
@@ -2513,17 +2509,11 @@ pub fn delete_backtick_test() {
 }
 
 pub fn union_all_backtick_test() {
-  let q1 =
-    sql.from(sql.table("users"))
-    |> sql.select([sql.col("id")])
-
-  let q2 =
-    sql.from(sql.table("admins"))
-    |> sql.select([sql.col("id")])
-
   let q =
-    q1
-    |> sql.union_all(q2)
+    sql.union_all([
+      sql.from(sql.table("admins")) |> sql.select([sql.col("id")]),
+      sql.from(sql.table("users")) |> sql.select([sql.col("id")]),
+    ])
     |> sql.to_query(backtick_a())
 
   assert q.sql == "SELECT `id` FROM `users` UNION ALL SELECT `id` FROM `admins`"
