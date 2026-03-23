@@ -15,7 +15,7 @@
 //// let query =
 ////   sql.from(sql.table("users"))
 ////   |> sql.select([sql.col("name"), sql.col("email")])
-////   |> sql.where(sql.eq(sql.col("active"), sql.true, of: sql.value))
+////   |> sql.where([sql.col("active") |> sql.eq(sql.true, of: sql.value)])
 ////   |> sql.order_by(sql.col("name"), sql.asc)
 ////   |> sql.limit(10)
 ////   |> sql.to_query(adapter)
@@ -585,6 +585,9 @@ type UnionType {
   UnionAll
 }
 
+/// An intermediate builder representing a table source.
+/// Created by `from()` or `from_subquery()`, then passed to `select()` or
+/// `delete()` to produce a full query builder.
 pub opaque type From(a, v) {
   FromTable(table: Table)
   FromSubQuery(builder: Builder(Select, v), alias: String)
@@ -829,7 +832,7 @@ pub fn delete(from: From(Table, v)) -> Builder(Delete, v) {
       DeleteQuery(from: table, wheres: [], returning: [])
       |> DeleteBuilder(ctes: [], recursive: False)
     }
-    _ -> panic as "Not possible"
+    _ -> panic as "unreachable: delete requires FromTable"
   }
 }
 
@@ -913,7 +916,7 @@ pub fn group_by(
     SelectBuilder(query:, ctes:, recursive:) ->
       SelectQuery(..query, group_by: list.append(query.group_by, columns))
       |> SelectBuilder(ctes:, recursive:)
-    _ -> panic as "Not possible"
+    _ -> panic as "unreachable: group_by called on non-Select builder"
   }
 }
 
@@ -944,7 +947,7 @@ pub fn distinct(builder: Builder(Select, v)) -> Builder(Select, v) {
   case builder {
     SelectBuilder(query:, ctes:, recursive:) ->
       SelectQuery(..query, distinct: True) |> SelectBuilder(ctes:, recursive:)
-    _ -> panic as "Not possible"
+    _ -> panic as "unreachable: distinct called on non-Select builder"
   }
 }
 
@@ -958,7 +961,7 @@ pub fn having(
     SelectBuilder(query:, ctes:, recursive:) ->
       SelectQuery(..query, having: list.prepend(query.having, conditions))
       |> SelectBuilder(ctes:, recursive:)
-    _ -> panic as "Not possible"
+    _ -> panic as "unreachable: having called on non-Select builder"
   }
 }
 
@@ -967,7 +970,7 @@ pub fn for_update(builder: Builder(Select, v)) -> Builder(Select, v) {
   case builder {
     SelectBuilder(query:, ctes:, recursive:) ->
       SelectQuery(..query, for_update: True) |> SelectBuilder(ctes:, recursive:)
-    _ -> panic as "Not possible"
+    _ -> panic as "unreachable: for_update called on non-Select builder"
   }
 }
 
@@ -988,7 +991,7 @@ pub fn values(
       InsertQuery(..query, columns: columns, values: value_rows)
       |> InsertBuilder(ctes:, recursive:)
     }
-    _ -> panic as "Not possible"
+    _ -> panic as "unreachable: values called on non-Insert builder"
   }
 }
 
@@ -1010,7 +1013,7 @@ pub fn on_conflict(
         )),
       )
       |> InsertBuilder(ctes:, recursive:)
-    _ -> panic as "Not possible"
+    _ -> panic as "unreachable: on_conflict called on non-Insert builder"
   }
 }
 
@@ -1080,7 +1083,7 @@ pub fn set(
         sets: list.prepend(query.sets, #(column, kind.to_operand(input))),
       )
       |> UpdateBuilder(ctes:, recursive:)
-    _ -> panic as "Not possible"
+    _ -> panic as "unreachable: set called on non-Update builder"
   }
 }
 

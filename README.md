@@ -25,7 +25,7 @@ let adapter = sql.adapter()
 let query =
   sql.from(sql.table("users"))
   |> sql.select([sql.col("id"), sql.col("name")])
-  |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
+  |> sql.where([sql.col("id") |> sql.eq(sql.int(1), of: sql.value)])
   |> sql.to_query(adapter)
 
 // query.sql == "SELECT id, name FROM users WHERE id = $1"
@@ -58,7 +58,7 @@ import based/sql
 let query =
   sql.update(table: sql.table("users"))
   |> sql.set("name", sql.text("Jane"), of: sql.value)
-  |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
+  |> sql.where([sql.col("id") |> sql.eq(sql.int(1), of: sql.value)])
   |> sql.to_query(sql.adapter())
 
 // query.sql == "UPDATE users SET name = $1 WHERE id = $2"
@@ -72,7 +72,7 @@ import based/sql
 let query =
   sql.from(sql.table("users"))
   |> sql.delete()
-  |> sql.where(sql.eq(sql.col("id"), sql.int(1), of: sql.value))
+  |> sql.where([sql.col("id") |> sql.eq(sql.int(1), of: sql.value)])
   |> sql.to_query(sql.adapter())
 
 // query.sql == "DELETE FROM users WHERE id = $1"

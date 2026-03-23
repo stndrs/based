@@ -162,7 +162,7 @@ pub opaque type Driver(v, conn) {
 /// `on_execute`, and `on_batch`.
 pub fn driver() -> Driver(v, conn) {
   Driver(
-    handle_query: fn(_, _) { panic as "based/db.Db not configured (on_query) " },
+    handle_query: fn(_, _) { panic as "based/db.Db not configured (on_query)" },
     handle_execute: fn(_, _) {
       panic as "based/db.Db not configured (on_execute)"
     },
@@ -194,18 +194,12 @@ pub fn on_batch(
   Driver(..driver, handle_batch:)
 }
 
-/// Accepts a `Query`, connection, and query handler function from an adapter
-/// package.
-/// This function currently only passes the `Query` and connection right back
-/// to the handler.
+/// Executes a parameterized query using the configured driver.
 pub fn query(query: sql.Query(v), db: Db(v, conn)) -> Result(Queried, DbError) {
   db.driver.handle_query(query, db.conn)
 }
 
-/// Accepts a SQL string, connection, and query handler function from an
-/// adapter package.
-/// This function currently only passes the SQL string and connection right
-/// back to the handler.
+/// Executes a raw SQL string using the configured driver.
 pub fn execute(sql: String, db: Db(v, conn)) -> Result(Int, DbError) {
   db.driver.handle_execute(sql, db.conn)
 }
