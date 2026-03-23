@@ -47,7 +47,7 @@
 //// ## Phantom types
 ////
 //// The `Builder(kind, v)` type uses phantom types (`Select`, `Insert`,
-//// `Update`, `Delete`, `From`) to restrict which modifier functions can be
+//// `Update`, `Delete`, `Union`, `UnionAll`, `Subquery`) to restrict which modifier functions can be
 //// called. For example, `join` only accepts `Builder(Select, v)`, and
 //// `set` only accepts `Builder(Update, v)`. This helps callers avoid
 //// building invalid SQL queries. It is possible to call functions that do
@@ -290,10 +290,10 @@ pub fn col_for(column: Column, table: String) -> Column {
 }
 
 /// Sets an alias on a column. Renders as `column AS alias`.
-/// No-ops on wildcard column.
-pub fn col_as(column: Column, a: String) -> Column {
+/// No-ops on `star`.
+pub fn col_as(column: Column, alias alias: String) -> Column {
   case column {
-    Column(..) -> Column(..column, alias: Some(a))
+    Column(..) -> Column(..column, alias: Some(alias))
     All -> All
   }
 }
@@ -546,7 +546,8 @@ pub opaque type OrderBy {
 ///
 /// - `DoNothing` ignores the conflicting row (`ON CONFLICT ... DO NOTHING`)
 /// - `DoUpdate(sets:)` updates specified columns (`ON CONFLICT ... DO UPDATE SET ...`).
-///   Each tuple is `#(column_name, expression_string)`.
+///   Each tuple is `#(column_name, raw_sql_expression)`. Column names are quoted
+///   by the adapter; expression strings are emitted verbatim (e.g. `"excluded.quantity"`).
 pub type ConflictAction {
   DoNothing
   DoUpdate(sets: List(#(String, String)))
@@ -577,7 +578,7 @@ pub type Update
 /// Phantom type for DELETE queries.
 pub type Delete
 
-/// Phantom type indicating a sub query
+/// Phantom type for subqueries.
 pub type Subquery
 
 /// Phantom type for UNION queries.
@@ -1125,9 +1126,7 @@ pub fn recursive(builder: Builder(a, v)) -> Builder(a, v) {
   }
 }
 
-/// Combines two SELECT queries with `UNION`.
-///
-/// Can be chained to union multiple queries.
+/// Combines SELECT queries with `UNION`.
 pub fn union(selects: List(Builder(Select, v))) -> Builder(Union, v) {
   UnionBuilder(
     query: UnionQuery(selects:, union_type: Union),
@@ -1136,7 +1135,6 @@ pub fn union(selects: List(Builder(Select, v))) -> Builder(Union, v) {
   )
 }
 
-/// Combines two SELECT queries with `UNION ALL`.
 /// Combines SELECT queries with `UNION ALL`.
 pub fn union_all(selects: List(Builder(Select, v))) -> Builder(UnionAll, v) {
   UnionBuilder(
@@ -1927,8 +1925,8 @@ fn build_single_select(
 ) -> SqlBuilder(v) {
   case builder {
     SelectBuilder(query:, ..) -> build_select(query, adapter)
-    UnionBuilder(query:, ..) -> build_union(query, adapter)
-    _ -> SqlBuilder("", [])
+    _ ->
+      panic as "unreachable: build_single_select called with non-Select builder"
   }
 }
 

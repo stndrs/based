@@ -28,7 +28,7 @@ let query =
   |> sql.where([sql.col("id") |> sql.eq(sql.int(1), of: sql.value)])
   |> sql.to_query(adapter)
 
-// query.sql == "SELECT id, name FROM users WHERE id = $1"
+// query.sql == "SELECT id, name FROM users WHERE id = ?"
 // query.values == [sql.Int(1)]
 ```
 
@@ -47,7 +47,7 @@ let query =
   ])
   |> sql.to_query(sql.adapter())
 
-// query.sql == "INSERT INTO users (name, email) VALUES ($1, $2)"
+// query.sql == "INSERT INTO users (name, email) VALUES (?, ?)"
 ```
 
 ### Update
@@ -61,7 +61,7 @@ let query =
   |> sql.where([sql.col("id") |> sql.eq(sql.int(1), of: sql.value)])
   |> sql.to_query(sql.adapter())
 
-// query.sql == "UPDATE users SET name = $1 WHERE id = $2"
+// query.sql == "UPDATE users SET name = ? WHERE id = ?"
 ```
 
 ### Delete
@@ -75,7 +75,7 @@ let query =
   |> sql.where([sql.col("id") |> sql.eq(sql.int(1), of: sql.value)])
   |> sql.to_query(sql.adapter())
 
-// query.sql == "DELETE FROM users WHERE id = $1"
+// query.sql == "DELETE FROM users WHERE id = ?"
 ```
 
 ## Running Queries

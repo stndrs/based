@@ -37,8 +37,7 @@ pub fn v4() -> Uuid {
   Uuid(uuid: uuid)
 }
 
-/// Formats a UUID as a lowercase hyphenated string
-/// (e.g. `"550e8400-e29b-41d4-a716-446655440000"`).
+/// Formats a UUID as a lowercase hyphenated string (e.g. `"550e8400-e29b-41d4-a716-446655440000"`).
 pub fn to_string(uuid: Uuid) -> String {
   do_to_string(uuid.uuid, 0, "", "-")
 }

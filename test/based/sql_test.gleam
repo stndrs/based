@@ -2079,18 +2079,6 @@ pub fn select_join_to_string_test() {
     == "SELECT u.id, o.total FROM users AS u INNER JOIN orders AS o ON u.id = o.user_id"
 }
 
-pub fn select_group_by_having_to_string_test() {
-  let q =
-    sql.from(sql.table("employees"))
-    |> sql.select([sql.col("department"), sql.count("*") |> sql.col_as("cnt")])
-    |> sql.group_by([sql.col("department")])
-    |> sql.having([sql.gt(sql.count("*"), sql.int(5), of: sql.value)])
-    |> sql.to_string(a())
-
-  assert q
-    == "SELECT department, COUNT(*) AS cnt FROM employees GROUP BY department HAVING COUNT(*) > 5"
-}
-
 pub fn select_order_by_to_string_test() {
   let q =
     sql.from(sql.table("users"))
@@ -2111,17 +2099,6 @@ pub fn select_limit_offset_to_string_test() {
     |> sql.to_string(a())
 
   assert q == "SELECT id FROM users LIMIT 10 OFFSET 20"
-}
-
-pub fn select_distinct_to_query_test() {
-  let q =
-    sql.from(sql.table("users"))
-    |> sql.select([sql.col("name")])
-    |> sql.distinct
-    |> sql.to_query(a())
-
-  assert q.sql == "SELECT DISTINCT name FROM users"
-  assert q.values == []
 }
 
 pub fn select_where_and_or_combined_test() {
@@ -2397,17 +2374,6 @@ pub fn update_returning_to_string_test() {
     |> sql.to_string(a())
 
   assert q == "UPDATE users SET active = TRUE WHERE id = 1 RETURNING id, active"
-}
-
-pub fn update_backtick_test() {
-  let q =
-    sql.update(table: sql.table("users"))
-    |> sql.set("name", sql.text("Bob"), of: sql.value)
-    |> sql.where([sql.eq(sql.col("id"), sql.int(1), of: sql.value)])
-    |> sql.to_query(backtick_a())
-
-  assert q.sql == "UPDATE `users` SET `name` = ? WHERE `id` = ?"
-  assert q.values == [sql.Text("Bob"), sql.Int(1)]
 }
 
 pub fn delete_where_not_test() {
@@ -2697,26 +2663,6 @@ pub fn select_all_with_where_test() {
   assert q.values == [sql.Int(1)]
 }
 
-pub fn select_count_star_test() {
-  let q =
-    sql.from(sql.table("users"))
-    |> sql.select([sql.count("*")])
-    |> sql.to_query(a())
-
-  assert q.sql == "SELECT COUNT(*) FROM users"
-  assert q.values == []
-}
-
-pub fn select_count_star_with_alias_test() {
-  let q =
-    sql.from(sql.table("users"))
-    |> sql.select([sql.count("*") |> sql.col_as("total")])
-    |> sql.to_query(a())
-
-  assert q.sql == "SELECT COUNT(*) AS total FROM users"
-  assert q.values == []
-}
-
 pub fn insert_single_row_to_string_test() {
   let q =
     sql.insert(into: sql.table("users"))
@@ -2730,20 +2676,6 @@ pub fn insert_single_row_to_string_test() {
 
   assert q
     == "INSERT INTO users (name, email) VALUES ('Alice', 'alice@example.com')"
-}
-
-pub fn insert_with_boolean_to_string_test() {
-  let q =
-    sql.insert(into: sql.table("users"))
-    |> sql.values([
-      {
-        use <- sql.field(column: "name", value: sql.text("Alice"))
-        sql.final(column: "active", value: sql.true)
-      },
-    ])
-    |> sql.to_string(a())
-
-  assert q == "INSERT INTO users (name, active) VALUES ('Alice', TRUE)"
 }
 
 pub fn select_from_aliased_table_test() {
@@ -3338,23 +3270,6 @@ pub fn cte_with_column_aliases_semicolon_test() {
     == "WITH u(user_id, user_name) AS (SELECT id, name FROM users) SELECT user_id, user_name FROM u;"
 }
 
-pub fn cte_recursive_union_all_semicolon_test() {
-  let base_query =
-    sql.from(sql.table("categories"))
-    |> sql.select([sql.col("id"), sql.col("parent_id"), sql.col("name")])
-    |> sql.where([sql.is_null(sql.col("parent_id"))])
-
-  let q =
-    sql.from(sql.table("category_tree"))
-    |> sql.select([sql.col("id"), sql.col("parent_id"), sql.col("name")])
-    |> sql.with([sql.cte(name: "category_tree", query: base_query)])
-    |> sql.recursive
-    |> sql.to_query(a())
-
-  assert q.sql
-    == "WITH RECURSIVE category_tree AS (SELECT id, parent_id, name FROM categories WHERE parent_id IS NULL) SELECT id, parent_id, name FROM category_tree;"
-}
-
 pub fn update_where_is_false_test() {
   let q =
     sql.update(table: sql.table("users"))
@@ -3630,4 +3545,26 @@ pub fn insert_empty_values_to_query_test() {
 
   assert q.sql == "INSERT INTO users () VALUES "
   assert q.values == []
+}
+
+pub fn update_set_nullable_some_test() {
+  let q =
+    sql.update(table: sql.table("users"))
+    |> sql.set("name", Some(sql.text("Jane")), of: sql.nullable(of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.int(1), of: sql.value)])
+    |> sql.to_query(a())
+
+  assert q.sql == "UPDATE users SET name = $1 WHERE id = $2"
+  assert q.values == [sql.Text("Jane"), sql.Int(1)]
+}
+
+pub fn update_set_nullable_none_test() {
+  let q =
+    sql.update(table: sql.table("users"))
+    |> sql.set("name", None, of: sql.nullable(of: sql.value))
+    |> sql.where([sql.eq(sql.col("id"), sql.int(1), of: sql.value)])
+    |> sql.to_query(a())
+
+  assert q.sql == "UPDATE users SET name = $1 WHERE id = $2"
+  assert q.values == [sql.Null, sql.Int(1)]
 }

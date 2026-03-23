@@ -29,7 +29,7 @@ composable, database-agnostic SQL query builder and type system.
 - **UUID** (`based/uuid`): Generation of v4 (random) and v7 (time-ordered) UUIDs,
   parsing, formatting, nil UUID, and version detection.
 - **Interval** (`based/interval`): ISO 8601 duration type with months, days,
-  seconds, and microseconds. Includes addition, string formatting, and a decoder.
+  seconds, and microseconds. Includes addition and string formatting.
 
 ### Removed
 
