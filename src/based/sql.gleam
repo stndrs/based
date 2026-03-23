@@ -914,7 +914,7 @@ pub fn group_by(
     SelectBuilder(query:, ctes:, recursive:) ->
       SelectQuery(..query, group_by: list.append(query.group_by, columns))
       |> SelectBuilder(ctes:, recursive:)
-    _ -> builder
+    _ -> panic as "Not possible"
   }
 }
 
@@ -945,7 +945,7 @@ pub fn distinct(builder: Builder(Select, v)) -> Builder(Select, v) {
   case builder {
     SelectBuilder(query:, ctes:, recursive:) ->
       SelectQuery(..query, distinct: True) |> SelectBuilder(ctes:, recursive:)
-    _ -> builder
+    _ -> panic as "Not possible"
   }
 }
 
@@ -959,7 +959,7 @@ pub fn having(
     SelectBuilder(query:, ctes:, recursive:) ->
       SelectQuery(..query, having: list.prepend(query.having, conditions))
       |> SelectBuilder(ctes:, recursive:)
-    _ -> builder
+    _ -> panic as "Not possible"
   }
 }
 
@@ -968,7 +968,7 @@ pub fn for_update(builder: Builder(Select, v)) -> Builder(Select, v) {
   case builder {
     SelectBuilder(query:, ctes:, recursive:) ->
       SelectQuery(..query, for_update: True) |> SelectBuilder(ctes:, recursive:)
-    _ -> builder
+    _ -> panic as "Not possible"
   }
 }
 
@@ -989,7 +989,7 @@ pub fn values(
       InsertQuery(..query, columns: columns, values: value_rows)
       |> InsertBuilder(ctes:, recursive:)
     }
-    _ -> builder
+    _ -> panic as "Not possible"
   }
 }
 
@@ -1011,7 +1011,7 @@ pub fn on_conflict(
         )),
       )
       |> InsertBuilder(ctes:, recursive:)
-    _ -> builder
+    _ -> panic as "Not possible"
   }
 }
 
@@ -1081,7 +1081,7 @@ pub fn set(
         sets: list.prepend(query.sets, #(column, kind.to_operand(input))),
       )
       |> UpdateBuilder(ctes:, recursive:)
-    _ -> builder
+    _ -> panic as "Not possible"
   }
 }
 
