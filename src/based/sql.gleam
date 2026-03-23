@@ -544,17 +544,13 @@ pub opaque type OrderBy {
 /// - `DoNothing` ignores the conflicting row (`ON CONFLICT ... DO NOTHING`)
 /// - `DoUpdate(sets:)` updates specified columns (`ON CONFLICT ... DO UPDATE SET ...`).
 ///   Each tuple is `#(column_name, expression_string)`.
-pub type ConflictAction(v) {
+pub type ConflictAction {
   DoNothing
   DoUpdate(sets: List(#(String, String)))
 }
 
 type OnConflict(v) {
-  OnConflict(
-    target: String,
-    action: ConflictAction(v),
-    wheres: List(Condition(v)),
-  )
+  OnConflict(target: String, action: ConflictAction, wheres: List(Condition(v)))
 }
 
 /// Describes how to convert an input of type `a` into an internal operand
@@ -997,7 +993,7 @@ pub fn values(
 pub fn on_conflict(
   builder: Builder(Insert, v),
   target target: String,
-  action action: ConflictAction(v),
+  action action: ConflictAction,
   where wheres: List(Condition(v)),
 ) -> Builder(Insert, v) {
   case builder {
