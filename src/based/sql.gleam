@@ -377,22 +377,25 @@ pub fn on_identifier(
 /// Sets the function that produces the null representation for type `v`.
 ///
 /// Used when a `nullable` kind resolves to `None`.
-pub fn on_null(adapter: Adapter(v), with fun: fn() -> v) -> Adapter(v) {
-  Adapter(..adapter, handle_null: fun)
+pub fn on_null(adapter: Adapter(v), with handle_null: fn() -> v) -> Adapter(v) {
+  Adapter(..adapter, handle_null:)
 }
 
 /// Sets the function that wraps an `Int` into the value type `v`.
 ///
 /// Used internally when rendering `LIMIT`, `OFFSET`, and other integer literals.
-pub fn on_int(adapter: Adapter(v), with fun: fn(Int) -> v) -> Adapter(v) {
-  Adapter(..adapter, handle_int: fun)
+pub fn on_int(adapter: Adapter(v), with handle_int: fn(Int) -> v) -> Adapter(v) {
+  Adapter(..adapter, handle_int:)
 }
 
 /// Sets the function that wraps a `String` into the value type `v`.
 ///
 /// Used internally when rendering `LIKE` patterns and other string literals.
-pub fn on_text(adapter: Adapter(v), with fun: fn(String) -> v) -> Adapter(v) {
-  Adapter(..adapter, handle_text: fun)
+pub fn on_text(
+  adapter: Adapter(v),
+  with handle_text: fn(String) -> v,
+) -> Adapter(v) {
+  Adapter(..adapter, handle_text:)
 }
 
 /// A type-safe row for INSERT statements.
@@ -1308,7 +1311,7 @@ fn pad_zero(n: Int) -> String {
 
 /// Returns a ready-to-use adapter for the built-in `Value` type.
 ///
-/// handles all `Value` variants for `to_string` output.
+/// Handles all `Value` variants for `to_string` output.
 pub fn adapter() -> Adapter(Value) {
   Adapter(
     handle_placeholder: fn(_) { "?" },
@@ -1324,7 +1327,7 @@ pub fn adapter() -> Adapter(Value) {
 // values in order. These two functions do the final replacement pass.
 
 /// Replace `:param:` sentinels with positional placeholders ($1, $2, ...).
-fn replace_placeholders(sql: String, formatter: Adapter(v)) -> String {
+fn replace_placeholders(sql: String, adapter: Adapter(v)) -> String {
   let parts = string.split(sql, fmt.placeholder)
   case parts {
     [single] -> single
@@ -1332,7 +1335,7 @@ fn replace_placeholders(sql: String, formatter: Adapter(v)) -> String {
       let #(result, _) =
         list.fold(rest, #(first, 0), fn(acc, part) {
           let #(s, i) = acc
-          #(s <> formatter.handle_placeholder(i) <> part, i + 1)
+          #(s <> adapter.handle_placeholder(i) <> part, i + 1)
         })
       result
     }
@@ -1344,7 +1347,7 @@ fn replace_placeholders(sql: String, formatter: Adapter(v)) -> String {
 fn replace_with_values(
   sql: String,
   values: List(v),
-  formatter: Adapter(v),
+  adapter: Adapter(v),
 ) -> String {
   let parts = string.split(sql, fmt.placeholder)
   case parts {
@@ -1354,7 +1357,7 @@ fn replace_with_values(
         list.fold(list.zip(rest, values), #(first, Nil), fn(acc, pair) {
           let #(s, _) = acc
           let #(part, val) = pair
-          #(s <> formatter.handle_value(val) <> part, Nil)
+          #(s <> adapter.handle_value(val) <> part, Nil)
         })
       result
     }
