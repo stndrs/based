@@ -305,10 +305,6 @@ pub fn terminate_test() {
   assert fmt.terminate("SELECT * FROM users") == "SELECT * FROM users;"
 }
 
-pub fn value_row_test() {
-  assert fmt.value_row(":param:, :param:") == "(:param:, :param:)"
-}
-
 pub fn full_select_query_test() {
   let result =
     fmt.select("id, name, email")
@@ -501,17 +497,4 @@ pub fn exists_subquery_test() {
 
   assert result
     == "SELECT * FROM users WHERE EXISTS (SELECT 1 FROM orders WHERE orders.user_id = users.id)"
-}
-
-pub fn value_row_composition_test() {
-  let rows =
-    string.join(
-      [
-        fmt.value_row(":param:, :param:"),
-        fmt.value_row(":param:, :param:"),
-      ],
-      ", ",
-    )
-
-  assert rows == "(:param:, :param:), (:param:, :param:)"
 }

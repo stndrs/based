@@ -258,8 +258,3 @@ pub fn desc(value: String) -> String {
 pub fn terminate(value: String) -> String {
   value <> ";"
 }
-
-/// Wrap a value row in parentheses: "(a, b, c)".
-pub fn value_row(values: String) -> String {
-  "(" <> values <> ")"
-}

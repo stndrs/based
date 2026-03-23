@@ -578,7 +578,7 @@ pub type Update
 /// Phantom type for DELETE queries.
 pub type Delete
 
-/// Phatom type indicating a sub query
+/// Phantom type indicating a sub query
 pub type Subquery
 
 type UnionType {
