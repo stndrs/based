@@ -1,25 +1,27 @@
 import based/db
+import based/sql
 import gleam/dynamic
 import gleam/dynamic/decode
+import gleam/int
 import gleam/list
 import gleam/result
 
 pub fn sql_test() {
   let sql = "SELECT 1;"
-  let query = db.sql(sql)
+  let query = sql.query(sql)
 
-  let assert True = query.sql == sql
-  let assert True = query.values |> list.length == 0
+  assert query.sql == sql
+  assert query.values == []
 }
 
 pub fn sql_with_values_test() {
   let sql = "SELECT * FROM users WHERE id=$1;"
   let query =
-    db.sql(sql)
-    |> db.params([db.int(1)])
+    sql.query(sql)
+    |> sql.params([sql.int(1)])
 
-  let assert True = query.sql == sql
-  let assert True = query.values |> list.length == 1
+  assert query.sql == sql
+  assert list.length(query.values) == 1
 }
 
 pub fn query_test() {
@@ -29,8 +31,8 @@ pub fn query_test() {
   let returning = Ok(db.Queried(count: 1, fields: ["id", "name"], rows:))
 
   let assert Ok(_) =
-    db.sql(sql)
-    |> db.params([db.int(1)])
+    sql.query(sql)
+    |> sql.params([sql.int(1)])
     |> db.query(query_handler(returning:))
 }
 
@@ -40,8 +42,8 @@ pub fn query_error_test() {
   let returning = Error(db.DbError("something failed"))
 
   let assert Error(_) =
-    db.sql(sql)
-    |> db.params([db.int(1)])
+    sql.query(sql)
+    |> sql.params([sql.int(1)])
     |> db.query(query_handler(returning:))
 }
 
@@ -66,8 +68,8 @@ pub fn all_test() {
   let returning = Ok(db.Queried(count: 1, fields: ["id", "name"], rows:))
 
   let assert Ok([#(1, "Steve")]) =
-    db.sql(sql)
-    |> db.params([db.int(1)])
+    sql.query(sql)
+    |> sql.params([sql.int(1)])
     |> db.all(query_handler(returning:), user_decoder())
 }
 
@@ -77,8 +79,8 @@ pub fn all_error_test() {
   let returning = Error(db.DbError("something failed"))
 
   let assert Error(_) =
-    db.sql(sql)
-    |> db.params([db.int(1)])
+    sql.query(sql)
+    |> sql.params([sql.int(1)])
     |> db.all(query_handler(returning:), user_decoder())
 }
 
@@ -89,8 +91,8 @@ pub fn one_test() {
   let returning = Ok(db.Queried(count: 1, fields: ["id", "name"], rows:))
 
   let assert Ok(#(1, "Steve")) =
-    db.sql(sql)
-    |> db.params([db.int(1)])
+    sql.query(sql)
+    |> sql.params([sql.int(1)])
     |> db.one(query_handler(returning:), user_decoder())
 }
 
@@ -100,13 +102,13 @@ pub fn one_error_test() {
   let returning = Error(db.DbError("something failed"))
 
   let assert Error(_) =
-    db.sql(sql)
-    |> db.params([db.int(1)])
+    sql.query(sql)
+    |> sql.params([sql.int(1)])
     |> db.one(query_handler(returning:), user_decoder())
 }
 
 pub fn transaction_test() {
-  let db = db.driver() |> db.new(Conn)
+  let db = db.driver() |> db.new(sql_adapter(), Conn)
 
   let assert Ok("success") = {
     use _tx <- db.transaction(db, tx_handler)
@@ -116,7 +118,7 @@ pub fn transaction_test() {
 }
 
 pub fn transaction_error_test() {
-  let db = db.driver() |> db.new(Conn)
+  let db = db.driver() |> db.new(sql_adapter(), Conn)
 
   let assert Error(db.Rollback("failure")) = {
     use _tx <- db.transaction(db, tx_handler)
@@ -138,18 +140,18 @@ fn user_decoder() -> decode.Decoder(#(Int, String)) {
 
 fn query_handler(
   returning queried: Result(db.Queried, db.DbError),
-) -> db.Db(v, Conn) {
+) -> db.Db(sql.Value, Conn) {
   db.driver()
   |> db.on_query(fn(_, _) { queried })
-  |> db.new(Conn)
+  |> db.new(sql_adapter(), Conn)
 }
 
 fn execute_handler(
   returning executed: Result(Int, db.DbError),
-) -> db.Db(v, Conn) {
+) -> db.Db(sql.Value, Conn) {
   db.driver()
   |> db.on_execute(fn(_, _) { executed })
-  |> db.new(Conn)
+  |> db.new(sql_adapter(), Conn)
 }
 
 fn tx_handler(
@@ -160,18 +162,16 @@ fn tx_handler(
   |> result.map_error(db.Rollback)
 }
 
-// error_to_string tests
-
 pub fn error_to_string_connection_timeout_test() {
   let result = db.error_to_string(db.ConnectionTimeout)
 
-  let assert True = result == "[based/db.ConnectionTimeout]"
+  assert result == "[based/db.ConnectionTimeout]"
 }
 
 pub fn error_to_string_connection_error_test() {
   let result = db.error_to_string(db.ConnectionError("refused"))
 
-  let assert True = result == "[based/db.ConnectionError] refused"
+  assert result == "[based/db.ConnectionError] refused"
 }
 
 pub fn error_to_string_database_error_test() {
@@ -182,8 +182,7 @@ pub fn error_to_string_database_error_test() {
       message: "relation does not exist",
     ))
 
-  let assert True =
-    result
+  assert result
     == "[based/db.DatabaseError] code: 42P01, name: undefined_table, message: relation does not exist"
 }
 
@@ -195,8 +194,7 @@ pub fn error_to_string_constraint_error_test() {
       message: "duplicate key",
     ))
 
-  let assert True =
-    result
+  assert result
     == "[based/db.ConstraintError] code: 23505, name: unique_violation, message: duplicate key"
 }
 
@@ -208,21 +206,20 @@ pub fn error_to_string_syntax_error_test() {
       message: "unexpected token",
     ))
 
-  let assert True =
-    result
+  assert result
     == "[based/db.SyntaxError] code: 42601, name: syntax_error, message: unexpected token"
 }
 
 pub fn error_to_string_db_error_test() {
   let result = db.error_to_string(db.DbError("something failed"))
 
-  let assert True = result == "[based/db.DbError] something failed"
+  assert result == "[based/db.DbError] something failed"
 }
 
 pub fn error_to_string_not_found_test() {
   let result = db.error_to_string(db.NotFound)
 
-  let assert True = result == "[based/db.NotFound]"
+  assert result == "[based/db.NotFound]"
 }
 
 pub fn error_to_string_decode_error_test() {
@@ -233,12 +230,9 @@ pub fn error_to_string_decode_error_test() {
       ]),
     )
 
-  let assert True =
-    result
+  assert result
     == "[based/db.DecodeError] errors: [gleam/dynamic/decode.DecodeError] expected: Int, found: String, path: 0"
 }
-
-// batch tests
 
 pub fn batch_test() {
   let rows = [dynamic.array([dynamic.int(1), dynamic.string("Steve")])]
@@ -247,15 +241,15 @@ pub fn batch_test() {
   let database =
     db.driver()
     |> db.on_batch(fn(_, _) { returning })
-    |> db.new(Conn)
+    |> db.new(sql_adapter(), Conn)
 
   let queries = [
-    db.sql("SELECT * FROM users WHERE id=$1;") |> db.params([db.int(1)]),
-    db.sql("SELECT * FROM users WHERE id=$1;") |> db.params([db.int(2)]),
+    sql.query("SELECT * FROM users WHERE id=$1;") |> sql.params([sql.int(1)]),
+    sql.query("SELECT * FROM users WHERE id=$1;") |> sql.params([sql.int(2)]),
   ]
 
   let assert Ok(results) = db.batch(queries, database)
-  let assert True = list.length(results) == 1
+  assert list.length(results) == 1
 }
 
 pub fn batch_error_test() {
@@ -264,9 +258,119 @@ pub fn batch_error_test() {
   let database =
     db.driver()
     |> db.on_batch(fn(_, _) { returning })
-    |> db.new(Conn)
+    |> db.new(sql_adapter(), Conn)
 
-  let queries = [db.sql("SELECT 1;")]
+  let queries = [sql.query("SELECT 1;")]
 
   let assert Error(_) = db.batch(queries, database)
+}
+
+pub fn to_sql_query_select_test() {
+  let database = db.driver() |> db.new(sql_adapter(), Conn)
+
+  let q =
+    sql.from(sql.table("users"))
+    |> sql.select([sql.col("id"), sql.col("name")])
+    |> sql.where([sql.col("id") |> sql.eq(sql.int(1), of: sql.value)])
+    |> sql.to_query(database.adapter)
+
+  assert q.sql == "SELECT id, name FROM users WHERE id = $1"
+  assert q.values == [sql.int(1)]
+}
+
+pub fn to_sql_query_select_no_params_test() {
+  let database = db.driver() |> db.new(sql_adapter(), Conn)
+
+  let q =
+    sql.from(sql.table("users"))
+    |> sql.select([sql.col("name")])
+    |> sql.to_query(database.adapter)
+
+  assert q.sql == "SELECT name FROM users"
+  assert q.values == []
+}
+
+pub fn to_sql_query_insert_test() {
+  let database = db.driver() |> db.new(sql_adapter(), Conn)
+
+  let q =
+    sql.insert(into: sql.table("users"))
+    |> sql.values([
+      {
+        use <- sql.field(column: "name", value: sql.text("Alice"))
+        sql.final(column: "age", value: sql.int(30))
+      },
+    ])
+    |> sql.to_query(database.adapter)
+
+  assert q.sql == "INSERT INTO users (name, age) VALUES ($1, $2)"
+  assert q.values == [sql.text("Alice"), sql.int(30)]
+}
+
+pub fn to_sql_query_update_test() {
+  let database = db.driver() |> db.new(sql_adapter(), Conn)
+
+  let q =
+    sql.update(table: sql.table("users"))
+    |> sql.set("name", sql.text("Bob"), of: sql.value)
+    |> sql.where([sql.col("id") |> sql.eq(sql.int(1), of: sql.value)])
+    |> sql.to_query(database.adapter)
+
+  assert q.sql == "UPDATE users SET name = $1 WHERE id = $2"
+  assert q.values == [sql.text("Bob"), sql.int(1)]
+}
+
+pub fn to_sql_query_delete_test() {
+  let database = db.driver() |> db.new(sql_adapter(), Conn)
+
+  let q =
+    sql.from(sql.table("users"))
+    |> sql.delete()
+    |> sql.where([sql.col("id") |> sql.eq(sql.int(42), of: sql.value)])
+    |> sql.to_query(database.adapter)
+
+  assert q.sql == "DELETE FROM users WHERE id = $1"
+  assert q.values == [sql.int(42)]
+}
+
+fn sql_adapter() -> sql.Adapter(sql.Value) {
+  sql.adapter()
+  |> sql.on_placeholder(fn(idx) { "$" <> int.to_string(idx + 1) })
+}
+
+pub fn one_not_found_test() {
+  let sql = "SELECT * FROM users WHERE id=$1;"
+  let returning = Ok(db.Queried(count: 0, fields: ["id", "name"], rows: []))
+
+  let assert Error(db.NotFound) =
+    sql.query(sql)
+    |> sql.params([sql.int(999)])
+    |> db.one(query_handler(returning:), user_decoder())
+}
+
+pub fn decode_success_test() {
+  let rows = [dynamic.array([dynamic.int(1), dynamic.string("Steve")])]
+  let queried = db.Queried(count: 1, fields: ["id", "name"], rows:)
+
+  let assert Ok(returning) = db.decode(queried, user_decoder())
+  assert returning.count == 1
+  assert returning.rows == [#(1, "Steve")]
+}
+
+pub fn decode_empty_rows_test() {
+  let queried = db.Queried(count: 0, fields: ["id", "name"], rows: [])
+
+  let assert Ok(returning) = db.decode(queried, user_decoder())
+  assert returning.count == 0
+  assert returning.rows == []
+}
+
+pub fn decode_error_test() {
+  // Provide a row that doesn't match the decoder (string where int expected)
+  let rows = [
+    dynamic.array([dynamic.string("not_an_int"), dynamic.string("Steve")]),
+  ]
+  let queried = db.Queried(count: 1, fields: ["id", "name"], rows:)
+
+  let assert Error(db.DecodeError(_)) = db.decode(queried, user_decoder())
 }

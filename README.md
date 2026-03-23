@@ -15,47 +15,37 @@ gleam add based
 
 ## Query Builder
 
-Build type-safe SQL queries using the `based/sql` modules:
+Build type-safe SQL queries using `based/sql`:
 
 ```gleam
-import based/db
-import based/repo
 import based/sql
-import based/sql/select
 
-let users = sql.table("users")
+let adapter = sql.adapter()
 
 let query =
-  repo.default()
-  |> select.from(users)
-  |> select.columns([sql.column("id"), sql.column("name")])
-  |> select.where([sql.eq(sql.column("id"), db.int(1), of: sql.val)])
-  |> select.to_query
+  sql.from(sql.table("users"))
+  |> sql.select([sql.col("id"), sql.col("name")])
+  |> sql.where([sql.col("id") |> sql.eq(sql.int(1), of: sql.value)])
+  |> sql.to_query(adapter)
 
 // query.sql == "SELECT id, name FROM users WHERE id = ?"
-// query.values == [db.int(1)]
+// query.values == [sql.Int(1)]
 ```
 
 ### Insert
 
 ```gleam
-import based/db
-import based/repo
 import based/sql
-import based/sql/insert
-
-let users = sql.table("users")
 
 let query =
-  repo.default()
-  |> insert.into(users)
-  |> insert.values([
+  sql.insert(into: sql.table("users"))
+  |> sql.values([
     {
-      use <- insert.value("name", db.text("John"))
-      insert.final("email", db.text("john@example.com"))
+      use <- sql.field(column: "name", value: sql.text("John"))
+      sql.final(column: "email", value: sql.text("john@example.com"))
     },
   ])
-  |> insert.to_query
+  |> sql.to_query(sql.adapter())
 
 // query.sql == "INSERT INTO users (name, email) VALUES (?, ?)"
 ```
@@ -63,19 +53,13 @@ let query =
 ### Update
 
 ```gleam
-import based/db
-import based/repo
 import based/sql
-import based/sql/update
-
-let users = sql.table("users")
 
 let query =
-  repo.default()
-  |> update.table(users)
-  |> update.set("name", db.text("Jane"), of: sql.val)
-  |> update.where([sql.eq(sql.column("id"), db.int(1), of: sql.val)])
-  |> update.to_query
+  sql.update(table: sql.table("users"))
+  |> sql.set("name", sql.text("Jane"), of: sql.value)
+  |> sql.where([sql.col("id") |> sql.eq(sql.int(1), of: sql.value)])
+  |> sql.to_query(sql.adapter())
 
 // query.sql == "UPDATE users SET name = ? WHERE id = ?"
 ```
@@ -83,18 +67,13 @@ let query =
 ### Delete
 
 ```gleam
-import based/db
-import based/repo
 import based/sql
-import based/sql/delete
-
-let users = sql.table("users")
 
 let query =
-  repo.default()
-  |> delete.from(users)
-  |> delete.where([sql.eq(sql.column("id"), db.int(1), of: sql.val)])
-  |> delete.to_query
+  sql.from(sql.table("users"))
+  |> sql.delete()
+  |> sql.where([sql.col("id") |> sql.eq(sql.int(1), of: sql.value)])
+  |> sql.to_query(sql.adapter())
 
 // query.sql == "DELETE FROM users WHERE id = ?"
 ```
@@ -114,27 +93,27 @@ let user_decoder = {
   decode.success(User(id:, name:))
 }
 
-// `database` is a hypothetical adapter package
+// `database` is provided by an adapter package
 let assert Ok(users) = db.all(query, database, user_decoder)
 ```
 
-## Adapter Configuration
+## Custom Adapters
 
-Adapter packages configure a `Repo` to control placeholder formatting,
-identifier escaping, and value serialization:
+Adapter packages configure an `sql.Adapter` to control placeholder formatting,
+identifier escaping, and value type mapping:
 
 ```gleam
-import based/repo
+import based/sql
 import gleam/int
 
-// PostgreSQL-style
-let pg_repo =
-  repo.new()
-  |> repo.on_placeholder(fn(index) { "$" <> int.to_string(index) })
-  |> repo.on_identifier(fn(ident) { "\"" <> ident <> "\"" })
-  |> repo.on_value(value_to_string)
-  |> repo.on_text(db.text)
-  |> repo.on_null(fn() { db.null })
+let mysql_adapter =
+  sql.new_adapter()
+  |> sql.on_placeholder(with: fn(_) { "?" })
+  |> sql.on_identifier(with: fn(name) { "`" <> name <> "`" })
+  |> sql.on_value(with: my_value_to_string)
+  |> sql.on_null(with: fn() { MyNull })
+  |> sql.on_int(with: fn(i) { MyInt(i) })
+  |> sql.on_text(with: fn(s) { MyText(s) })
 ```
 
 Further documentation can be found at <https://hexdocs.pm/based>.
