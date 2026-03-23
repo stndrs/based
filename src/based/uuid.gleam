@@ -47,6 +47,24 @@ pub fn to_bit_array(uuid: Uuid) -> BitArray {
   uuid.uuid
 }
 
+/// Constructs a UUID from a raw 16-byte `BitArray`.
+///
+/// Returns `Error(Nil)` if the bit array is not exactly 16 bytes or if
+/// it does not match a known version (v4 or v7).
+pub fn from_bit_array(bytes: BitArray) -> Result(Uuid, Nil) {
+  case bytes {
+    <<_:128>> -> {
+      let uuid = Uuid(bytes)
+
+      case version(uuid) {
+        Ok(_) -> Ok(uuid)
+        Error(_) -> Error(Nil)
+      }
+    }
+    _ -> Error(Nil)
+  }
+}
+
 fn do_to_string(
   ints: BitArray,
   position: Int,

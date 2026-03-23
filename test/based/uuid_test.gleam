@@ -71,7 +71,6 @@ pub fn to_bit_array_round_trip_test() {
   assert bits == uuid.to_bit_array(parsed)
 }
 
-
 pub fn from_string_empty_error_test() {
   assert Error(Nil) == uuid.from_string("")
 }
@@ -92,7 +91,6 @@ pub fn from_string_not_a_uuid_error_test() {
   assert Error(Nil) == uuid.from_string("not-a-uuid")
 }
 
-
 pub fn v7_timestamp_ordering_test() {
   let earlier = timestamp.from_unix_seconds(1_000_000)
   let later = timestamp.from_unix_seconds(2_000_000)
@@ -106,4 +104,20 @@ pub fn v7_timestamp_ordering_test() {
   // v7 UUIDs embed millisecond timestamp in the first 48 bits,
   // so earlier timestamps produce lexicographically smaller strings
   assert string.compare(s1, s2) == order.Lt
+}
+
+pub fn from_bit_array_round_trip_test() {
+  let id = uuid.v4()
+  let bits = uuid.to_bit_array(id)
+  let assert Ok(parsed) = uuid.from_bit_array(bits)
+
+  assert uuid.to_string(id) == uuid.to_string(parsed)
+}
+
+pub fn from_bit_array_wrong_size_test() {
+  assert Error(Nil) == uuid.from_bit_array(<<1, 2, 3>>)
+}
+
+pub fn from_bit_array_empty_test() {
+  assert Error(Nil) == uuid.from_bit_array(<<>>)
 }
