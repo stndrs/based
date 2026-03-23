@@ -583,9 +583,6 @@ pub type Subquery
 /// Phantom type for UNION queries.
 pub type Union
 
-/// Phantom type for UNION ALL queries.
-pub type UnionAll
-
 type UnionType {
   Union
   UnionAll
