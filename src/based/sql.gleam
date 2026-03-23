@@ -578,9 +578,6 @@ pub type Update
 /// Phantom type for DELETE queries.
 pub type Delete
 
-/// Phantom type for the initial FROM stage before selecting a query kind.
-pub type From(a)
-
 /// Phatom type indicating a sub query
 pub type Subquery
 
@@ -589,15 +586,20 @@ type UnionType {
   UnionAll
 }
 
-type FromClause(v) {
-  FromTable(Table)
+pub opaque type From(a, v) {
+  FromTable(table: Table)
   FromSubQuery(builder: Builder(Select, v), alias: String)
+}
+
+type TableOrSubquery(v) {
+  SelectFromTable(table: Table)
+  SelectFromSubQuery(builder: Builder(Select, v), alias: String)
 }
 
 type SelectQuery(v) {
   SelectQuery(
     columns: List(Column),
-    from: FromClause(v),
+    from: TableOrSubquery(v),
     wheres: List(List(Condition(v))),
     joins: List(Join(v)),
     order_by: List(OrderBy),
@@ -640,6 +642,10 @@ type DeleteQuery(v) {
   )
 }
 
+type UnionQuery(v) {
+  UnionQuery(selects: List(Builder(Select, v)), union_type: UnionType)
+}
+
 /// The main query builder type, parameterized by a phantom `kind` type
 /// (`Select`, `Insert`, `Update`, `Delete`, or `From(a)`) and a value type `v`.
 ///
@@ -650,14 +656,7 @@ pub opaque type Builder(kind, v) {
   InsertBuilder(query: InsertQuery(v), ctes: List(Cte(v)), recursive: Bool)
   UpdateBuilder(query: UpdateQuery(v), ctes: List(Cte(v)), recursive: Bool)
   DeleteBuilder(query: DeleteQuery(v), ctes: List(Cte(v)), recursive: Bool)
-  UnionBuilder(
-    selects: List(Builder(Select, v)),
-    union_type: UnionType,
-    ctes: List(Cte(v)),
-    recursive: Bool,
-  )
-  FromTableBuilder(table: Table)
-  FromSubQueryBuilder(builder: Builder(Select, v), alias: String)
+  UnionBuilder(query: UnionQuery(v), ctes: List(Cte(v)), recursive: Bool)
 }
 
 /// A Common Table Expression (CTE) for use with `WITH` clauses.
@@ -771,19 +770,15 @@ pub fn raw(sql: String) -> Condition(v) {
 /// and DELETE queries.
 ///
 /// Pass into `select` or `delete` to choose the query kind.
-pub fn from(table: Table) -> Builder(From(Table), v) {
-  FromTableBuilder(table:)
+pub fn from(table: Table) -> From(Table, v) {
+  FromTable(table:)
 }
 
-/// Converts a `From` builder into a SELECT query with the given columns.
-pub fn select(
-  builder: Builder(From(a), v),
-  columns: List(Column),
-) -> Builder(Select, v) {
-  let from = case builder {
-    FromTableBuilder(table:) -> FromTable(table)
-    FromSubQueryBuilder(builder:, alias:) -> FromSubQuery(builder:, alias:)
-    _ -> panic as "select called on non-From builder"
+/// Converts a `From` into a SELECT query with the given columns.
+pub fn select(from: From(a, v), columns: List(Column)) -> Builder(Select, v) {
+  let from = case from {
+    FromTable(table:) -> SelectFromTable(table:)
+    FromSubQuery(builder:, alias:) -> SelectFromSubQuery(builder:, alias:)
   }
 
   SelectQuery(
@@ -828,23 +823,23 @@ pub fn update(table tbl: Table) -> Builder(Update, v) {
   |> UpdateBuilder(ctes: [], recursive: False)
 }
 
-/// Converts a `From` builder into a DELETE query.
-pub fn delete(builder: Builder(From(Table), v)) -> Builder(Delete, v) {
-  case builder {
-    FromTableBuilder(table:) -> {
+/// Converts a `From` into a DELETE query.
+pub fn delete(from: From(Table, v)) -> Builder(Delete, v) {
+  case from {
+    FromTable(table:) -> {
       DeleteQuery(from: table, wheres: [], returning: [])
       |> DeleteBuilder(ctes: [], recursive: False)
     }
-    _ -> panic as "delete called on non-From(Table) builder"
+    _ -> panic as "Not possible"
   }
 }
 
-/// Creates a `From` builder that selects from a subquery instead of a table.
+/// Creates a `From` that selects from a subquery instead of a table.
 pub fn from_subquery(
   builder: Builder(Select, v),
-  alias a: String,
-) -> Builder(From(Subquery), v) {
-  FromSubQueryBuilder(builder:, alias: a)
+  alias alias: String,
+) -> From(Subquery, v) {
+  FromSubQuery(builder:, alias:)
 }
 
 /// Adds a WHERE condition to the query. Multiple `where` calls are combined
@@ -1108,8 +1103,6 @@ pub fn with(builder: Builder(a, v), ctes ctes: List(Cte(v))) -> Builder(a, v) {
     UpdateBuilder(..) -> UpdateBuilder(..builder, ctes: ctes)
     DeleteBuilder(..) -> DeleteBuilder(..builder, ctes: ctes)
     UnionBuilder(..) -> UnionBuilder(..builder, ctes: ctes)
-    FromTableBuilder(..) -> builder
-    FromSubQueryBuilder(..) -> builder
   }
 }
 
@@ -1121,8 +1114,6 @@ pub fn recursive(builder: Builder(a, v)) -> Builder(a, v) {
     UpdateBuilder(..) -> UpdateBuilder(..builder, recursive: True)
     DeleteBuilder(..) -> DeleteBuilder(..builder, recursive: True)
     UnionBuilder(..) -> UnionBuilder(..builder, recursive: True)
-    FromTableBuilder(..) -> builder
-    FromSubQueryBuilder(..) -> builder
   }
 }
 
@@ -1134,15 +1125,16 @@ pub fn union(
   other: Builder(Select, v),
 ) -> Builder(Select, v) {
   case builder {
-    UnionBuilder(selects:, union_type: Union, ..) ->
-      UnionBuilder(..builder, selects: list.prepend(selects, other))
+    UnionBuilder(
+      query: UnionQuery(selects:, union_type: Union),
+      ctes:,
+      recursive:,
+    ) ->
+      UnionQuery(selects: list.prepend(selects, other), union_type: Union)
+      |> UnionBuilder(ctes:, recursive:)
     _ ->
-      UnionBuilder(
-        selects: [other, builder],
-        union_type: Union,
-        ctes: [],
-        recursive: False,
-      )
+      UnionQuery(selects: [other, builder], union_type: Union)
+      |> UnionBuilder(ctes: [], recursive: False)
   }
 }
 
@@ -1152,15 +1144,16 @@ pub fn union_all(
   other: Builder(Select, v),
 ) -> Builder(Select, v) {
   case builder {
-    UnionBuilder(selects:, union_type: UnionAll, ..) ->
-      UnionBuilder(..builder, selects: list.prepend(selects, other))
+    UnionBuilder(
+      query: UnionQuery(selects:, union_type: UnionAll),
+      ctes:,
+      recursive:,
+    ) ->
+      UnionQuery(selects: list.prepend(selects, other), union_type: UnionAll)
+      |> UnionBuilder(ctes:, recursive:)
     _ ->
-      UnionBuilder(
-        selects: [other, builder],
-        union_type: UnionAll,
-        ctes: [],
-        recursive: False,
-      )
+      UnionQuery(selects: [other, builder], union_type: UnionAll)
+      |> UnionBuilder(ctes: [], recursive: False)
   }
 }
 
@@ -1558,12 +1551,11 @@ fn build_query(builder: Builder(a, v), adapter: Adapter(v)) -> SqlBuilder(v) {
       |> build_delete(adapter)
       |> apply_ctes(ctes, recursive, adapter)
     }
-    UnionBuilder(selects:, union_type:, ctes:, recursive:) -> {
-      selects
-      |> build_union(union_type, adapter)
+    UnionBuilder(query:, ctes:, recursive:) -> {
+      query
+      |> build_union(adapter)
       |> apply_ctes(ctes, recursive, adapter)
     }
-    _ -> panic as "unreachable"
   }
 }
 
@@ -1640,12 +1632,12 @@ fn build_select(query: SelectQuery(v), adapter: Adapter(v)) -> SqlBuilder(v) {
     |> select_fn
 
   let builder = case query.from {
-    FromTable(table) -> {
+    SelectFromTable(table) -> {
       table
       |> build_table(adapter)
       |> SqlBuilder([])
     }
-    FromSubQuery(query, alias) -> {
+    SelectFromSubQuery(query, alias) -> {
       let builder = build_single_select(query, adapter)
 
       builder.sql
@@ -1916,18 +1908,14 @@ fn build_join(
   SqlBuilder(sql, list.prepend(builder.values, list.flatten(on_vals)))
 }
 
-fn build_union(
-  selects: List(Builder(Select, v)),
-  union_type: UnionType,
-  adapter: Adapter(v),
-) -> SqlBuilder(v) {
-  let union_fn = case union_type {
+fn build_union(query: UnionQuery(v), adapter: Adapter(v)) -> SqlBuilder(v) {
+  let union_fn = case query.union_type {
     Union -> fmt.union
     UnionAll -> fmt.union_all
   }
 
   let #(sql_parts, values) =
-    selects
+    query.selects
     |> list.fold(#([], []), fn(acc, q) {
       let #(parts, vals) = acc
       let builder = build_single_select(q, adapter)
@@ -1950,8 +1938,7 @@ fn build_single_select(
 ) -> SqlBuilder(v) {
   case builder {
     SelectBuilder(query:, ..) -> build_select(query, adapter)
-    UnionBuilder(selects:, union_type:, ..) ->
-      build_union(selects, union_type, adapter)
+    UnionBuilder(query:, ..) -> build_union(query, adapter)
     _ -> SqlBuilder("", [])
   }
 }
