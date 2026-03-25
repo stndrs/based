@@ -1,15 +1,17 @@
 name = "based"
-version = "3.0.1"
-description = "A common interface for database backends"
-gleam = "~> 1.0"
+version = "4.0.0"
+description = "Database-agnostic types and a composable SQL query builder for Gleam"
+gleam = ">= 1.11.0"
 
-licences = ["Apache-2.0"]
 repository = { type = "github", user = "stndrs", repo = "based" }
+internal_modules = [
+  "based/internal/*"
+]
 
 [dependencies]
-gleam_stdlib = ">= 0.38.0 and < 2.0.0"
-gleam_otp = ">= 0.10.0 and < 1.0.0"
-gleam_erlang = ">= 0.25.0 and < 1.0.0"
+gleam_stdlib = ">= 0.44.0 and < 2.0.0"
+gleam_time = ">= 1.6.0 and < 2.0.0"
+gleam_crypto = ">= 1.5.1 and < 2.0.0"
 
 [dev-dependencies]
 gleeunit = ">= 1.0.0 and < 2.0.0"
