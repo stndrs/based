@@ -3,6 +3,7 @@ import based/sql
 import based/uuid
 import gleam/float
 import gleam/int
+import gleam/list
 import gleam/option.{None, Some}
 import gleam/string
 import gleam/time/calendar
@@ -44,6 +45,24 @@ fn backtick_a() -> sql.Adapter(sql.Value) {
 fn default_a() -> sql.Adapter(sql.Value) {
   sql.adapter()
   |> sql.on_placeholder(fn(idx) { "$" <> int.to_string(idx + 1) })
+}
+
+pub fn sql_test() {
+  let sql = "SELECT 1;"
+  let query = sql.query(sql)
+
+  assert query.sql == sql
+  assert query.values == []
+}
+
+pub fn sql_with_values_test() {
+  let sql = "SELECT * FROM users WHERE id=$1;"
+  let query =
+    sql.query(sql)
+    |> sql.params([sql.int(1)])
+
+  assert query.sql == sql
+  assert list.length(query.values) == 1
 }
 
 pub fn table_test() {

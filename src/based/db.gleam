@@ -109,10 +109,20 @@ pub fn transaction(
   handler: TxHandler(conn, t, error),
   next: fn(Db(v, conn)) -> Result(t, error),
 ) -> Result(t, TransactionError(error)) {
-  handler(db.conn, fn(conn) { Db(..db, conn:) |> next })
+  handler(db.driver.conn, fn(conn) {
+    let driver = Driver(..db.driver, conn:)
+
+    Db(..db, driver:) |> next
+  })
 }
 
 // Querying
+
+pub type ConnectHandler(conn) =
+  fn() -> Result(conn, DbError)
+
+pub type DisconnectHandler(conn) =
+  fn(conn) -> Result(Nil, DbError)
 
 /// A function that executes a parameterized query and returns rows.
 pub type QueryHandler(v, conn) =
@@ -131,16 +141,24 @@ pub type BatchQueryHandler(v, conn) =
 /// A configured database connection bundling a connection value, a
 /// `Driver` with query handlers, and an `sql.Adapter` for query rendering.
 pub type Db(v, conn) {
-  Db(conn: conn, driver: Driver(v, conn), adapter: sql.Adapter(v))
+  Db(driver: Driver(v, conn), adapter: sql.Adapter(v))
 }
 
-/// Creates a new `Db` from a driver, adapter, and connection.
-pub fn new(
-  driver: Driver(v, conn),
+/// Creates a new `Db` from a driver and adapter.
+pub fn build(
+  builder: DriverBuilder(v, conn),
   adapter: sql.Adapter(v),
-  conn: conn,
-) -> Db(v, conn) {
-  Db(conn:, driver:, adapter:)
+) -> Result(Db(v, conn), DbError) {
+  use conn <- result.map(builder.handle_connect())
+
+  Driver(
+    conn:,
+    handle_query: builder.handle_query,
+    handle_execute: builder.handle_execute,
+    handle_batch: builder.handle_batch,
+    handle_disconnect: builder.handle_disconnect,
+  )
+  |> Db(adapter:)
 }
 
 /// An opaque driver that holds the query, execute, and batch handler
@@ -148,60 +166,34 @@ pub fn new(
 ///
 /// Create one with `driver()` and configure it with `on_query`,
 /// `on_execute`, and `on_batch`.
-pub opaque type Driver(v, conn) {
-  Driver(
+pub type DriverBuilder(v, conn) {
+  DriverBuilder(
+    handle_connect: ConnectHandler(conn),
+    handle_disconnect: DisconnectHandler(conn),
     handle_query: QueryHandler(v, conn),
     handle_execute: ExecuteHandler(conn),
     handle_batch: BatchQueryHandler(v, conn),
   )
 }
 
-/// Creates a new driver with unconfigured handlers.
-///
-/// All handlers will panic if called before being set with `on_query`,
-/// `on_execute`, and `on_batch`.
-pub fn driver() -> Driver(v, conn) {
+pub opaque type Driver(v, conn) {
   Driver(
-    handle_query: fn(_, _) { panic as "based/db.Db not configured (on_query)" },
-    handle_execute: fn(_, _) {
-      panic as "based/db.Db not configured (on_execute)"
-    },
-    handle_batch: fn(_, _) { panic as "based/db.Db not configured (on_batch)" },
+    conn: conn,
+    handle_query: QueryHandler(v, conn),
+    handle_execute: ExecuteHandler(conn),
+    handle_batch: BatchQueryHandler(v, conn),
+    handle_disconnect: DisconnectHandler(conn),
   )
-}
-
-/// Sets the handler for parameterized queries.
-pub fn on_query(
-  driver: Driver(v, conn),
-  handle_query: QueryHandler(v, conn),
-) -> Driver(v, conn) {
-  Driver(..driver, handle_query:)
-}
-
-/// Sets the handler for raw SQL execution.
-pub fn on_execute(
-  driver: Driver(v, conn),
-  handle_execute: ExecuteHandler(conn),
-) -> Driver(v, conn) {
-  Driver(..driver, handle_execute:)
-}
-
-/// Sets the handler for batch queries.
-pub fn on_batch(
-  driver: Driver(v, conn),
-  handle_batch: BatchQueryHandler(v, conn),
-) -> Driver(v, conn) {
-  Driver(..driver, handle_batch:)
 }
 
 /// Executes a parameterized query using the configured driver.
 pub fn query(query: sql.Query(v), db: Db(v, conn)) -> Result(Queried, DbError) {
-  db.driver.handle_query(query, db.conn)
+  db.driver.handle_query(query, db.driver.conn)
 }
 
 /// Executes a raw SQL string using the configured driver.
 pub fn execute(sql: String, db: Db(v, conn)) -> Result(Int, DbError) {
-  db.driver.handle_execute(sql, db.conn)
+  db.driver.handle_execute(sql, db.driver.conn)
 }
 
 /// Executes a list of parameterized queries as a batch.
@@ -209,7 +201,7 @@ pub fn batch(
   queries: List(sql.Query(v)),
   db: Db(v, conn),
 ) -> Result(List(Queried), DbError) {
-  db.driver.handle_batch(queries, db.conn)
+  db.driver.handle_batch(queries, db.driver.conn)
 }
 
 /// A convenience function for callers performing a query that will return
@@ -219,7 +211,7 @@ pub fn all(
   db: Db(v, conn),
   decoder: decode.Decoder(a),
 ) -> Result(List(a), DbError) {
-  use queried <- result.try(db.driver.handle_query(query, db.conn))
+  use queried <- result.try(db.driver.handle_query(query, db.driver.conn))
   use returning <- result.map(decode(queried, decoder))
 
   returning.rows
@@ -234,7 +226,7 @@ pub fn one(
   db: Db(v, conn),
   decoder: decode.Decoder(a),
 ) -> Result(a, DbError) {
-  use queried <- result.try(db.driver.handle_query(query, db.conn))
+  use queried <- result.try(db.driver.handle_query(query, db.driver.conn))
   use returning <- result.try(decode(queried, decoder))
 
   returning.rows
