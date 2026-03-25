@@ -215,6 +215,12 @@ pub fn array(elements: List(a), of kind: fn(a) -> Value) -> Value {
   |> Array
 }
 
+pub fn nullable(value: Option(a), of kind: fn(a) -> Value) -> Value {
+  value
+  |> option.map(kind)
+  |> option.unwrap(Null)
+}
+
 /// A SQL table reference, optionally aliased.
 pub opaque type Table {
   Table(name: String, alias: Option(String))
@@ -1058,16 +1064,6 @@ pub const all = Kind(to_operand: all_to_operand)
 
 fn all_to_operand(q) -> Operand(v) {
   AllQuery(q)
-}
-
-/// Wraps a kind to accept `Option(a)`, mapping `None` to SQL NULL.
-pub fn nullable(of kind: Kind(a, v)) -> Kind(Option(a), v) {
-  Kind(to_operand: fn(opt) {
-    case opt {
-      Some(x) -> kind.to_operand(x)
-      None -> NullVal
-    }
-  })
 }
 
 /// Creates a kind that maps an arbitrary type to a value using a conversion

@@ -340,6 +340,40 @@ pub fn insert_multiple_rows_test() {
     == [sql.text("Alice"), sql.int(30), sql.text("Bob"), sql.int(25)]
 }
 
+pub fn insert_nullable_field_test() {
+  let q =
+    sql.insert(into: sql.table("users"))
+    |> sql.values([
+      {
+        use <- sql.field("name", value: sql.nullable(None, of: sql.text))
+        sql.final("age", value: sql.int(25))
+      },
+    ])
+    |> sql.to_query(a())
+
+  assert q.sql == "INSERT INTO users (name, age) VALUES ($1, $2)"
+  assert q.values == [sql.Null, sql.int(25)]
+}
+
+pub fn insert_multiple_nullable_fields_test() {
+  let q =
+    sql.insert(into: sql.table("users"))
+    |> sql.values([
+      {
+        use <- sql.field("name", value: sql.nullable(None, of: sql.text))
+        sql.final(column: "age", value: sql.int(30))
+      },
+      {
+        use <- sql.field("name", value: sql.nullable(Some("Bob"), of: sql.text))
+        sql.final(column: "age", value: sql.int(25))
+      },
+    ])
+    |> sql.to_query(a())
+
+  assert q.sql == "INSERT INTO users (name, age) VALUES ($1, $2), ($3, $4)"
+  assert q.values == [sql.Null, sql.int(30), sql.text("Bob"), sql.int(25)]
+}
+
 pub fn update_test() {
   let q =
     sql.update(table: sql.table("users"))
@@ -2967,7 +3001,7 @@ pub fn select_where_nullable_some_test() {
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
     |> sql.where([
-      sql.eq(sql.col("age"), Some(sql.int(25)), of: sql.nullable(of: sql.value)),
+      sql.eq(sql.col("age"), sql.nullable(Some(25), of: sql.int), of: sql.value),
     ])
     |> sql.to_query(a())
 
@@ -2979,7 +3013,9 @@ pub fn select_where_nullable_none_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where([sql.eq(sql.col("age"), None, of: sql.nullable(of: sql.value))])
+    |> sql.where([
+      sql.eq(sql.col("age"), sql.nullable(None, of: sql.int), of: sql.value),
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM users WHERE age = $1"
@@ -2990,7 +3026,9 @@ pub fn select_where_nullable_none_to_string_test() {
   let s =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.where([sql.eq(sql.col("age"), None, of: sql.nullable(of: sql.value))])
+    |> sql.where([
+      sql.eq(sql.col("age"), sql.nullable(None, of: sql.int), of: sql.value),
+    ])
     |> sql.to_string(a())
 
   assert s == "SELECT * FROM users WHERE age = NULL"
@@ -3066,7 +3104,7 @@ pub fn mapper_handle_null_test() {
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
     |> sql.where([
-      sql.eq(sql.col("name"), None, of: sql.nullable(of: sql.value)),
+      sql.eq(sql.col("name"), sql.nullable(None, of: sql.text), of: sql.value),
     ])
     |> sql.to_query(r)
 
@@ -3550,7 +3588,7 @@ pub fn insert_empty_values_to_query_test() {
 pub fn update_set_nullable_some_test() {
   let q =
     sql.update(table: sql.table("users"))
-    |> sql.set("name", Some(sql.text("Jane")), of: sql.nullable(of: sql.value))
+    |> sql.set("name", sql.nullable(Some("Jane"), of: sql.text), of: sql.value)
     |> sql.where([sql.eq(sql.col("id"), sql.int(1), of: sql.value)])
     |> sql.to_query(a())
 
@@ -3561,7 +3599,7 @@ pub fn update_set_nullable_some_test() {
 pub fn update_set_nullable_none_test() {
   let q =
     sql.update(table: sql.table("users"))
-    |> sql.set("name", None, of: sql.nullable(of: sql.value))
+    |> sql.set("name", sql.nullable(None, of: sql.text), of: sql.value)
     |> sql.where([sql.eq(sql.col("id"), sql.int(1), of: sql.value)])
     |> sql.to_query(a())
 
