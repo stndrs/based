@@ -21,6 +21,21 @@ pub fn build_test() {
   let assert Ok(0) = db.execute("SELECT * FROM users", db)
 }
 
+pub fn disconnect_test() {
+  let builder =
+    db.DriverBuilder(
+      handle_connect: fn() { Ok(Nil) },
+      handle_disconnect: fn(_) { Ok(Nil) },
+      handle_query: fn(_, _) { Ok(db.Queried(0, [], [])) },
+      handle_execute: fn(_, _) { Ok(0) },
+      handle_batch: fn(_, _) { Ok([]) },
+    )
+
+  let assert Ok(db) = db.build(builder, sql_adapter())
+
+  let assert Ok(Nil) = db.disconnect(db)
+}
+
 pub fn query_test() {
   let sql = "SELECT * FROM users WHERE id=$1;"
   let rows = [dynamic.array([dynamic.int(1), dynamic.string("Steve")])]

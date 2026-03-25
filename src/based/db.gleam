@@ -161,6 +161,10 @@ pub fn build(
   |> Db(adapter:)
 }
 
+pub fn disconnect(db: Db(v, conn)) -> Result(Nil, DbError) {
+  db.driver.conn |> db.driver.handle_disconnect
+}
+
 /// An opaque driver that holds the query, execute, and batch handler
 /// functions provided by an adapter package.
 ///
