@@ -118,12 +118,6 @@ pub fn transaction(
 
 // Querying
 
-pub type ConnectHandler(conn) =
-  fn() -> Result(conn, DbError)
-
-pub type DisconnectHandler(conn) =
-  fn(conn) -> Result(Nil, DbError)
-
 /// A function that executes a parameterized query and returns rows.
 pub type QueryHandler(v, conn) =
   fn(sql.Query(v), conn) -> Result(Queried, DbError)
@@ -145,24 +139,8 @@ pub type Db(v, conn) {
 }
 
 /// Creates a new `Db` from a driver and adapter.
-pub fn build(
-  builder: DriverBuilder(v, conn),
-  adapter: sql.Adapter(v),
-) -> Result(Db(v, conn), DbError) {
-  use conn <- result.map(builder.handle_connect())
-
-  Driver(
-    conn:,
-    handle_query: builder.handle_query,
-    handle_execute: builder.handle_execute,
-    handle_batch: builder.handle_batch,
-    handle_disconnect: builder.handle_disconnect,
-  )
-  |> Db(adapter:)
-}
-
-pub fn disconnect(db: Db(v, conn)) -> Result(Nil, DbError) {
-  db.driver.conn |> db.driver.handle_disconnect
+pub fn new(driver: Driver(v, conn), adapter: sql.Adapter(v)) -> Db(v, conn) {
+  Db(driver:, adapter:)
 }
 
 /// An opaque driver that holds the query, execute, and batch handler
@@ -170,24 +148,22 @@ pub fn disconnect(db: Db(v, conn)) -> Result(Nil, DbError) {
 ///
 /// Create one with `driver()` and configure it with `on_query`,
 /// `on_execute`, and `on_batch`.
-pub type DriverBuilder(v, conn) {
-  DriverBuilder(
-    handle_connect: ConnectHandler(conn),
-    handle_disconnect: DisconnectHandler(conn),
-    handle_query: QueryHandler(v, conn),
-    handle_execute: ExecuteHandler(conn),
-    handle_batch: BatchQueryHandler(v, conn),
-  )
-}
-
 pub opaque type Driver(v, conn) {
   Driver(
     conn: conn,
     handle_query: QueryHandler(v, conn),
     handle_execute: ExecuteHandler(conn),
     handle_batch: BatchQueryHandler(v, conn),
-    handle_disconnect: DisconnectHandler(conn),
   )
+}
+
+pub fn driver(
+  conn: conn,
+  handle_query handle_query: QueryHandler(v, conn),
+  handle_execute handle_execute: ExecuteHandler(conn),
+  handle_batch handle_batch: BatchQueryHandler(v, conn),
+) -> Driver(v, conn) {
+  Driver(conn, handle_query:, handle_execute:, handle_batch:)
 }
 
 /// Executes a parameterized query using the configured driver.

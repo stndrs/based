@@ -6,36 +6,6 @@ import gleam/int
 import gleam/list
 import gleam/result
 
-pub fn build_test() {
-  let builder =
-    db.DriverBuilder(
-      handle_connect: fn() { Ok(Nil) },
-      handle_disconnect: fn(_) { Ok(Nil) },
-      handle_query: fn(_, _) { Ok(db.Queried(0, [], [])) },
-      handle_execute: fn(_, _) { Ok(0) },
-      handle_batch: fn(_, _) { Ok([]) },
-    )
-
-  let assert Ok(db) = db.build(builder, sql_adapter())
-
-  let assert Ok(0) = db.execute("SELECT * FROM users", db)
-}
-
-pub fn disconnect_test() {
-  let builder =
-    db.DriverBuilder(
-      handle_connect: fn() { Ok(Nil) },
-      handle_disconnect: fn(_) { Ok(Nil) },
-      handle_query: fn(_, _) { Ok(db.Queried(0, [], [])) },
-      handle_execute: fn(_, _) { Ok(0) },
-      handle_batch: fn(_, _) { Ok([]) },
-    )
-
-  let assert Ok(db) = db.build(builder, sql_adapter())
-
-  let assert Ok(Nil) = db.disconnect(db)
-}
-
 pub fn query_test() {
   let sql = "SELECT * FROM users WHERE id=$1;"
   let rows = [dynamic.array([dynamic.int(1), dynamic.string("Steve")])]
@@ -120,15 +90,14 @@ pub fn one_error_test() {
 }
 
 pub fn transaction_test() {
-  let assert Ok(db) =
-    db.DriverBuilder(
-      handle_connect: fn() { Ok(Conn) },
-      handle_disconnect: fn(_) { Ok(Nil) },
+  let db =
+    db.driver(
+      Conn,
       handle_query: fn(_, _) { Ok(db.Queried(0, [], [])) },
       handle_execute: fn(_, _) { Ok(0) },
       handle_batch: fn(_, _) { Ok([]) },
     )
-    |> db.build(sql_adapter())
+    |> db.new(sql_adapter())
 
   let assert Ok("success") = {
     use _tx <- db.transaction(db, tx_handler)
@@ -138,15 +107,14 @@ pub fn transaction_test() {
 }
 
 pub fn transaction_error_test() {
-  let assert Ok(db) =
-    db.DriverBuilder(
-      handle_connect: fn() { Ok(Conn) },
-      handle_disconnect: fn(_) { Ok(Nil) },
+  let db =
+    db.driver(
+      Conn,
       handle_query: fn(_, _) { Ok(db.Queried(0, [], [])) },
       handle_execute: fn(_, _) { Ok(0) },
       handle_batch: fn(_, _) { Ok([]) },
     )
-    |> db.build(sql_adapter())
+    |> db.new(sql_adapter())
 
   let assert Error(db.Rollback("failure")) = {
     use _tx <- db.transaction(db, tx_handler)
@@ -169,15 +137,14 @@ fn user_decoder() -> decode.Decoder(#(Int, String)) {
 fn query_handler(
   returning queried: Result(db.Queried, db.DbError),
 ) -> db.Db(sql.Value, Conn) {
-  let assert Ok(db) =
-    db.DriverBuilder(
-      handle_connect: fn() { Ok(Conn) },
-      handle_disconnect: fn(_) { Ok(Nil) },
+  let db =
+    db.driver(
+      Conn,
       handle_query: fn(_, _) { queried },
       handle_execute: fn(_, _) { Ok(0) },
       handle_batch: fn(_, _) { Ok([]) },
     )
-    |> db.build(sql_adapter())
+    |> db.new(sql_adapter())
 
   db
 }
@@ -185,15 +152,14 @@ fn query_handler(
 fn execute_handler(
   returning executed: Result(Int, db.DbError),
 ) -> db.Db(sql.Value, Conn) {
-  let assert Ok(db) =
-    db.DriverBuilder(
-      handle_connect: fn() { Ok(Conn) },
-      handle_disconnect: fn(_) { Ok(Nil) },
+  let db =
+    db.driver(
+      Conn,
       handle_query: fn(_, _) { Ok(db.Queried(0, [], [])) },
       handle_execute: fn(_, _) { executed },
       handle_batch: fn(_, _) { Ok([]) },
     )
-    |> db.build(sql_adapter())
+    |> db.new(sql_adapter())
 
   db
 }
@@ -282,15 +248,14 @@ pub fn batch_test() {
   let rows = [dynamic.array([dynamic.int(1), dynamic.string("Steve")])]
   let returning = Ok([db.Queried(count: 1, fields: ["id", "name"], rows:)])
 
-  let assert Ok(database) =
-    db.DriverBuilder(
-      handle_connect: fn() { Ok(Conn) },
-      handle_disconnect: fn(_) { Ok(Nil) },
+  let database =
+    db.driver(
+      Conn,
       handle_query: fn(_, _) { Ok(db.Queried(0, [], [])) },
       handle_execute: fn(_, _) { Ok(0) },
       handle_batch: fn(_, _) { returning },
     )
-    |> db.build(sql_adapter())
+    |> db.new(sql_adapter())
 
   let queries = [
     sql.query("SELECT * FROM users WHERE id=$1;") |> sql.params([sql.int(1)]),
@@ -304,15 +269,14 @@ pub fn batch_test() {
 pub fn batch_error_test() {
   let returning = Error(db.DbError("batch failed"))
 
-  let assert Ok(database) =
-    db.DriverBuilder(
-      handle_connect: fn() { Ok(Conn) },
-      handle_disconnect: fn(_) { Ok(Nil) },
+  let database =
+    db.driver(
+      Conn,
       handle_query: fn(_, _) { Ok(db.Queried(0, [], [])) },
       handle_execute: fn(_, _) { Ok(0) },
       handle_batch: fn(_, _) { returning },
     )
-    |> db.build(sql_adapter())
+    |> db.new(sql_adapter())
 
   let queries = [sql.query("SELECT 1;")]
 
@@ -320,15 +284,14 @@ pub fn batch_error_test() {
 }
 
 pub fn to_sql_query_select_test() {
-  let assert Ok(database) =
-    db.DriverBuilder(
-      handle_connect: fn() { Ok(Conn) },
-      handle_disconnect: fn(_) { Ok(Nil) },
+  let database =
+    db.driver(
+      Conn,
       handle_query: fn(_, _) { Ok(db.Queried(0, [], [])) },
       handle_execute: fn(_, _) { Ok(0) },
       handle_batch: fn(_, _) { Ok([]) },
     )
-    |> db.build(sql_adapter())
+    |> db.new(sql_adapter())
 
   let q =
     sql.from(sql.table("users"))
@@ -438,15 +401,14 @@ pub fn decode_error_test() {
 }
 
 fn database() -> db.Db(sql.Value, Conn) {
-  let assert Ok(database) =
-    db.DriverBuilder(
-      handle_connect: fn() { Ok(Conn) },
-      handle_disconnect: fn(_) { Ok(Nil) },
+  let database =
+    db.driver(
+      Conn,
       handle_query: fn(_, _) { Ok(db.Queried(0, [], [])) },
       handle_execute: fn(_, _) { Ok(0) },
       handle_batch: fn(_, _) { Ok([]) },
     )
-    |> db.build(sql_adapter())
+    |> db.new(sql_adapter())
 
   database
 }
