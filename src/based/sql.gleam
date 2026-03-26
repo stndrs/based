@@ -404,33 +404,44 @@ pub fn on_text(
   Adapter(..adapter, handle_text:)
 }
 
-/// A type-safe row for INSERT statements.
-pub opaque type Row(v) {
-  Row(column: String, value: v, next: Option(fn() -> Row(v)))
+/// A reusable specification for INSERT rows. Defines the column names and
+/// how to extract SQL values from a domain type `a`.
+///
+/// Built using the `use` pattern with `val` and `row`:
+///
+/// ```gleam
+/// let users = {
+///   use <- sql.val("name", fn(u: User) { sql.text(u.name) })
+///   use <- sql.val("age", fn(u: User) { sql.int(u.age) })
+///   sql.row()
+/// }
+///
+/// sql.insert(into: sql.table("users"))
+/// |> sql.values(users, [alice, bob])
+/// ```
+pub opaque type Inserter(a, v) {
+  Inserter(columns: List(String), extractors: List(fn(a) -> v))
 }
 
-/// Adds a column/value pair to a row, with a continuation for the next field.
-pub fn field(
-  column column: String,
-  value value: v,
-  next next: fn() -> Row(v),
-) -> Row(v) {
-  Row(column: column, value: value, next: Some(next))
+/// Adds a column to an inserter, with a function to extract the SQL value
+/// from the domain type.
+pub fn val(
+  column: String,
+  extract: fn(a) -> v,
+  next: fn() -> Inserter(a, v),
+) -> Inserter(a, v) {
+  let inserter = next()
+
+  Inserter(columns: [column, ..inserter.columns], extractors: [
+    extract,
+    ..inserter.extractors
+  ])
 }
 
-/// Creates the last column/value pair in a row (the terminal element).
-pub fn final(column column: String, value value: v) -> Row(v) {
-  Row(column: column, value: value, next: None)
-}
-
-fn row_to_columns_and_values(row: Row(v)) -> #(List(String), List(v)) {
-  case row.next {
-    Some(next) -> {
-      let #(columns, values) = next() |> row_to_columns_and_values
-      #([row.column, ..columns], [row.value, ..values])
-    }
-    None -> #([row.column], [row.value])
-  }
+/// Terminates an inserter chain. Call this as the final expression after
+/// all `val` calls.
+pub fn row() -> Inserter(a, v) {
+  Inserter(columns: [], extractors: [])
 }
 
 type Operand(v) {
@@ -987,23 +998,36 @@ pub fn for_update(builder: Builder(Select, v)) -> Builder(Select, v) {
   }
 }
 
-/// Sets the rows to insert. Columns are extracted from the first row.
-/// Replaces any previously set values.
+/// Sets the rows to insert using an `Inserter` and a list of domain objects.
+/// Columns are defined by the inserter, ensuring every row has the same shape.
+///
+/// ```gleam
+/// let inserter = {
+///   use <- sql.val("name", fn(u: User) { sql.text(u.name) })
+///   use <- sql.val("age", fn(u: User) { sql.int(u.age) })
+///   sql.row()
+/// }
+///
+/// sql.insert(into: sql.table("users"))
+/// |> sql.values(inserter, [alice, bob])
+/// ```
 pub fn values(
   builder: Builder(Insert, v),
-  rows: List(Row(v)),
+  inserter: Inserter(a, v),
+  rows: List(a),
 ) -> Builder(Insert, v) {
+  let columns = inserter.columns
+  let value_rows =
+    rows
+    |> list.map(fn(item) {
+      inserter.extractors
+      |> list.map(fn(extract) { extract(item) })
+    })
+
   case builder {
-    InsertBuilder(query:, ctes:, recursive:) -> {
-      let extracted = list.map(rows, fn(row) { row_to_columns_and_values(row) })
-      let columns = case extracted {
-        [#(cols, _), ..] -> cols
-        [] -> []
-      }
-      let value_rows = list.map(extracted, fn(pair) { pair.1 })
+    InsertBuilder(query:, ctes:, recursive:) ->
       InsertQuery(..query, columns: columns, values: value_rows)
       |> InsertBuilder(ctes:, recursive:)
-    }
     _ -> panic as "unreachable: values called on non-Insert builder"
   }
 }

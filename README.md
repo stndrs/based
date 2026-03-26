@@ -37,14 +37,15 @@ let query =
 ```gleam
 import based/sql
 
+let inserter = {
+  use <- sql.val("name", fn(user: #(String, String)) { sql.text(user.0) })
+  use <- sql.val("email", fn(user: #(String, String)) { sql.text(user.1) })
+  sql.row()
+}
+
 let query =
   sql.insert(into: sql.table("users"))
-  |> sql.values([
-    {
-      use <- sql.field(column: "name", value: sql.text("John"))
-      sql.final(column: "email", value: sql.text("john@example.com"))
-    },
-  ])
+  |> sql.values(inserter, [#("John", "john@example.com")])
   |> sql.to_query(sql.adapter())
 
 // query.sql == "INSERT INTO users (name, email) VALUES (?, ?)"

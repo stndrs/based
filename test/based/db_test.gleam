@@ -318,14 +318,14 @@ pub fn to_sql_query_select_no_params_test() {
 pub fn to_sql_query_insert_test() {
   let database = database()
 
+  let inserter = {
+    use <- sql.val("name", fn(r: #(String, Int)) { sql.text(r.0) })
+    use <- sql.val("age", fn(r: #(String, Int)) { sql.int(r.1) })
+    sql.row()
+  }
   let q =
     sql.insert(into: sql.table("users"))
-    |> sql.values([
-      {
-        use <- sql.field(column: "name", value: sql.text("Alice"))
-        sql.final(column: "age", value: sql.int(30))
-      },
-    ])
+    |> sql.values(inserter, [#("Alice", 30)])
     |> sql.to_query(database.adapter)
 
   assert q.sql == "INSERT INTO users (name, age) VALUES ($1, $2)"
