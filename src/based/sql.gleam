@@ -407,18 +407,16 @@ pub fn on_text(
 /// A reusable specification for INSERT rows. Defines the column names and
 /// how to extract SQL values from a domain type `a`.
 ///
-/// Built using the `use` pattern with `val` and `row`:
+/// Built using `rows` and piping through `val`:
 ///
 /// ```gleam
-/// let users = {
-///   use <- sql.val("name", fn(u: User) { sql.text(u.name) })
-///   use <- sql.val("age", fn(u: User) { sql.int(u.age) })
-///
-///   sql.rows()
-/// }
+/// let users =
+///   sql.rows([alice, bob])
+///   |> sql.val("name", fn(u) { sql.text(u.name) })
+///   |> sql.val("age", fn(u) { sql.int(u.age) })
 ///
 /// sql.insert(into: sql.table("users"))
-/// |> sql.values(users, [alice, bob])
+/// |> sql.values(users)
 /// ```
 pub opaque type Rows(a, v) {
   Rows(columns: List(String), extractors: List(fn(a) -> v), values: List(a))
@@ -426,22 +424,23 @@ pub opaque type Rows(a, v) {
 
 /// Adds a column to an inserter, with a function to extract the SQL value
 /// from the domain type.
-pub fn val(
-  column: String,
-  extract: fn(a) -> v,
-  next: fn() -> Rows(a, v),
-) -> Rows(a, v) {
-  let inserter = next()
-
+///
+/// ```gleam
+/// let inserter =
+///   sql.rows([#("Alice", 30)])
+///   |> sql.val("name", fn(r) { sql.text(r.0) })
+///   |> sql.val("age", fn(r) { sql.int(r.1) })
+/// ```
+pub fn val(rows: Rows(a, v), column: String, extract: fn(a) -> v) -> Rows(a, v) {
   Rows(
-    columns: [column, ..inserter.columns],
-    extractors: [extract, ..inserter.extractors],
-    values: inserter.values,
+    columns: [column, ..rows.columns],
+    extractors: [extract, ..rows.extractors],
+    values: rows.values,
   )
 }
 
-/// Terminates an `Rows` chain. Call this as the final expression after
-/// all `val` calls.
+/// Creates a new `Rows` with the given values. Pipe through `val` to add
+/// columns and extractors.
 pub fn rows(values: List(a)) -> Rows(a, v) {
   Rows(columns: [], extractors: [], values:)
 }
@@ -1004,24 +1003,24 @@ pub fn for_update(builder: Builder(Select, v)) -> Builder(Select, v) {
 /// Columns are defined by the inserter, ensuring every row has the same shape.
 ///
 /// ```gleam
-/// let inserter = {
-///   use <- sql.val("name", fn(u: User) { sql.text(u.name) })
-///   use <- sql.val("age", fn(u: User) { sql.int(u.age) })
-///   sql.row()
-/// }
+/// let inserter =
+///   sql.rows([alice, bob])
+///   |> sql.val("name", fn(u: User) { sql.text(u.name) })
+///   |> sql.val("age", fn(u: User) { sql.int(u.age) })
 ///
 /// sql.insert(into: sql.table("users"))
-/// |> sql.values(inserter, [alice, bob])
+/// |> sql.values(inserter)
 /// ```
 pub fn values(
   builder: Builder(Insert, v),
   rows: Rows(a, v),
 ) -> Builder(Insert, v) {
-  let columns = rows.columns
+  let columns = list.reverse(rows.columns)
+  let extractors = list.reverse(rows.extractors)
   let value_rows =
     rows.values
     |> list.map(fn(item) {
-      rows.extractors
+      extractors
       |> list.map(fn(extract) { extract(item) })
     })
 
