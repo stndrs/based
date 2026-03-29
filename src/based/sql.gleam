@@ -413,14 +413,15 @@ pub fn on_text(
 /// let users = {
 ///   use <- sql.val("name", fn(u: User) { sql.text(u.name) })
 ///   use <- sql.val("age", fn(u: User) { sql.int(u.age) })
-///   sql.row()
+///
+///   sql.rows()
 /// }
 ///
 /// sql.insert(into: sql.table("users"))
 /// |> sql.values(users, [alice, bob])
 /// ```
-pub opaque type Inserter(a, v) {
-  Inserter(columns: List(String), extractors: List(fn(a) -> v))
+pub opaque type Rows(a, v) {
+  Rows(columns: List(String), extractors: List(fn(a) -> v), values: List(a))
 }
 
 /// Adds a column to an inserter, with a function to extract the SQL value
@@ -428,20 +429,21 @@ pub opaque type Inserter(a, v) {
 pub fn val(
   column: String,
   extract: fn(a) -> v,
-  next: fn() -> Inserter(a, v),
-) -> Inserter(a, v) {
+  next: fn() -> Rows(a, v),
+) -> Rows(a, v) {
   let inserter = next()
 
-  Inserter(columns: [column, ..inserter.columns], extractors: [
-    extract,
-    ..inserter.extractors
-  ])
+  Rows(
+    columns: [column, ..inserter.columns],
+    extractors: [extract, ..inserter.extractors],
+    values: inserter.values,
+  )
 }
 
-/// Terminates an inserter chain. Call this as the final expression after
+/// Terminates an `Rows` chain. Call this as the final expression after
 /// all `val` calls.
-pub fn row() -> Inserter(a, v) {
-  Inserter(columns: [], extractors: [])
+pub fn rows(values: List(a)) -> Rows(a, v) {
+  Rows(columns: [], extractors: [], values:)
 }
 
 type Operand(v) {
@@ -998,7 +1000,7 @@ pub fn for_update(builder: Builder(Select, v)) -> Builder(Select, v) {
   }
 }
 
-/// Sets the rows to insert using an `Inserter` and a list of domain objects.
+/// Sets the rows to insert using an `Rows` and a list of domain objects.
 /// Columns are defined by the inserter, ensuring every row has the same shape.
 ///
 /// ```gleam
@@ -1013,14 +1015,13 @@ pub fn for_update(builder: Builder(Select, v)) -> Builder(Select, v) {
 /// ```
 pub fn values(
   builder: Builder(Insert, v),
-  inserter: Inserter(a, v),
-  rows: List(a),
+  rows: Rows(a, v),
 ) -> Builder(Insert, v) {
-  let columns = inserter.columns
+  let columns = rows.columns
   let value_rows =
-    rows
+    rows.values
     |> list.map(fn(item) {
-      inserter.extractors
+      rows.extractors
       |> list.map(fn(extract) { extract(item) })
     })
 

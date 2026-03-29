@@ -328,11 +328,12 @@ pub fn insert_single_row_test() {
   let inserter = {
     use <- sql.val("name", fn(r: #(String, Int)) { sql.text(r.0) })
     use <- sql.val("age", fn(r: #(String, Int)) { sql.int(r.1) })
-    sql.row()
+
+    sql.rows([#("Alice", 30)])
   }
   let q =
     sql.insert(into: sql.table("users"))
-    |> sql.values(inserter, [#("Alice", 30)])
+    |> sql.values(inserter)
     |> sql.to_query(a())
 
   assert q.sql == "INSERT INTO users (name, age) VALUES ($1, $2)"
@@ -343,11 +344,12 @@ pub fn insert_multiple_rows_test() {
   let inserter = {
     use <- sql.val("name", fn(r: #(String, Int)) { sql.text(r.0) })
     use <- sql.val("age", fn(r: #(String, Int)) { sql.int(r.1) })
-    sql.row()
+
+    sql.rows([#("Alice", 30), #("Bob", 25)])
   }
   let q =
     sql.insert(into: sql.table("users"))
-    |> sql.values(inserter, [#("Alice", 30), #("Bob", 25)])
+    |> sql.values(inserter)
     |> sql.to_query(a())
 
   assert q.sql == "INSERT INTO users (name, age) VALUES ($1, $2), ($3, $4)"
@@ -361,11 +363,11 @@ pub fn insert_nullable_field_test() {
       sql.nullable(r.0, of: sql.text)
     })
     use <- sql.val("age", fn(r: #(Option(String), Int)) { sql.int(r.1) })
-    sql.row()
+    sql.rows([#(None, 25)])
   }
   let q =
     sql.insert(into: sql.table("users"))
-    |> sql.values(inserter, [#(None, 25)])
+    |> sql.values(inserter)
     |> sql.to_query(a())
 
   assert q.sql == "INSERT INTO users (name, age) VALUES ($1, $2)"
@@ -378,11 +380,11 @@ pub fn insert_multiple_nullable_fields_test() {
       sql.nullable(r.0, of: sql.text)
     })
     use <- sql.val("age", fn(r: #(Option(String), Int)) { sql.int(r.1) })
-    sql.row()
+    sql.rows([#(None, 30), #(Some("Bob"), 25)])
   }
   let q =
     sql.insert(into: sql.table("users"))
-    |> sql.values(inserter, [#(None, 30), #(Some("Bob"), 25)])
+    |> sql.values(inserter)
     |> sql.to_query(a())
 
   assert q.sql == "INSERT INTO users (name, age) VALUES ($1, $2), ($3, $4)"
@@ -446,11 +448,11 @@ pub fn to_string_insert_test() {
   let inserter = {
     use <- sql.val("name", fn(r: #(String, Bool)) { sql.text(r.0) })
     use <- sql.val("active", fn(r: #(String, Bool)) { sql.bool(r.1) })
-    sql.row()
+    sql.rows([#("Alice", True)])
   }
   let s =
     sql.insert(into: sql.table("users"))
-    |> sql.values(inserter, [#("Alice", True)])
+    |> sql.values(inserter)
     |> sql.to_string(a())
 
   assert s == "INSERT INTO users (name, active) VALUES ('Alice', TRUE)"
@@ -953,11 +955,11 @@ pub fn having_to_string_test() {
 pub fn insert_returning_test() {
   let inserter = {
     use <- sql.val("name", fn(name: String) { sql.text(name) })
-    sql.row()
+    sql.rows(["Alice"])
   }
   let q =
     sql.insert(into: sql.table("users"))
-    |> sql.values(inserter, ["Alice"])
+    |> sql.values(inserter)
     |> sql.returning([sql.col("id"), sql.col("name")])
     |> sql.to_query(a())
 
@@ -992,11 +994,11 @@ pub fn delete_returning_test() {
 pub fn returning_to_string_test() {
   let inserter = {
     use <- sql.val("name", fn(name: String) { sql.text(name) })
-    sql.row()
+    sql.rows(["Alice"])
   }
   let s =
     sql.insert(into: sql.table("users"))
-    |> sql.values(inserter, ["Alice"])
+    |> sql.values(inserter)
     |> sql.returning([sql.col("id")])
     |> sql.to_string(a())
 
@@ -1007,11 +1009,11 @@ pub fn on_conflict_do_nothing_test() {
   let inserter = {
     use <- sql.val("id", fn(r: #(Int, String)) { sql.int(r.0) })
     use <- sql.val("name", fn(r: #(Int, String)) { sql.text(r.1) })
-    sql.row()
+    sql.rows([#(1, "Alice")])
   }
   let q =
     sql.insert(into: sql.table("users"))
-    |> sql.values(inserter, [#(1, "Alice")])
+    |> sql.values(inserter)
     |> sql.on_conflict(target: "id", action: sql.DoNothing, where: [])
     |> sql.to_query(a())
 
@@ -1024,11 +1026,11 @@ pub fn on_conflict_do_update_test() {
   let inserter = {
     use <- sql.val("id", fn(r: #(Int, Int)) { sql.int(r.0) })
     use <- sql.val("quantity", fn(r: #(Int, Int)) { sql.int(r.1) })
-    sql.row()
+    sql.rows([#(1, 10)])
   }
   let q =
     sql.insert(into: sql.table("counts"))
-    |> sql.values(inserter, [#(1, 10)])
+    |> sql.values(inserter)
     |> sql.on_conflict(
       target: "id",
       action: sql.DoUpdate(sets: [#("quantity", "excluded.quantity")]),
@@ -1045,11 +1047,11 @@ pub fn on_conflict_do_update_with_where_test() {
   let inserter = {
     use <- sql.val("id", fn(r: #(Int, Int)) { sql.int(r.0) })
     use <- sql.val("quantity", fn(r: #(Int, Int)) { sql.int(r.1) })
-    sql.row()
+    sql.rows([#(1, 10)])
   }
   let q =
     sql.insert(into: sql.table("counts"))
-    |> sql.values(inserter, [#(1, 10)])
+    |> sql.values(inserter)
     |> sql.on_conflict(
       target: "id",
       action: sql.DoUpdate(sets: [#("quantity", "excluded.quantity")]),
@@ -1066,11 +1068,11 @@ pub fn on_conflict_do_nothing_returning_test() {
   let inserter = {
     use <- sql.val("id", fn(r: #(Int, Int)) { sql.int(r.0) })
     use <- sql.val("quantity", fn(r: #(Int, Int)) { sql.int(r.1) })
-    sql.row()
+    sql.rows([#(1, 10)])
   }
   let q =
     sql.insert(into: sql.table("counts"))
-    |> sql.values(inserter, [#(1, 10)])
+    |> sql.values(inserter)
     |> sql.on_conflict(target: "id", action: sql.DoNothing, where: [])
     |> sql.returning([sql.col("id")])
     |> sql.to_query(a())
@@ -1084,11 +1086,11 @@ pub fn on_conflict_to_string_test() {
   let inserter = {
     use <- sql.val("id", fn(r: #(Int, Int)) { sql.int(r.0) })
     use <- sql.val("quantity", fn(r: #(Int, Int)) { sql.int(r.1) })
-    sql.row()
+    sql.rows([#(1, 10)])
   }
   let s =
     sql.insert(into: sql.table("counts"))
-    |> sql.values(inserter, [#(1, 10)])
+    |> sql.values(inserter)
     |> sql.on_conflict(
       target: "id",
       action: sql.DoUpdate(sets: [#("quantity", "excluded.quantity")]),
@@ -1104,11 +1106,11 @@ pub fn on_conflict_where_to_string_test() {
   let inserter = {
     use <- sql.val("id", fn(r: #(Int, Int)) { sql.int(r.0) })
     use <- sql.val("quantity", fn(r: #(Int, Int)) { sql.int(r.1) })
-    sql.row()
+    sql.rows([#(1, 10)])
   }
   let s =
     sql.insert(into: sql.table("counts"))
-    |> sql.values(inserter, [#(1, 10)])
+    |> sql.values(inserter)
     |> sql.on_conflict(
       target: "id",
       action: sql.DoUpdate(sets: [#("quantity", "excluded.quantity")]),
@@ -1416,11 +1418,11 @@ pub fn cte_with_insert_test() {
   let inserter = {
     use <- sql.val("user_id", fn(r: #(Int, String)) { sql.int(r.0) })
     use <- sql.val("message", fn(r: #(Int, String)) { sql.text(r.1) })
-    sql.row()
+    sql.rows([#(1, "Welcome!")])
   }
   let q =
     sql.insert(into: sql.table("notifications"))
-    |> sql.values(inserter, [#(1, "Welcome!")])
+    |> sql.values(inserter)
     |> sql.with(ctes: [new_users])
     |> sql.to_query(a())
 
@@ -1611,11 +1613,11 @@ pub fn backtick_insert_test() {
   let inserter = {
     use <- sql.val("name", fn(r: #(String, String)) { sql.text(r.0) })
     use <- sql.val("email", fn(r: #(String, String)) { sql.text(r.1) })
-    sql.row()
+    sql.rows([#("Alice", "alice@example.com")])
   }
   let q =
     sql.insert(into: sql.table("users"))
-    |> sql.values(inserter, [#("Alice", "alice@example.com")])
+    |> sql.values(inserter)
     |> sql.to_query(backtick_a())
 
   assert q.sql == "INSERT INTO `users` (`name`, `email`) VALUES (?, ?)"
@@ -2218,11 +2220,11 @@ pub fn insert_with_null_test() {
   let inserter = {
     use <- sql.val("name", fn(r: #(String, sql.Value)) { sql.text(r.0) })
     use <- sql.val("email", fn(r: #(String, sql.Value)) { r.1 })
-    sql.row()
+    sql.rows([#("Alice", sql.null)])
   }
   let q =
     sql.insert(into: sql.table("users"))
-    |> sql.values(inserter, [#("Alice", sql.null)])
+    |> sql.values(inserter)
     |> sql.to_query(a())
 
   assert q.sql == "INSERT INTO users (name, email) VALUES ($1, $2)"
@@ -2231,13 +2233,15 @@ pub fn insert_with_null_test() {
 
 pub fn insert_with_null_to_string_test() {
   let inserter = {
-    use <- sql.val("name", fn(r: #(String, sql.Value)) { sql.text(r.0) })
-    use <- sql.val("email", fn(r: #(String, sql.Value)) { r.1 })
-    sql.row()
+    use <- sql.val("name", fn(r: #(String, Option(String))) { sql.text(r.0) })
+    use <- sql.val("email", fn(r: #(String, Option(String))) {
+      sql.nullable(r.1, of: sql.text)
+    })
+    sql.rows([#("Alice", None)])
   }
   let q =
     sql.insert(into: sql.table("users"))
-    |> sql.values(inserter, [#("Alice", sql.null)])
+    |> sql.values(inserter)
     |> sql.to_string(a())
 
   assert q == "INSERT INTO users (name, email) VALUES ('Alice', NULL)"
@@ -2253,11 +2257,11 @@ pub fn insert_mixed_types_test() {
     use <- sql.val("active", fn(r: #(String, Int, Float, Bool)) {
       sql.bool(r.3)
     })
-    sql.row()
+    sql.rows([#("Alice", 30, 9.5, True)])
   }
   let q =
     sql.insert(into: sql.table("users"))
-    |> sql.values(inserter, [#("Alice", 30, 9.5, True)])
+    |> sql.values(inserter)
     |> sql.to_query(a())
 
   assert q.sql
@@ -2281,11 +2285,11 @@ pub fn insert_mixed_types_to_string_test() {
     use <- sql.val("active", fn(r: #(String, Int, Float, Bool)) {
       sql.bool(r.3)
     })
-    sql.row()
+    sql.rows([#("Alice", 30, 9.5, True)])
   }
   let q =
     sql.insert(into: sql.table("users"))
-    |> sql.values(inserter, [#("Alice", 30, 9.5, True)])
+    |> sql.values(inserter)
     |> sql.to_string(a())
 
   assert q
@@ -2296,11 +2300,11 @@ pub fn insert_multiple_rows_to_string_test() {
   let inserter = {
     use <- sql.val("name", fn(r: #(String, Int)) { sql.text(r.0) })
     use <- sql.val("age", fn(r: #(String, Int)) { sql.int(r.1) })
-    sql.row()
+    sql.rows([#("Alice", 30), #("Bob", 25)])
   }
   let q =
     sql.insert(into: sql.table("users"))
-    |> sql.values(inserter, [#("Alice", 30), #("Bob", 25)])
+    |> sql.values(inserter)
     |> sql.to_string(a())
 
   assert q == "INSERT INTO users (name, age) VALUES ('Alice', 30), ('Bob', 25)"
@@ -2310,11 +2314,11 @@ pub fn insert_on_conflict_do_nothing_backtick_test() {
   let inserter = {
     use <- sql.val("name", fn(r: #(String, String)) { sql.text(r.0) })
     use <- sql.val("email", fn(r: #(String, String)) { sql.text(r.1) })
-    sql.row()
+    sql.rows([#("Alice", "alice@example.com")])
   }
   let q =
     sql.insert(into: sql.table("users"))
-    |> sql.values(inserter, [#("Alice", "alice@example.com")])
+    |> sql.values(inserter)
     |> sql.on_conflict(target: "email", action: sql.DoNothing, where: [])
     |> sql.to_query(backtick_a())
 
@@ -2327,11 +2331,11 @@ pub fn insert_returning_backtick_test() {
   let inserter = {
     use <- sql.val("name", fn(r: #(String, String)) { sql.text(r.0) })
     use <- sql.val("email", fn(r: #(String, String)) { sql.text(r.1) })
-    sql.row()
+    sql.rows([#("Alice", "alice@example.com")])
   }
   let q =
     sql.insert(into: sql.table("users"))
-    |> sql.values(inserter, [#("Alice", "alice@example.com")])
+    |> sql.values(inserter)
     |> sql.returning([sql.col("id")])
     |> sql.to_query(backtick_a())
 
@@ -2724,11 +2728,12 @@ pub fn insert_single_row_to_string_test() {
   let inserter = {
     use <- sql.val("name", fn(r: #(String, String)) { sql.text(r.0) })
     use <- sql.val("email", fn(r: #(String, String)) { sql.text(r.1) })
-    sql.row()
+    sql.rows([#("Alice", "alice@example.com")])
   }
+
   let q =
     sql.insert(into: sql.table("users"))
-    |> sql.values(inserter, [#("Alice", "alice@example.com")])
+    |> sql.values(inserter)
     |> sql.to_string(a())
 
   assert q
@@ -2775,11 +2780,11 @@ pub fn on_conflict_do_update_to_string_test() {
   let inserter = {
     use <- sql.val("name", fn(r: #(String, String)) { sql.text(r.0) })
     use <- sql.val("email", fn(r: #(String, String)) { sql.text(r.1) })
-    sql.row()
+    sql.rows([#("Alice", "alice@example.com")])
   }
   let q =
     sql.insert(into: sql.table("users"))
-    |> sql.values(inserter, [#("Alice", "alice@example.com")])
+    |> sql.values(inserter)
     |> sql.on_conflict(
       target: "email",
       action: sql.DoUpdate(sets: [#("name", "EXCLUDED.name")]),
@@ -2795,11 +2800,11 @@ pub fn on_conflict_do_nothing_to_string_test() {
   let inserter = {
     use <- sql.val("name", fn(r: #(String, String)) { sql.text(r.0) })
     use <- sql.val("email", fn(r: #(String, String)) { sql.text(r.1) })
-    sql.row()
+    sql.rows([#("Alice", "alice@example.com")])
   }
   let q =
     sql.insert(into: sql.table("users"))
-    |> sql.values(inserter, [#("Alice", "alice@example.com")])
+    |> sql.values(inserter)
     |> sql.on_conflict(target: "email", action: sql.DoNothing, where: [])
     |> sql.to_string(a())
 
@@ -3592,7 +3597,7 @@ pub fn in_empty_list_to_query_test() {
 pub fn insert_empty_values_to_string_test() {
   let s =
     sql.insert(into: sql.table("users"))
-    |> sql.values(sql.row(), [])
+    |> sql.values(sql.rows([]))
     |> sql.to_string(a())
 
   assert s == "INSERT INTO users () VALUES "
@@ -3601,7 +3606,7 @@ pub fn insert_empty_values_to_string_test() {
 pub fn insert_empty_values_to_query_test() {
   let q =
     sql.insert(into: sql.table("users"))
-    |> sql.values(sql.row(), [])
+    |> sql.values(sql.rows([]))
     |> sql.to_query(a())
 
   assert q.sql == "INSERT INTO users () VALUES "

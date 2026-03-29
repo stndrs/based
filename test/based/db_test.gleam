@@ -93,9 +93,9 @@ pub fn transaction_test() {
   let db =
     db.driver(
       Conn,
-      handle_query: fn(_, _) { Ok(db.Queried(0, [], [])) },
-      handle_execute: fn(_, _) { Ok(0) },
-      handle_batch: fn(_, _) { Ok([]) },
+      on_query: fn(_, _) { Ok(db.Queried(0, [], [])) },
+      on_execute: fn(_, _) { Ok(0) },
+      on_batch: fn(_, _) { Ok([]) },
     )
     |> db.new(sql_adapter())
 
@@ -110,9 +110,9 @@ pub fn transaction_error_test() {
   let db =
     db.driver(
       Conn,
-      handle_query: fn(_, _) { Ok(db.Queried(0, [], [])) },
-      handle_execute: fn(_, _) { Ok(0) },
-      handle_batch: fn(_, _) { Ok([]) },
+      on_query: fn(_, _) { Ok(db.Queried(0, [], [])) },
+      on_execute: fn(_, _) { Ok(0) },
+      on_batch: fn(_, _) { Ok([]) },
     )
     |> db.new(sql_adapter())
 
@@ -140,9 +140,9 @@ fn query_handler(
   let db =
     db.driver(
       Conn,
-      handle_query: fn(_, _) { queried },
-      handle_execute: fn(_, _) { Ok(0) },
-      handle_batch: fn(_, _) { Ok([]) },
+      on_query: fn(_, _) { queried },
+      on_execute: fn(_, _) { Ok(0) },
+      on_batch: fn(_, _) { Ok([]) },
     )
     |> db.new(sql_adapter())
 
@@ -155,9 +155,9 @@ fn execute_handler(
   let db =
     db.driver(
       Conn,
-      handle_query: fn(_, _) { Ok(db.Queried(0, [], [])) },
-      handle_execute: fn(_, _) { executed },
-      handle_batch: fn(_, _) { Ok([]) },
+      on_query: fn(_, _) { Ok(db.Queried(0, [], [])) },
+      on_execute: fn(_, _) { executed },
+      on_batch: fn(_, _) { Ok([]) },
     )
     |> db.new(sql_adapter())
 
@@ -251,9 +251,9 @@ pub fn batch_test() {
   let database =
     db.driver(
       Conn,
-      handle_query: fn(_, _) { Ok(db.Queried(0, [], [])) },
-      handle_execute: fn(_, _) { Ok(0) },
-      handle_batch: fn(_, _) { returning },
+      on_query: fn(_, _) { Ok(db.Queried(0, [], [])) },
+      on_execute: fn(_, _) { Ok(0) },
+      on_batch: fn(_, _) { returning },
     )
     |> db.new(sql_adapter())
 
@@ -272,9 +272,9 @@ pub fn batch_error_test() {
   let database =
     db.driver(
       Conn,
-      handle_query: fn(_, _) { Ok(db.Queried(0, [], [])) },
-      handle_execute: fn(_, _) { Ok(0) },
-      handle_batch: fn(_, _) { returning },
+      on_query: fn(_, _) { Ok(db.Queried(0, [], [])) },
+      on_execute: fn(_, _) { Ok(0) },
+      on_batch: fn(_, _) { returning },
     )
     |> db.new(sql_adapter())
 
@@ -287,9 +287,9 @@ pub fn to_sql_query_select_test() {
   let database =
     db.driver(
       Conn,
-      handle_query: fn(_, _) { Ok(db.Queried(0, [], [])) },
-      handle_execute: fn(_, _) { Ok(0) },
-      handle_batch: fn(_, _) { Ok([]) },
+      on_query: fn(_, _) { Ok(db.Queried(0, [], [])) },
+      on_execute: fn(_, _) { Ok(0) },
+      on_batch: fn(_, _) { Ok([]) },
     )
     |> db.new(sql_adapter())
 
@@ -318,14 +318,15 @@ pub fn to_sql_query_select_no_params_test() {
 pub fn to_sql_query_insert_test() {
   let database = database()
 
-  let inserter = {
+  let row = {
     use <- sql.val("name", fn(r: #(String, Int)) { sql.text(r.0) })
     use <- sql.val("age", fn(r: #(String, Int)) { sql.int(r.1) })
-    sql.row()
+
+    sql.rows([#("Alice", 30)])
   }
   let q =
     sql.insert(into: sql.table("users"))
-    |> sql.values(inserter, [#("Alice", 30)])
+    |> sql.values(row)
     |> sql.to_query(database.adapter)
 
   assert q.sql == "INSERT INTO users (name, age) VALUES ($1, $2)"
@@ -404,9 +405,9 @@ fn database() -> db.Db(sql.Value, Conn) {
   let database =
     db.driver(
       Conn,
-      handle_query: fn(_, _) { Ok(db.Queried(0, [], [])) },
-      handle_execute: fn(_, _) { Ok(0) },
-      handle_batch: fn(_, _) { Ok([]) },
+      on_query: fn(_, _) { Ok(db.Queried(0, [], [])) },
+      on_execute: fn(_, _) { Ok(0) },
+      on_batch: fn(_, _) { Ok([]) },
     )
     |> db.new(sql_adapter())
 

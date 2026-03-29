@@ -159,9 +159,9 @@ pub opaque type Driver(v, conn) {
 
 pub fn driver(
   conn: conn,
-  handle_query handle_query: QueryHandler(v, conn),
-  handle_execute handle_execute: ExecuteHandler(conn),
-  handle_batch handle_batch: BatchQueryHandler(v, conn),
+  on_query handle_query: QueryHandler(v, conn),
+  on_execute handle_execute: ExecuteHandler(conn),
+  on_batch handle_batch: BatchQueryHandler(v, conn),
 ) -> Driver(v, conn) {
   Driver(conn, handle_query:, handle_execute:, handle_batch:)
 }
