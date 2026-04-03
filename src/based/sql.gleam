@@ -21,7 +21,7 @@
 ////   |> sql.to_query(adapter)
 ////
 //// query.sql
-//// // -> "SELECT name, email FROM users WHERE active = $1 ORDER BY name ASC LIMIT 10"
+//// // -> "SELECT name, email FROM users WHERE active = ? ORDER BY name ASC LIMIT 10"
 ////
 //// query.values
 //// // -> [sql.Bool(True)]
@@ -36,43 +36,42 @@
 //// ```gleam
 //// let mysql_adapter =
 ////   sql.new_adapter()
-////   |> sql.on_null(with: fn() { sql.null })
-////   |> sql.on_int(with: fn(i) { sql.int(i) })
-////   |> sql.on_text(with: fn(s) { sql.text(s) })
-////   |> sql.on_placeholder(with: fn(_) { "?" })
-////   |> sql.on_value(with: my_value_to_string)
-////   |> sql.on_identifier(with: fn(name) { "`" <> name <> "`" })
+////   |> sql.on_null(fn() { mysql.null })
+////   |> sql.on_int(fn(i) { mysql.int(i) })
+////   |> sql.on_text(fn(s) { mysql.text(s) })
+////   |> sql.on_placeholder(fn(_) { "?" })
+////   |> sql.on_value(myslq_value_to_string)
+////   |> sql.on_identifier(fn(name) { "`" <> name <> "`" })
 //// ```
 ////
 //// ## Phantom types
 ////
-//// The `Builder(kind, v)` type uses phantom types (`Select`, `Insert`,
-//// `Update`, `Delete`, `Union`, `UnionAll`, `Subquery`) to restrict which modifier functions can be
-//// called. For example, `join` only accepts `Builder(Select, v)`, and
-//// `set` only accepts `Builder(Update, v)`. This helps callers avoid
+//// The `Builder(kind, v)` type uses phantom types to restrict which modifier
+//// functions can be called. For example, `join` only accepts `Builder(Select, v)`,
+//// and `set` only accepts `Builder(Update, v)`. This helps callers avoid
 //// building invalid SQL queries. It is possible to call functions that do
-//// not modify the provided `Builder`. Passing `Builder(Insert)`
-//// to `sql.where` will not modify the query builder. This library is meant
-//// to help with building SQL strings, but will not protect callers from
-//// creating invalid SQL strings.
+//// not modify the provided `Builder`. Passing `Builder(Insert, v)`
+//// to `sql.where` will not modify the query builder.
 ////
 
 import based/internal/fmt
 import based/interval
 import based/uuid
 import gleam/bit_array
+import gleam/dict
 import gleam/float
 import gleam/function
 import gleam/int
 import gleam/list
 import gleam/option.{type Option, None, Some}
+import gleam/result
 import gleam/string
 import gleam/time/calendar
 import gleam/time/duration
 import gleam/time/timestamp
 
-/// The result of rendering a query builder. Contains a parameterized SQL string
-/// and an ordered list of values corresponding to the placeholders.
+/// Contains a parameterized SQL string and an ordered list of values. Can be
+/// used directly or built from a `sql.Builder`.
 ///
 /// ```gleam
 /// let q = sql.from(sql.table("users"))
@@ -99,11 +98,6 @@ pub fn params(query: Query(v), values: List(v)) -> Query(v) {
 /// A UTC offset composed of hours and minutes.
 ///
 /// Used with `Timestamptz` to encode a timestamp relative to UTC.
-/// Offsets are subtracted from the timestamp during encoding so the
-/// result is always a UTC value.
-///
-/// A positive offset (e.g. `utc_offset(5)`) means local time is
-/// ahead of UTC; a negative offset means it is behind.
 pub type Offset {
   Offset(hours: Int, minutes: Int)
 }
@@ -253,7 +247,7 @@ pub opaque type Column {
     alias: Option(String),
     func: Option(Aggregate),
   )
-  All
+  All(table: Option(String))
 }
 
 /// Creates a plain column reference.
@@ -287,11 +281,10 @@ pub fn min(name: String) -> Column {
 }
 
 /// Qualifies a column with a table name. Renders as `table.column`.
-/// No-ops on `star`.
 pub fn col_for(column: Column, table: String) -> Column {
   case column {
     Column(..) -> Column(..column, table: Some(table))
-    All -> All
+    All(..) -> All(table: Some(table))
   }
 }
 
@@ -300,30 +293,18 @@ pub fn col_for(column: Column, table: String) -> Column {
 pub fn col_as(column: Column, alias alias: String) -> Column {
   case column {
     Column(..) -> Column(..column, alias: Some(alias))
-    All -> All
+    All(..) -> column
   }
 }
 
 /// The `*` wildcard column, for use in `SELECT *`.
-pub const star = All
-
-// ---- Adapter ----
+pub const star = All(table: None)
 
 /// Database adapter that controls how queries are serialized.
 ///
 /// An adapter defines how placeholders, identifiers, and values are formatted
 /// for a specific database backend. Create one with `new_adapter()` and
 /// configure it using the `on_*` builder functions.
-///
-/// ```gleam
-/// let my_adapter =
-///   sql.new_adapter()
-///   |> sql.on_placeholder(with: fn(i) { "$" <> int.to_string(i + 1) })
-///   |> sql.on_value(with: my_value_to_string)
-///   |> sql.on_null(with: fn() { MyNull })
-///   |> sql.on_int(with: fn(i) { MyInt(i) })
-///   |> sql.on_text(with: fn(s) { MyText(s) })
-/// ```
 pub opaque type Adapter(v) {
   Adapter(
     handle_placeholder: fn(Int) -> String,
@@ -363,8 +344,6 @@ pub fn on_placeholder(
 }
 
 /// Sets the function used to render a value as a literal SQL string.
-///
-/// Only needed for `to_string` output — `to_query` uses placeholders instead.
 pub fn on_value(
   adapter: Adapter(v),
   with handle_value: fn(v) -> String,
@@ -405,7 +384,7 @@ pub fn on_text(
 }
 
 /// A reusable specification for INSERT rows. Defines the column names and
-/// how to extract SQL values from a domain type `a`.
+/// how to map inputs too values.
 ///
 /// Built using `rows` and piping through `val`:
 ///
@@ -422,11 +401,10 @@ pub opaque type Rows(a, v) {
   Rows(columns: List(String), extractors: List(fn(a) -> v), values: List(a))
 }
 
-/// Adds a column to an inserter, with a function to extract the SQL value
-/// from the domain type.
+/// Adds a column to the rows being inserted, with a function to extract the SQL value.
 ///
 /// ```gleam
-/// let inserter =
+/// let rows =
 ///   sql.rows([#("Alice", 30)])
 ///   |> sql.val("name", fn(r) { sql.text(r.0) })
 ///   |> sql.val("age", fn(r) { sql.int(r.1) })
@@ -481,7 +459,6 @@ pub opaque type Condition(v) {
   Raw(sql: String)
 }
 
-/// Internal representation of a JOIN clause.
 type Join(v) {
   InnerJoin(table: Table, on: List(Condition(v)))
   LeftJoin(table: Table, on: List(Condition(v)))
@@ -490,7 +467,6 @@ type Join(v) {
 }
 
 /// Adds an `INNER JOIN` clause to a SELECT query.
-/// Multiple conditions are combined with AND at render time.
 pub fn inner_join(
   builder: Builder(Select, v),
   table table: Table,
@@ -500,7 +476,6 @@ pub fn inner_join(
 }
 
 /// Adds a `LEFT JOIN` clause to a SELECT query.
-/// Multiple conditions are combined with AND at render time.
 pub fn left_join(
   builder: Builder(Select, v),
   table table: Table,
@@ -510,7 +485,6 @@ pub fn left_join(
 }
 
 /// Adds a `RIGHT JOIN` clause to a SELECT query.
-/// Multiple conditions are combined with AND at render time.
 pub fn right_join(
   builder: Builder(Select, v),
   table table: Table,
@@ -520,7 +494,6 @@ pub fn right_join(
 }
 
 /// Adds a `FULL JOIN` clause to a SELECT query.
-/// Multiple conditions are combined with AND at render time.
 pub fn full_join(
   builder: Builder(Select, v),
   table table: Table,
@@ -577,9 +550,6 @@ type OnConflict(v) {
 
 /// Describes how to convert an input of type `a` into an internal operand
 /// for query building.
-///
-/// Use the built-in kind constants `value`, `subquery`, `column`, `any`, and
-/// `all`, or create custom kinds with `nullable` and `list`.
 pub opaque type Kind(a, v) {
   Kind(to_operand: fn(a) -> Operand(v))
 }
@@ -674,7 +644,7 @@ type UnionQuery(v) {
 }
 
 /// The main query builder type, parameterized by a phantom `kind` type
-/// (`Select`, `Insert`, `Update`, `Delete`, or `From(a)`) and a value type `v`.
+/// and a value type `v`.
 ///
 /// The phantom type restricts which modifier functions can be applied,
 /// preventing some invalid combinations at compile time.
@@ -788,7 +758,7 @@ pub fn exists(builder: Builder(Select, v)) -> Condition(v) {
   Exists(builder)
 }
 
-/// Creates a raw SQL condition without parameterized values.
+/// Creates a raw SQL condition.
 pub fn raw(sql: String) -> Condition(v) {
   Raw(sql:)
 }
@@ -869,8 +839,7 @@ pub fn from_subquery(
   FromSubQuery(builder:, alias:)
 }
 
-/// Adds a WHERE condition to the query. Multiple `where` calls are combined
-/// with AND.
+/// Adds a WHERE condition to the query.
 ///
 /// Applies to SELECT, UPDATE, and DELETE queries. No-ops on other builder types.
 pub fn where(
@@ -881,7 +850,6 @@ pub fn where(
     SelectBuilder(query:, ctes:, recursive:) ->
       SelectQuery(..query, wheres: list.prepend(query.wheres, conditions))
       |> SelectBuilder(ctes:, recursive:)
-
     UpdateBuilder(query:, ctes:, recursive:) ->
       UpdateQuery(..query, wheres: list.prepend(query.wheres, conditions))
       |> UpdateBuilder(ctes:, recursive:)
@@ -967,7 +935,7 @@ pub fn offset(builder: Builder(a, v), n: Int) -> Builder(a, v) {
   }
 }
 
-/// Adds `SELECT DISTINCT` to a SELECT query.
+/// Adds DISTINCT to a SELECT query.
 pub fn distinct(builder: Builder(Select, v)) -> Builder(Select, v) {
   case builder {
     SelectBuilder(query:, ctes:, recursive:) ->
@@ -976,8 +944,7 @@ pub fn distinct(builder: Builder(Select, v)) -> Builder(Select, v) {
   }
 }
 
-/// Adds a HAVING clause to a SELECT query. Used with GROUP BY to filter
-/// aggregated results. Multiple `having` calls are combined with AND.
+/// Adds a HAVING clause to a SELECT query.
 pub fn having(
   builder: Builder(Select, v),
   conditions: List(Condition(v)),
@@ -999,18 +966,7 @@ pub fn for_update(builder: Builder(Select, v)) -> Builder(Select, v) {
   }
 }
 
-/// Sets the rows to insert using an `Rows` and a list of domain objects.
-/// Columns are defined by the inserter, ensuring every row has the same shape.
-///
-/// ```gleam
-/// let inserter =
-///   sql.rows([alice, bob])
-///   |> sql.val("name", fn(u: User) { sql.text(u.name) })
-///   |> sql.val("age", fn(u: User) { sql.int(u.age) })
-///
-/// sql.insert(into: sql.table("users"))
-/// |> sql.values(inserter)
-/// ```
+/// Sets the rows to be inserted.
 pub fn values(
   builder: Builder(Insert, v),
   rows: Rows(a, v),
@@ -1055,40 +1011,20 @@ pub fn on_conflict(
 }
 
 /// Kind that treats the input as a parameterized value.
-pub const value = Kind(to_operand: value_to_operand)
-
-fn value_to_operand(v) -> Operand(v) {
-  Val(v)
-}
+pub const value = Kind(to_operand: Val)
 
 /// Kind that treats the input as a subquery for scalar comparisons.
-pub const subquery = Kind(to_operand: subquery_to_operand)
-
-fn subquery_to_operand(q) -> Operand(v) {
-  SubQuery(q)
-}
+pub const subquery = Kind(to_operand: SubQuery)
 
 /// Kind that treats the input as a column reference for column-to-column
 /// comparisons.
-pub const column = Kind(to_operand: column_to_operand)
-
-fn column_to_operand(c) -> Operand(v) {
-  Col(c)
-}
+pub const column = Kind(to_operand: Col)
 
 /// Kind that wraps a subquery with `ANY(...)`.
-pub const any = Kind(to_operand: any_to_operand)
-
-fn any_to_operand(q) -> Operand(v) {
-  AnyQuery(q)
-}
+pub const any = Kind(to_operand: AnyQuery)
 
 /// Kind that wraps a subquery with `ALL(...)`.
-pub const all = Kind(to_operand: all_to_operand)
-
-fn all_to_operand(q) -> Operand(v) {
-  AllQuery(q)
-}
+pub const all = Kind(to_operand: AllQuery)
 
 /// Creates a kind that maps an arbitrary type to a value using a conversion
 /// function. Useful for `in` clauses with custom types.
@@ -1170,7 +1106,7 @@ pub fn union_all(selects: List(Builder(Select, v))) -> Builder(UnionAll, v) {
 /// placeholders and `.values` containing the parameter values in order.
 pub fn to_query(builder: Builder(a, v), adapter: Adapter(v)) -> Query(v) {
   let SqlBuilder(sql, values) = build_query(builder, adapter)
-  let sql = replace_placeholders(sql, adapter)
+  let sql = placeholders(sql, adapter.handle_placeholder)
   let values = values |> list.reverse |> list.flatten
 
   Query(sql:, values:)
@@ -1184,7 +1120,19 @@ pub fn to_string(builder: Builder(a, v), adapter: Adapter(v)) -> String {
   let SqlBuilder(sql, values) = build_query(builder, adapter)
   let values = values |> list.reverse |> list.flatten
 
-  replace_with_values(sql, values, adapter)
+  let values_by_idx =
+    values
+    |> list.index_map(fn(val, idx) { #(idx + 1, val) })
+    |> dict.from_list
+
+  let with = fn(idx) {
+    values_by_idx
+    |> dict.get(idx)
+    |> result.map(adapter.handle_value)
+    |> result.unwrap("")
+  }
+
+  placeholders(sql, with)
 }
 
 fn value_to_string(value: Value) -> String {
@@ -1331,46 +1279,20 @@ pub fn adapter() -> Adapter(Value) {
   )
 }
 
-// All build_* functions produce SQL with `:param:` sentinels and collect
-// values in order. These two functions do the final replacement pass.
+fn placeholders(for st: String, with mapper: fn(Int) -> String) -> String {
+  string.split(st, on: fmt.placeholder)
+  |> list.index_fold(from: [], with: fn(acc, st1, idx) {
+    case idx {
+      0 -> [st1, ..acc]
+      idx -> {
+        let ph = mapper(idx)
 
-/// Replace `:param:` sentinels with positional placeholders ($1, $2, ...).
-fn replace_placeholders(sql: String, adapter: Adapter(v)) -> String {
-  let parts = string.split(sql, fmt.placeholder)
-  case parts {
-    [single] -> single
-    [first, ..rest] -> {
-      let #(result, _) =
-        list.fold(rest, #(first, 0), fn(acc, part) {
-          let #(s, i) = acc
-          #(s <> adapter.handle_placeholder(i) <> part, i + 1)
-        })
-      result
+        [st1, ph, ..acc]
+      }
     }
-    [] -> sql
-  }
-}
-
-/// Replace `:param:` sentinels with literal formatted values.
-fn replace_with_values(
-  sql: String,
-  values: List(v),
-  adapter: Adapter(v),
-) -> String {
-  let parts = string.split(sql, fmt.placeholder)
-  case parts {
-    [single] -> single
-    [first, ..rest] -> {
-      let #(result, _) =
-        list.fold(list.zip(rest, values), #(first, Nil), fn(acc, pair) {
-          let #(s, _) = acc
-          let #(part, val) = pair
-          #(s <> adapter.handle_value(val) <> part, Nil)
-        })
-      result
-    }
-    [] -> sql
-  }
+  })
+  |> list.reverse
+  |> string.join(with: "")
 }
 
 type SqlBuilder(v) {
@@ -1952,7 +1874,12 @@ fn build_single_select(
 
 fn build_column(column: Column, adapter: Adapter(v)) -> String {
   case column {
-    All -> "*"
+    All(table:) -> {
+      case table {
+        Some(tbl) -> adapter.handle_identifier(tbl) <> ".*"
+        None -> "*"
+      }
+    }
     Column(table:, name:, alias:, func:) -> {
       let col_ref = case name {
         "*" -> {

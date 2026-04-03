@@ -116,7 +116,6 @@ pub type TransactionError(error) {
   Rollback(cause: error)
   NotInTransaction
   TransactionError(message: String)
-  TransactionFailure(cause: error)
 }
 
 /// Holds a count of affected rows, a list of queried fields, and
@@ -132,8 +131,6 @@ pub type Queried {
 pub type Returning(a) {
   Returning(count: Int, rows: List(a))
 }
-
-// Transaction
 
 /// A function provided by an adapter package that wraps a callback in a
 /// database transaction. The handler receives a connection and a callback;
@@ -157,8 +154,6 @@ pub fn transaction(
   })
 }
 
-// Querying
-
 /// A function that executes a parameterized query and returns rows.
 pub type QueryHandler(v, conn) =
   fn(sql.Query(v), conn) -> Result(Queried, DbError)
@@ -174,7 +169,7 @@ pub type BatchQueryHandler(v, conn) =
   fn(List(sql.Query(v)), conn) -> Result(List(Queried), DbError)
 
 /// A configured database connection bundling a connection value, a
-/// `Driver` with query handlers, and an `sql.Adapter` for query rendering.
+/// `Driver` with query handlers, and a `sql.Adapter` for query rendering.
 pub opaque type Db(v, conn) {
   Db(driver: Driver(v, conn), adapter: sql.Adapter(v))
 }
@@ -186,9 +181,6 @@ pub fn new(driver: Driver(v, conn), adapter: sql.Adapter(v)) -> Db(v, conn) {
 
 /// An opaque driver that holds the query, execute, and batch handler
 /// functions provided by an adapter package.
-///
-/// Create one with `driver()` and configure it with `on_query`,
-/// `on_execute`, and `on_batch`.
 pub opaque type Driver(v, conn) {
   Driver(
     conn: conn,
@@ -198,6 +190,7 @@ pub opaque type Driver(v, conn) {
   )
 }
 
+/// Returns a configured `Driver` record.
 pub fn driver(
   conn: conn,
   on_query handle_query: QueryHandler(v, conn),
@@ -207,15 +200,18 @@ pub fn driver(
   Driver(conn, handle_query:, handle_execute:, handle_batch:)
 }
 
+/// Returns a `sql.Query` record holding a SQL string formatted according
+/// to the `Db` adapter.
 pub fn to_query(qb: sql.Builder(a, v), db: Db(v, conn)) -> sql.Query(v) {
   sql.to_query(qb, db.adapter)
 }
 
+/// Returns a SQL string formatted according to the `Db` adapter.
 pub fn to_sql(qb: sql.Builder(a, v), db: Db(v, conn)) -> String {
   sql.to_string(qb, db.adapter)
 }
 
-/// Executes a parameterized query using the configured driver.
+/// Executes a query using the configured driver.
 pub fn query(query: sql.Query(v), db: Db(v, conn)) -> Result(Queried, DbError) {
   db.driver.handle_query(query, db.driver.conn)
 }
@@ -225,7 +221,7 @@ pub fn execute(sql: String, db: Db(v, conn)) -> Result(Int, DbError) {
   db.driver.handle_execute(sql, db.driver.conn)
 }
 
-/// Executes a list of parameterized queries as a batch.
+/// Executes a list of queries as a batch.
 pub fn batch(
   queries: List(sql.Query(v)),
   db: Db(v, conn),

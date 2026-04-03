@@ -429,7 +429,7 @@ pub fn to_sql_delete_test() {
 
 fn sql_adapter() -> sql.Adapter(sql.Value) {
   sql.adapter()
-  |> sql.on_placeholder(fn(idx) { "$" <> int.to_string(idx + 1) })
+  |> sql.on_placeholder(fn(idx) { "$" <> int.to_string(idx) })
 }
 
 pub fn one_not_found_test() {
