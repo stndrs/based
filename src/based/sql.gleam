@@ -251,7 +251,7 @@ pub opaque type Column {
 }
 
 /// Creates a plain column reference.
-pub fn col(name: String) -> Column {
+pub fn column(name: String) -> Column {
   Column(table: None, name: name, alias: None, func: None)
 }
 
@@ -281,7 +281,7 @@ pub fn min(name: String) -> Column {
 }
 
 /// Qualifies a column with a table name. Renders as `table.column`.
-pub fn col_for(column: Column, table: String) -> Column {
+pub fn column_for(column: Column, table: String) -> Column {
   case column {
     Column(..) -> Column(..column, table: Some(table))
     All(..) -> All(table: Some(table))
@@ -290,7 +290,7 @@ pub fn col_for(column: Column, table: String) -> Column {
 
 /// Sets an alias on a column. Renders as `column AS alias`.
 /// No-ops on `star`.
-pub fn col_as(column: Column, alias alias: String) -> Column {
+pub fn column_as(column: Column, alias alias: String) -> Column {
   case column {
     Column(..) -> Column(..column, alias: Some(alias))
     All(..) -> column
@@ -409,7 +409,11 @@ pub opaque type Rows(a, v) {
 ///   |> sql.val("name", fn(r) { sql.text(r.0) })
 ///   |> sql.val("age", fn(r) { sql.int(r.1) })
 /// ```
-pub fn val(rows: Rows(a, v), column: String, extract: fn(a) -> v) -> Rows(a, v) {
+pub fn value(
+  rows: Rows(a, v),
+  column: String,
+  extract: fn(a) -> v,
+) -> Rows(a, v) {
   Rows(
     columns: [column, ..rows.columns],
     extractors: [extract, ..rows.extractors],
@@ -1011,14 +1015,14 @@ pub fn on_conflict(
 }
 
 /// Kind that treats the input as a parameterized value.
-pub const value = Kind(to_operand: Val)
+pub const val = Kind(to_operand: Val)
 
 /// Kind that treats the input as a subquery for scalar comparisons.
 pub const subquery = Kind(to_operand: SubQuery)
 
 /// Kind that treats the input as a column reference for column-to-column
 /// comparisons.
-pub const column = Kind(to_operand: Col)
+pub const col = Kind(to_operand: Col)
 
 /// Kind that wraps a subquery with `ANY(...)`.
 pub const any = Kind(to_operand: AnyQuery)

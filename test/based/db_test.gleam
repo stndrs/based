@@ -295,8 +295,8 @@ pub fn to_query_select_test() {
 
   let q =
     sql.from(sql.table("users"))
-    |> sql.select([sql.col("id"), sql.col("name")])
-    |> sql.where([sql.col("id") |> sql.eq(sql.int(1), of: sql.value)])
+    |> sql.select([sql.column("id"), sql.column("name")])
+    |> sql.where([sql.column("id") |> sql.eq(sql.int(1), of: sql.val)])
     |> db.to_query(database)
 
   assert q.sql == "SELECT id, name FROM users WHERE id = $1"
@@ -308,7 +308,7 @@ pub fn to_query_select_no_params_test() {
 
   let q =
     sql.from(sql.table("users"))
-    |> sql.select([sql.col("name")])
+    |> sql.select([sql.column("name")])
     |> db.to_query(database)
 
   assert q.sql == "SELECT name FROM users"
@@ -320,8 +320,8 @@ pub fn to_query_insert_test() {
 
   let row =
     sql.rows([#("Alice", 30)])
-    |> sql.val("name", fn(r) { sql.text(r.0) })
-    |> sql.val("age", fn(r) { sql.int(r.1) })
+    |> sql.value("name", fn(r) { sql.text(r.0) })
+    |> sql.value("age", fn(r) { sql.int(r.1) })
   let q =
     sql.insert(into: sql.table("users"))
     |> sql.values(row)
@@ -336,8 +336,8 @@ pub fn to_query_update_test() {
 
   let q =
     sql.update(table: sql.table("users"))
-    |> sql.set("name", sql.text("Bob"), of: sql.value)
-    |> sql.where([sql.col("id") |> sql.eq(sql.int(1), of: sql.value)])
+    |> sql.set("name", sql.text("Bob"), of: sql.val)
+    |> sql.where([sql.column("id") |> sql.eq(sql.int(1), of: sql.val)])
     |> db.to_query(database)
 
   assert q.sql == "UPDATE users SET name = $1 WHERE id = $2"
@@ -350,7 +350,7 @@ pub fn to_query_delete_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.delete
-    |> sql.where([sql.col("id") |> sql.eq(sql.int(42), of: sql.value)])
+    |> sql.where([sql.column("id") |> sql.eq(sql.int(42), of: sql.val)])
     |> db.to_query(database)
 
   assert q.sql == "DELETE FROM users WHERE id = $1"
@@ -369,8 +369,8 @@ pub fn to_sql_select_test() {
 
   let sql_string =
     sql.from(sql.table("users"))
-    |> sql.select([sql.col("id"), sql.col("name")])
-    |> sql.where([sql.col("id") |> sql.eq(sql.int(1), of: sql.value)])
+    |> sql.select([sql.column("id"), sql.column("name")])
+    |> sql.where([sql.column("id") |> sql.eq(sql.int(1), of: sql.val)])
     |> db.to_sql(database)
 
   assert sql_string == "SELECT id, name FROM users WHERE id = 1"
@@ -381,7 +381,7 @@ pub fn to_sql_select_no_params_test() {
 
   let sql_string =
     sql.from(sql.table("users"))
-    |> sql.select([sql.col("name")])
+    |> sql.select([sql.column("name")])
     |> db.to_sql(database)
 
   assert sql_string == "SELECT name FROM users"
@@ -392,8 +392,8 @@ pub fn to_sql_insert_test() {
 
   let row =
     sql.rows([#("Alice", 30)])
-    |> sql.val("name", fn(r) { sql.text(r.0) })
-    |> sql.val("age", fn(r) { sql.int(r.1) })
+    |> sql.value("name", fn(r) { sql.text(r.0) })
+    |> sql.value("age", fn(r) { sql.int(r.1) })
 
   let sql_string =
     sql.insert(into: sql.table("users"))
@@ -408,8 +408,8 @@ pub fn to_sql_update_test() {
 
   let sql_string =
     sql.update(table: sql.table("users"))
-    |> sql.set("name", sql.text("Bob"), of: sql.value)
-    |> sql.where([sql.col("id") |> sql.eq(sql.int(1), of: sql.value)])
+    |> sql.set("name", sql.text("Bob"), of: sql.val)
+    |> sql.where([sql.column("id") |> sql.eq(sql.int(1), of: sql.val)])
     |> db.to_sql(database)
 
   assert sql_string == "UPDATE users SET name = 'Bob' WHERE id = 1"
@@ -421,7 +421,7 @@ pub fn to_sql_delete_test() {
   let sql_string =
     sql.from(sql.table("users"))
     |> sql.delete
-    |> sql.where([sql.col("id") |> sql.eq(sql.int(42), of: sql.value)])
+    |> sql.where([sql.column("id") |> sql.eq(sql.int(42), of: sql.val)])
     |> db.to_sql(database)
 
   assert sql_string == "DELETE FROM users WHERE id = 42"
