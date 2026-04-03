@@ -3231,6 +3231,17 @@ pub fn update_set_from_subquery_with_scalar_test() {
   assert q.values == [sql.text("Alice")]
 }
 
+pub fn update_set_from_column_test() {
+  let q =
+    sql.update(sql.table("accounts"))
+    |> sql.set("balance", sql.col("balance + 10"), of: sql.column)
+    |> sql.where([sql.col("id") |> sql.eq(sql.int(1), of: sql.value)])
+    |> sql.to_query(a())
+
+  assert q.sql == "UPDATE accounts SET balance = balance + 10 WHERE id = $1"
+  assert q.values == [sql.int(1)]
+}
+
 pub fn cte_basic_with_semicolon_test() {
   let cte_query =
     sql.from(sql.table("users"))
