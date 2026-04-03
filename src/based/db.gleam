@@ -12,6 +12,7 @@ import gleam/string
 /// and application-level errors.
 pub type DbError {
   ConnectionTimeout
+  ConnectionUnavailable
   ConnectionError(message: String)
   DatabaseError(code: String, name: String, message: String)
   ConstraintError(code: String, name: String, message: String)
@@ -24,49 +25,89 @@ pub type DbError {
 /// Formats the provided `DbError` as a string.
 pub fn error_to_string(err: DbError) -> String {
   case err {
-    ConnectionTimeout -> "[based/db.ConnectionTimeout]"
-    ConnectionError(message:) -> "[based/db.ConnectionError] " <> message
+    ConnectionTimeout -> format_error_kind(["based", "db"], "ConnectionTimeout")
+    ConnectionUnavailable ->
+      format_error_kind(["based", "db"], "ConnectionUnavailable")
+    ConnectionError(message:) ->
+      format_error_kind(["based", "db"], "ConnectionError")
+      |> string.append(" ")
+      |> string.append(message)
     DatabaseError(code:, name:, message:) ->
-      format_db_error(code, name, message, for: "DatabaseError")
+      format_error_kind(["based", "db"], "DatabaseError")
+      |> format_db_error(code, name, message)
     ConstraintError(code:, name:, message:) ->
-      format_db_error(code, name, message, for: "ConstraintError")
+      format_error_kind(["based", "db"], "ConstraintError")
+      |> format_db_error(code, name, message)
     SyntaxError(code:, name:, message:) ->
-      format_db_error(code, name, message, for: "SyntaxError")
-    DbError(message:) -> "[based/db.DbError] " <> message
-    NotFound -> "[based/db.NotFound]"
+      format_error_kind(["based", "db"], "SyntaxError")
+      |> format_db_error(code, name, message)
+    DbError(message:) ->
+      format_error_kind(["based", "db"], "DbError")
+      |> string.append(" ")
+      |> string.append(message)
+    NotFound -> format_error_kind(["based", "db"], "NotFound")
     DecodeError(errors:) -> {
       let error_string =
         list.map(errors, fn(err) {
           let decode.DecodeError(expected:, found:, path:) = err
 
-          "[gleam/dynamic/decode.DecodeError] expected: "
-          <> expected
-          <> ", found: "
-          <> found
-          <> ", path: "
-          <> string.join(path, with: ", ")
+          let error_description =
+            [
+              #("expected", expected),
+              #("found", found),
+              #("path", string.join(path, with: ", ")),
+            ]
+            |> format_error_parts
+
+          ["gleam", "dynamic", "decode"]
+          |> format_error_kind("DecodeError")
+          |> string.append(" ")
+          |> string.append(error_description)
         })
         |> string.join(", ")
 
-      "[based/db.DecodeError] errors: " <> error_string
+      ["based", "db"]
+      |> format_error_kind("DecodeError")
+      |> string.append(" errors: ")
+      |> string.append(error_string)
     }
   }
 }
 
 fn format_db_error(
+  kind: String,
   code: String,
   name: String,
   message: String,
-  for kind: String,
 ) -> String {
-  "[based/db."
-  <> kind
-  <> "] code: "
-  <> code
-  <> ", name: "
-  <> name
-  <> ", message: "
-  <> message
+  let error_description =
+    [
+      #("code", code),
+      #("name", name),
+      #("message", message),
+    ]
+    |> format_error_parts
+
+  kind <> " " <> error_description
+}
+
+fn format_error_kind(path: List(String), kind: String) -> String {
+  let error_kind =
+    string.join(path, "/")
+    |> string.append(".")
+    |> string.append(kind)
+
+  "[" <> error_kind <> "]"
+}
+
+fn format_error_parts(errors: List(#(String, String))) -> String {
+  errors
+  |> list.map(fn(key_val) {
+    let #(key, val) = key_val
+
+    key <> ": " <> val
+  })
+  |> string.join(", ")
 }
 
 /// Error type for transaction operations including rollbacks and transaction
