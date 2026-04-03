@@ -166,11 +166,11 @@ pub fn driver(
   Driver(conn, handle_query:, handle_execute:, handle_batch:)
 }
 
-pub fn to_sql_query(qb: sql.Builder(a, v), db: Db(v, conn)) -> sql.Query(v) {
+pub fn to_query(qb: sql.Builder(a, v), db: Db(v, conn)) -> sql.Query(v) {
   sql.to_query(qb, db.adapter)
 }
 
-pub fn to_sql_string(qb: sql.Builder(a, v), db: Db(v, conn)) -> String {
+pub fn to_sql(qb: sql.Builder(a, v), db: Db(v, conn)) -> String {
   sql.to_string(qb, db.adapter)
 }
 

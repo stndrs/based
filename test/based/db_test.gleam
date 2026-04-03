@@ -283,7 +283,7 @@ pub fn batch_error_test() {
   let assert Error(_) = db.batch(queries, database)
 }
 
-pub fn to_sql_query_select_test() {
+pub fn to_query_select_test() {
   let database =
     db.driver(
       Conn,
@@ -297,25 +297,25 @@ pub fn to_sql_query_select_test() {
     sql.from(sql.table("users"))
     |> sql.select([sql.col("id"), sql.col("name")])
     |> sql.where([sql.col("id") |> sql.eq(sql.int(1), of: sql.value)])
-    |> db.to_sql_query(database)
+    |> db.to_query(database)
 
   assert q.sql == "SELECT id, name FROM users WHERE id = $1"
   assert q.values == [sql.int(1)]
 }
 
-pub fn to_sql_query_select_no_params_test() {
+pub fn to_query_select_no_params_test() {
   let database = database()
 
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.col("name")])
-    |> db.to_sql_query(database)
+    |> db.to_query(database)
 
   assert q.sql == "SELECT name FROM users"
   assert q.values == []
 }
 
-pub fn to_sql_query_insert_test() {
+pub fn to_query_insert_test() {
   let database = database()
 
   let row =
@@ -325,36 +325,106 @@ pub fn to_sql_query_insert_test() {
   let q =
     sql.insert(into: sql.table("users"))
     |> sql.values(row)
-    |> db.to_sql_query(database)
+    |> db.to_query(database)
 
   assert q.sql == "INSERT INTO users (name, age) VALUES ($1, $2)"
   assert q.values == [sql.text("Alice"), sql.int(30)]
 }
 
-pub fn to_sql_query_update_test() {
+pub fn to_query_update_test() {
   let database = database()
 
   let q =
     sql.update(table: sql.table("users"))
     |> sql.set("name", sql.text("Bob"), of: sql.value)
     |> sql.where([sql.col("id") |> sql.eq(sql.int(1), of: sql.value)])
-    |> db.to_sql_query(database)
+    |> db.to_query(database)
 
   assert q.sql == "UPDATE users SET name = $1 WHERE id = $2"
   assert q.values == [sql.text("Bob"), sql.int(1)]
 }
 
-pub fn to_sql_query_delete_test() {
+pub fn to_query_delete_test() {
   let database = database()
 
   let q =
     sql.from(sql.table("users"))
     |> sql.delete
     |> sql.where([sql.col("id") |> sql.eq(sql.int(42), of: sql.value)])
-    |> db.to_sql_query(database)
+    |> db.to_query(database)
 
   assert q.sql == "DELETE FROM users WHERE id = $1"
   assert q.values == [sql.int(42)]
+}
+
+pub fn to_sql_select_test() {
+  let database =
+    db.driver(
+      Conn,
+      on_query: fn(_, _) { Ok(db.Queried(0, [], [])) },
+      on_execute: fn(_, _) { Ok(0) },
+      on_batch: fn(_, _) { Ok([]) },
+    )
+    |> db.new(sql_adapter())
+
+  let sql_string =
+    sql.from(sql.table("users"))
+    |> sql.select([sql.col("id"), sql.col("name")])
+    |> sql.where([sql.col("id") |> sql.eq(sql.int(1), of: sql.value)])
+    |> db.to_sql(database)
+
+  assert sql_string == "SELECT id, name FROM users WHERE id = 1"
+}
+
+pub fn to_sql_select_no_params_test() {
+  let database = database()
+
+  let sql_string =
+    sql.from(sql.table("users"))
+    |> sql.select([sql.col("name")])
+    |> db.to_sql(database)
+
+  assert sql_string == "SELECT name FROM users"
+}
+
+pub fn to_sql_insert_test() {
+  let database = database()
+
+  let row =
+    sql.rows([#("Alice", 30)])
+    |> sql.val("name", fn(r) { sql.text(r.0) })
+    |> sql.val("age", fn(r) { sql.int(r.1) })
+
+  let sql_string =
+    sql.insert(into: sql.table("users"))
+    |> sql.values(row)
+    |> db.to_sql(database)
+
+  assert sql_string == "INSERT INTO users (name, age) VALUES ('Alice', 30)"
+}
+
+pub fn to_sql_update_test() {
+  let database = database()
+
+  let sql_string =
+    sql.update(table: sql.table("users"))
+    |> sql.set("name", sql.text("Bob"), of: sql.value)
+    |> sql.where([sql.col("id") |> sql.eq(sql.int(1), of: sql.value)])
+    |> db.to_sql(database)
+
+  assert sql_string == "UPDATE users SET name = 'Bob' WHERE id = 1"
+}
+
+pub fn to_sql_delete_test() {
+  let database = database()
+
+  let sql_string =
+    sql.from(sql.table("users"))
+    |> sql.delete
+    |> sql.where([sql.col("id") |> sql.eq(sql.int(42), of: sql.value)])
+    |> db.to_sql(database)
+
+  assert sql_string == "DELETE FROM users WHERE id = 42"
 }
 
 fn sql_adapter() -> sql.Adapter(sql.Value) {
