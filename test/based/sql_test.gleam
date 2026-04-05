@@ -65,32 +65,6 @@ pub fn sql_with_values_test() {
   assert list.length(query.values) == 1
 }
 
-pub fn table_test() {
-  let t = sql.table("users")
-  assert t == sql.table("users")
-}
-
-pub fn table_alias_test() {
-  let t = sql.table("users") |> sql.table_as("u")
-  assert t == sql.table("users") |> sql.table_as("u")
-}
-
-pub fn col_test() {
-  let c = sql.column("email")
-  assert c == sql.column("email")
-}
-
-pub fn col_of_table_test() {
-  let c = sql.column("email") |> sql.column_for("users")
-  assert c == sql.column("email") |> sql.column_for("users")
-}
-
-pub fn col_alias_test() {
-  let c = sql.column("email") |> sql.column_for("users") |> sql.column_as("e")
-  assert c
-    == sql.column("email") |> sql.column_for("users") |> sql.column_as("e")
-}
-
 pub fn select_all_to_query_test() {
   let q =
     sql.from(sql.table("users"))
@@ -112,11 +86,13 @@ pub fn select_columns_to_query_test() {
 }
 
 pub fn select_qualified_columns_test() {
+  let users = sql.table("users") |> sql.table_as("u")
+
   let q =
-    sql.from(sql.table("users") |> sql.table_as("u"))
+    sql.from(users)
     |> sql.select([
-      sql.column("name") |> sql.column_for("u"),
-      sql.column("email") |> sql.column_for("u"),
+      sql.column("name") |> sql.column_for(users),
+      sql.column("email") |> sql.column_for(users),
     ])
     |> sql.to_query(a())
 
@@ -124,10 +100,14 @@ pub fn select_qualified_columns_test() {
 }
 
 pub fn select_aliased_column_test() {
+  let users = sql.table("users") |> sql.table_as("u")
+
   let q =
-    sql.from(sql.table("users") |> sql.table_as("u"))
+    sql.from(users)
     |> sql.select([
-      sql.column("email") |> sql.column_for("u") |> sql.column_as("user_email"),
+      sql.column("email")
+      |> sql.column_for(users)
+      |> sql.column_as("user_email"),
     ])
     |> sql.to_query(a())
 
@@ -259,16 +239,19 @@ pub fn select_where_like_test() {
 }
 
 pub fn select_inner_join_test() {
+  let users = sql.table("users") |> sql.table_as("u")
+  let orders = sql.table("orders") |> sql.table_as("o")
+
   let q =
-    sql.from(sql.table("users") |> sql.table_as("u"))
+    sql.from(users)
     |> sql.select([
       sql.column("name"),
-      sql.column("total") |> sql.column_for("o"),
+      sql.column("total") |> sql.column_for(orders),
     ])
-    |> sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
+    |> sql.inner_join(table: orders, on: [
       sql.column("id")
-      |> sql.column_for("u")
-      |> sql.eq(sql.column("user_id") |> sql.column_for("o"), of: sql.col),
+      |> sql.column_for(users)
+      |> sql.eq(sql.column("user_id") |> sql.column_for(orders), of: sql.col),
     ])
     |> sql.to_query(a())
 
@@ -278,13 +261,16 @@ pub fn select_inner_join_test() {
 }
 
 pub fn select_left_join_test() {
+  let users = sql.table("users") |> sql.table_as("u")
+  let profiles = sql.table("profiles") |> sql.table_as("p")
+
   let q =
-    sql.from(sql.table("users") |> sql.table_as("u"))
+    sql.from(users)
     |> sql.select([sql.star])
-    |> sql.left_join(table: sql.table("profiles") |> sql.table_as("p"), on: [
+    |> sql.left_join(table: profiles, on: [
       sql.column("id")
-      |> sql.column_for("u")
-      |> sql.eq(sql.column("user_id") |> sql.column_for("p"), of: sql.col),
+      |> sql.column_for(users)
+      |> sql.eq(sql.column("user_id") |> sql.column_for(profiles), of: sql.col),
     ])
     |> sql.to_query(a())
 
@@ -655,20 +641,25 @@ pub fn double_quote_aliased_identifiers_test() {
     |> sql.on_identifier(with: fn(name) { "\"" <> name <> "\"" })
     |> sql.on_placeholder(fn(idx) { "$" <> int.to_string(idx) })
 
+  let users = sql.table("users") |> sql.table_as("u")
+  let orders = sql.table("orders") |> sql.table_as("o")
+
   let q =
-    sql.from(sql.table("users") |> sql.table_as("u"))
+    sql.from(users)
     |> sql.select([
-      sql.column("name") |> sql.column_for("u"),
-      sql.column("total") |> sql.column_for("o") |> sql.column_as("order_total"),
+      sql.column("name") |> sql.column_for(users),
+      sql.column("total")
+        |> sql.column_for(orders)
+        |> sql.column_as("order_total"),
     ])
-    |> sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
+    |> sql.inner_join(table: orders, on: [
       sql.column("id")
-      |> sql.column_for("u")
-      |> sql.eq(sql.column("user_id") |> sql.column_for("o"), of: sql.col),
+      |> sql.column_for(users)
+      |> sql.eq(sql.column("user_id") |> sql.column_for(orders), of: sql.col),
     ])
     |> sql.where([
       sql.column("active")
-      |> sql.column_for("u")
+      |> sql.column_for(users)
       |> sql.eq(sql.true, of: sql.val),
     ])
     |> sql.to_query(f)
@@ -744,27 +735,32 @@ pub fn generic_value_type_test() {
 }
 
 pub fn complex_query_test() {
+  let users = sql.table("users") |> sql.table_as("u")
+  let orders = sql.table("orders") |> sql.table_as("o")
+
   let q =
     sql.from(sql.table("users") |> sql.table_as("u"))
     |> sql.select([
-      sql.column("name") |> sql.column_for("u"),
-      sql.column("email") |> sql.column_for("u"),
-      sql.column("total") |> sql.column_for("o") |> sql.column_as("order_total"),
+      sql.column("name") |> sql.column_for(users),
+      sql.column("email") |> sql.column_for(users),
+      sql.column("total")
+        |> sql.column_for(orders)
+        |> sql.column_as("order_total"),
     ])
-    |> sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
+    |> sql.inner_join(table: orders, on: [
       sql.column("id")
-      |> sql.column_for("u")
-      |> sql.eq(sql.column("user_id") |> sql.column_for("o"), of: sql.col),
+      |> sql.column_for(users)
+      |> sql.eq(sql.column("user_id") |> sql.column_for(orders), of: sql.col),
     ])
     |> sql.where([
       sql.column("total")
-        |> sql.column_for("o")
+        |> sql.column_for(orders)
         |> sql.gt(sql.float(50.0), of: sql.val),
       sql.column("active")
-        |> sql.column_for("u")
+        |> sql.column_for(users)
         |> sql.eq(sql.true, of: sql.val),
     ])
-    |> sql.order_by(sql.column("total") |> sql.column_for("o"), sql.desc)
+    |> sql.order_by(sql.column("total") |> sql.column_for(orders), sql.desc)
     |> sql.limit(10)
     |> sql.offset(0)
     |> sql.to_query(a())
@@ -882,9 +878,11 @@ pub fn aggregate_with_alias_test() {
 }
 
 pub fn aggregate_with_table_test() {
+  let orders = sql.table("orders") |> sql.table_as("o")
+
   let q =
-    sql.from(sql.table("orders") |> sql.table_as("o"))
-    |> sql.select([sql.sum("amount") |> sql.column_for("o")])
+    sql.from(orders)
+    |> sql.select([sql.sum("amount") |> sql.column_for(orders)])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT SUM(o.amount) FROM orders AS o"
@@ -1331,7 +1329,10 @@ pub fn cte_basic_to_string_test() {
 }
 
 pub fn cte_multiple_test() {
-  let active_users =
+  let active_users = sql.table("active_users")
+  let recent_orders = sql.table("recent_orders")
+
+  let active_users_cte =
     sql.cte(
       name: "active_users",
       query: sql.from(sql.table("users"))
@@ -1339,7 +1340,7 @@ pub fn cte_multiple_test() {
         |> sql.where([sql.column("active") |> sql.eq(sql.true, of: sql.val)]),
     )
 
-  let recent_orders =
+  let recent_orders_cte =
     sql.cte(
       name: "recent_orders",
       query: sql.from(sql.table("orders"))
@@ -1354,13 +1355,13 @@ pub fn cte_multiple_test() {
     |> sql.select([sql.column("id"), sql.column("total")])
     |> sql.inner_join(table: sql.table("recent_orders"), on: [
       sql.column("id")
-      |> sql.column_for("active_users")
+      |> sql.column_for(active_users)
       |> sql.eq(
-        sql.column("user_id") |> sql.column_for("recent_orders"),
+        sql.column("user_id") |> sql.column_for(recent_orders),
         of: sql.col,
       ),
     ])
-    |> sql.with(ctes: [active_users, recent_orders])
+    |> sql.with(ctes: [active_users_cte, recent_orders_cte])
     |> sql.to_query(a())
 
   assert q.sql
@@ -1553,19 +1554,24 @@ pub fn for_update_with_order_by_and_limit_test() {
 }
 
 pub fn for_update_with_join_test() {
+  let users = sql.table("users") |> sql.table_as("u")
+  let orders = sql.table("orders") |> sql.table_as("o")
+
   let q =
     sql.from(sql.table("users") |> sql.table_as("u"))
     |> sql.select([
-      sql.column("id") |> sql.column_for("u"),
-      sql.column("total") |> sql.column_for("o"),
+      sql.column("id") |> sql.column_for(users),
+      sql.column("total") |> sql.column_for(orders),
     ])
     |> sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
       sql.column("id")
-      |> sql.column_for("u")
-      |> sql.eq(sql.column("user_id") |> sql.column_for("o"), of: sql.col),
+      |> sql.column_for(users)
+      |> sql.eq(sql.column("user_id") |> sql.column_for(orders), of: sql.col),
     ])
     |> sql.where([
-      sql.column("id") |> sql.column_for("u") |> sql.eq(sql.int(1), of: sql.val),
+      sql.column("id")
+      |> sql.column_for(users)
+      |> sql.eq(sql.int(1), of: sql.val),
     ])
     |> sql.for_update
     |> sql.to_query(a())
@@ -1679,20 +1685,25 @@ pub fn backtick_to_string_test() {
 }
 
 pub fn backtick_aliased_identifiers_test() {
+  let users = sql.table("users") |> sql.table_as("u")
+  let orders = sql.table("orders") |> sql.table_as("o")
+
   let q =
     sql.from(sql.table("users") |> sql.table_as("u"))
     |> sql.select([
-      sql.column("name") |> sql.column_for("u"),
-      sql.column("total") |> sql.column_for("o") |> sql.column_as("order_total"),
+      sql.column("name") |> sql.column_for(users),
+      sql.column("total")
+        |> sql.column_for(orders)
+        |> sql.column_as("order_total"),
     ])
     |> sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
       sql.column("id")
-      |> sql.column_for("u")
-      |> sql.eq(sql.column("user_id") |> sql.column_for("o"), of: sql.col),
+      |> sql.column_for(users)
+      |> sql.eq(sql.column("user_id") |> sql.column_for(orders), of: sql.col),
     ])
     |> sql.where([
       sql.column("active")
-      |> sql.column_for("u")
+      |> sql.column_for(users)
       |> sql.eq(sql.true, of: sql.val),
     ])
     |> sql.to_query(backtick_a())
@@ -1759,16 +1770,19 @@ pub fn select_not_between_to_string_test() {
 }
 
 pub fn select_right_join_test() {
+  let users = sql.table("users") |> sql.table_as("u")
+  let orders = sql.table("orders") |> sql.table_as("o")
+
   let q =
     sql.from(sql.table("users") |> sql.table_as("u"))
     |> sql.select([
-      sql.column("id") |> sql.column_for("u"),
-      sql.column("order_id") |> sql.column_for("o"),
+      sql.column("id") |> sql.column_for(users),
+      sql.column("order_id") |> sql.column_for(orders),
     ])
     |> sql.right_join(table: sql.table("orders") |> sql.table_as("o"), on: [
       sql.column("id")
-      |> sql.column_for("u")
-      |> sql.eq(sql.column("user_id") |> sql.column_for("o"), of: sql.col),
+      |> sql.column_for(users)
+      |> sql.eq(sql.column("user_id") |> sql.column_for(orders), of: sql.col),
     ])
     |> sql.to_query(a())
 
@@ -1778,16 +1792,19 @@ pub fn select_right_join_test() {
 }
 
 pub fn select_full_join_test() {
+  let users = sql.table("users") |> sql.table_as("u")
+  let orders = sql.table("orders") |> sql.table_as("o")
+
   let q =
     sql.from(sql.table("users") |> sql.table_as("u"))
     |> sql.select([
-      sql.column("id") |> sql.column_for("u"),
-      sql.column("order_id") |> sql.column_for("o"),
+      sql.column("id") |> sql.column_for(users),
+      sql.column("order_id") |> sql.column_for(orders),
     ])
     |> sql.full_join(table: sql.table("orders") |> sql.table_as("o"), on: [
       sql.column("id")
-      |> sql.column_for("u")
-      |> sql.eq(sql.column("user_id") |> sql.column_for("o"), of: sql.col),
+      |> sql.column_for(users)
+      |> sql.eq(sql.column("user_id") |> sql.column_for(orders), of: sql.col),
     ])
     |> sql.to_query(a())
 
@@ -1797,22 +1814,26 @@ pub fn select_full_join_test() {
 }
 
 pub fn select_multiple_joins_test() {
+  let users = sql.table("users") |> sql.table_as("u")
+  let orders = sql.table("orders") |> sql.table_as("o")
+  let products = sql.table("products") |> sql.table_as("p")
+
   let q =
-    sql.from(sql.table("users") |> sql.table_as("u"))
+    sql.from(users)
     |> sql.select([
-      sql.column("id") |> sql.column_for("u"),
-      sql.column("order_id") |> sql.column_for("o"),
-      sql.column("product_name") |> sql.column_for("p"),
+      sql.column("id") |> sql.column_for(users),
+      sql.column("order_id") |> sql.column_for(orders),
+      sql.column("product_name") |> sql.column_for(products),
     ])
-    |> sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
+    |> sql.inner_join(table: orders, on: [
       sql.column("id")
-      |> sql.column_for("u")
-      |> sql.eq(sql.column("user_id") |> sql.column_for("o"), of: sql.col),
+      |> sql.column_for(users)
+      |> sql.eq(sql.column("user_id") |> sql.column_for(orders), of: sql.col),
     ])
-    |> sql.left_join(table: sql.table("products") |> sql.table_as("p"), on: [
+    |> sql.left_join(table: products, on: [
       sql.column("product_id")
-      |> sql.column_for("o")
-      |> sql.eq(sql.column("id") |> sql.column_for("p"), of: sql.col),
+      |> sql.column_for(orders)
+      |> sql.eq(sql.column("id") |> sql.column_for(products), of: sql.col),
     ])
     |> sql.to_query(a())
 
@@ -1822,16 +1843,22 @@ pub fn select_multiple_joins_test() {
 }
 
 pub fn select_join_with_and_conditions_test() {
+  let users = sql.table("users") |> sql.table_as("u")
+  let orders = sql.table("orders") |> sql.table_as("o")
+
   let q =
-    sql.from(sql.table("users") |> sql.table_as("u"))
-    |> sql.select([sql.column("id") |> sql.column_for("u")])
-    |> sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
+    sql.from(users)
+    |> sql.select([sql.column("id") |> sql.column_for(users)])
+    |> sql.inner_join(table: orders, on: [
       sql.and(
         sql.column("id")
-          |> sql.column_for("u")
-          |> sql.eq(sql.column("user_id") |> sql.column_for("o"), of: sql.col),
+          |> sql.column_for(users)
+          |> sql.eq(
+            sql.column("user_id") |> sql.column_for(orders),
+            of: sql.col,
+          ),
         sql.column("status")
-          |> sql.column_for("o")
+          |> sql.column_for(orders)
           |> sql.eq(sql.text("active"), of: sql.val),
       ),
     ])
@@ -1843,15 +1870,18 @@ pub fn select_join_with_and_conditions_test() {
 }
 
 pub fn select_join_with_multiple_on_conditions_test() {
+  let users = sql.table("users") |> sql.table_as("u")
+  let orders = sql.table("orders") |> sql.table_as("o")
+
   let q =
-    sql.from(sql.table("users") |> sql.table_as("u"))
-    |> sql.select([sql.column("id") |> sql.column_for("u")])
-    |> sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
+    sql.from(users)
+    |> sql.select([sql.column("id") |> sql.column_for(users)])
+    |> sql.inner_join(table: orders, on: [
       sql.column("id")
-        |> sql.column_for("u")
-        |> sql.eq(sql.column("user_id") |> sql.column_for("o"), of: sql.col),
+        |> sql.column_for(users)
+        |> sql.eq(sql.column("user_id") |> sql.column_for(orders), of: sql.col),
       sql.column("status")
-        |> sql.column_for("o")
+        |> sql.column_for(orders)
         |> sql.eq(sql.text("active"), of: sql.val),
     ])
     |> sql.to_query(a())
@@ -1862,18 +1892,21 @@ pub fn select_join_with_multiple_on_conditions_test() {
 }
 
 pub fn select_join_with_three_on_conditions_test() {
+  let users = sql.table("users") |> sql.table_as("u")
+  let orders = sql.table("orders") |> sql.table_as("o")
+
   let q =
-    sql.from(sql.table("users") |> sql.table_as("u"))
-    |> sql.select([sql.column("id") |> sql.column_for("u")])
-    |> sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
+    sql.from(users)
+    |> sql.select([sql.column("id") |> sql.column_for(users)])
+    |> sql.inner_join(table: orders, on: [
       sql.column("id")
-        |> sql.column_for("u")
-        |> sql.eq(sql.column("user_id") |> sql.column_for("o"), of: sql.col),
+        |> sql.column_for(users)
+        |> sql.eq(sql.column("user_id") |> sql.column_for(orders), of: sql.col),
       sql.column("status")
-        |> sql.column_for("o")
+        |> sql.column_for(orders)
         |> sql.eq(sql.text("active"), of: sql.val),
       sql.column("total")
-        |> sql.column_for("o")
+        |> sql.column_for(orders)
         |> sql.gt(sql.float(100.0), of: sql.val),
     ])
     |> sql.to_query(a())
@@ -2093,16 +2126,19 @@ pub fn select_or_where_to_string_test() {
 }
 
 pub fn select_join_to_string_test() {
+  let users = sql.table("users") |> sql.table_as("u")
+  let orders = sql.table("orders") |> sql.table_as("o")
+
   let q =
-    sql.from(sql.table("users") |> sql.table_as("u"))
+    sql.from(users)
     |> sql.select([
-      sql.column("id") |> sql.column_for("u"),
-      sql.column("total") |> sql.column_for("o"),
+      sql.column("id") |> sql.column_for(users),
+      sql.column("total") |> sql.column_for(orders),
     ])
-    |> sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
+    |> sql.inner_join(table: orders, on: [
       sql.column("id")
-      |> sql.column_for("u")
-      |> sql.eq(sql.column("user_id") |> sql.column_for("o"), of: sql.col),
+      |> sql.column_for(users)
+      |> sql.eq(sql.column("user_id") |> sql.column_for(orders), of: sql.col),
     ])
     |> sql.to_string(a())
 
@@ -2164,22 +2200,26 @@ pub fn select_where_not_is_null_test() {
 }
 
 pub fn select_multiple_joins_right_full_test() {
+  let users = sql.table("users") |> sql.table_as("u")
+  let orders = sql.table("orders") |> sql.table_as("o")
+  let products = sql.table("products") |> sql.table_as("p")
+
   let q =
-    sql.from(sql.table("users") |> sql.table_as("u"))
+    sql.from(users)
     |> sql.select([
-      sql.column("id") |> sql.column_for("u"),
-      sql.column("oid") |> sql.column_for("o"),
-      sql.column("pid") |> sql.column_for("p"),
+      sql.column("id") |> sql.column_for(users),
+      sql.column("oid") |> sql.column_for(orders),
+      sql.column("pid") |> sql.column_for(products),
     ])
-    |> sql.right_join(table: sql.table("orders") |> sql.table_as("o"), on: [
+    |> sql.right_join(table: orders, on: [
       sql.column("id")
-      |> sql.column_for("u")
-      |> sql.eq(sql.column("user_id") |> sql.column_for("o"), of: sql.col),
+      |> sql.column_for(users)
+      |> sql.eq(sql.column("user_id") |> sql.column_for(orders), of: sql.col),
     ])
-    |> sql.full_join(table: sql.table("products") |> sql.table_as("p"), on: [
+    |> sql.full_join(table: products, on: [
       sql.column("product_id")
-      |> sql.column_for("o")
-      |> sql.eq(sql.column("id") |> sql.column_for("p"), of: sql.col),
+      |> sql.column_for(orders)
+      |> sql.eq(sql.column("id") |> sql.column_for(products), of: sql.col),
     ])
     |> sql.to_query(a())
 
@@ -2553,16 +2593,19 @@ pub fn cte_with_join_test() {
     |> sql.select([sql.column("id"), sql.column("name")])
     |> sql.where([sql.column("active") |> sql.eq(sql.true, of: sql.val)])
 
+  let active_users = sql.table("active_users") |> sql.table_as("au")
+  let orders = sql.table("orders") |> sql.table_as("o")
+
   let q =
-    sql.from(sql.table("active_users") |> sql.table_as("au"))
+    sql.from(active_users)
     |> sql.select([
-      sql.column("id") |> sql.column_for("au"),
-      sql.column("total") |> sql.column_for("o"),
+      sql.column("id") |> sql.column_for(active_users),
+      sql.column("total") |> sql.column_for(orders),
     ])
-    |> sql.inner_join(table: sql.table("orders") |> sql.table_as("o"), on: [
+    |> sql.inner_join(table: orders, on: [
       sql.column("id")
-      |> sql.column_for("au")
-      |> sql.eq(sql.column("user_id") |> sql.column_for("o"), of: sql.col),
+      |> sql.column_for(active_users)
+      |> sql.eq(sql.column("user_id") |> sql.column_for(orders), of: sql.col),
     ])
     |> sql.with([sql.cte(name: "active_users", query: cte_query)])
     |> sql.to_query(a())
@@ -2655,20 +2698,23 @@ pub fn cte_multiple_to_string_test() {
     ])
     |> sql.group_by([sql.column("user_id")])
 
+  let active_users = sql.table("active_users") |> sql.table_as("au")
+  let user_orders = sql.table("user_orders") |> sql.table_as("uo")
+
   let q =
-    sql.from(sql.table("active_users") |> sql.table_as("au"))
+    sql.from(active_users)
     |> sql.select([
-      sql.column("name") |> sql.column_for("au"),
-      sql.column("total") |> sql.column_for("uo"),
+      sql.column("name") |> sql.column_for(active_users),
+      sql.column("total") |> sql.column_for(user_orders),
     ])
-    |> sql.inner_join(
-      table: sql.table("user_orders") |> sql.table_as("uo"),
-      on: [
-        sql.column("id")
-        |> sql.column_for("au")
-        |> sql.eq(sql.column("user_id") |> sql.column_for("uo"), of: sql.col),
-      ],
-    )
+    |> sql.inner_join(table: user_orders, on: [
+      sql.column("id")
+      |> sql.column_for(active_users)
+      |> sql.eq(
+        sql.column("user_id") |> sql.column_for(user_orders),
+        of: sql.col,
+      ),
+    ])
     |> sql.with([
       sql.cte(name: "active_users", query: cte1),
       sql.cte(name: "user_orders", query: cte2),
@@ -2706,9 +2752,11 @@ pub fn insert_single_row_to_string_test() {
 }
 
 pub fn select_from_aliased_table_test() {
+  let users = sql.table("users") |> sql.table_as("u")
+
   let q =
-    sql.from(sql.table("users") |> sql.table_as("u"))
-    |> sql.select([sql.column("id") |> sql.column_for("u")])
+    sql.from(users)
+    |> sql.select([sql.column("id") |> sql.column_for(users)])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT u.id FROM users AS u"
@@ -2813,17 +2861,20 @@ pub fn select_from_subquery_test() {
 }
 
 pub fn select_where_exists_test() {
+  let orders = sql.table("orders")
+  let users = sql.table("users")
+
   let sub =
-    sql.from(sql.table("orders"))
+    sql.from(orders)
     |> sql.select([sql.column("id")])
     |> sql.where([
       sql.column("user_id")
-      |> sql.column_for("orders")
-      |> sql.eq(sql.column("id") |> sql.column_for("users"), of: sql.col),
+      |> sql.column_for(orders)
+      |> sql.eq(sql.column("id") |> sql.column_for(users), of: sql.col),
     ])
 
   let q =
-    sql.from(sql.table("users"))
+    sql.from(users)
     |> sql.select([sql.star])
     |> sql.where([sql.exists(sub)])
     |> sql.to_query(a())
@@ -2970,17 +3021,20 @@ pub fn select_where_not_to_string_convenience_test() {
 }
 
 pub fn select_where_exists_convenience_test() {
+  let orders = sql.table("orders")
+  let users = sql.table("users")
+
   let subquery =
-    sql.from(sql.table("orders"))
+    sql.from(orders)
     |> sql.select([sql.column("id")])
     |> sql.where([
       sql.column("user_id")
-      |> sql.column_for("orders")
-      |> sql.eq(sql.column("id") |> sql.column_for("users"), of: sql.col),
+      |> sql.column_for(orders)
+      |> sql.eq(sql.column("id") |> sql.column_for(users), of: sql.col),
     ])
 
   let q =
-    sql.from(sql.table("users"))
+    sql.from(users)
     |> sql.select([sql.star])
     |> sql.where([sql.exists(subquery)])
     |> sql.to_query(a())
@@ -3167,17 +3221,20 @@ pub fn update_offset_without_limit_test() {
 }
 
 pub fn update_set_from_subquery_test() {
+  let new_emails = sql.table("new_emails")
+  let users = sql.table("users")
+
   let sub =
-    sql.from(sql.table("new_emails"))
+    sql.from(new_emails)
     |> sql.select([sql.column("email")])
     |> sql.where([
       sql.column("user_id")
-      |> sql.column_for("new_emails")
-      |> sql.eq(sql.column("id") |> sql.column_for("users"), of: sql.col),
+      |> sql.column_for(new_emails)
+      |> sql.eq(sql.column("id") |> sql.column_for(users), of: sql.col),
     ])
 
   let q =
-    sql.update(table: sql.table("users"))
+    sql.update(table: users)
     |> sql.set("email", sub, of: sql.subquery)
     |> sql.to_query(a())
 
@@ -3187,17 +3244,20 @@ pub fn update_set_from_subquery_test() {
 }
 
 pub fn update_set_from_subquery_literal_test() {
+  let new_emails = sql.table("new_emails")
+  let users = sql.table("users")
+
   let sub =
-    sql.from(sql.table("new_emails"))
+    sql.from(new_emails)
     |> sql.select([sql.column("email")])
     |> sql.where([
       sql.column("user_id")
-      |> sql.column_for("new_emails")
-      |> sql.eq(sql.column("id") |> sql.column_for("users"), of: sql.col),
+      |> sql.column_for(new_emails)
+      |> sql.eq(sql.column("id") |> sql.column_for(users), of: sql.col),
     ])
 
   let q =
-    sql.update(table: sql.table("users"))
+    sql.update(table: users)
     |> sql.set("email", sub, of: sql.subquery)
     |> sql.to_string(a())
 
@@ -3206,17 +3266,20 @@ pub fn update_set_from_subquery_literal_test() {
 }
 
 pub fn update_set_from_subquery_with_scalar_test() {
+  let new_emails = sql.table("new_emails")
+  let users = sql.table("users")
+
   let sub =
-    sql.from(sql.table("new_emails"))
+    sql.from(new_emails)
     |> sql.select([sql.column("email")])
     |> sql.where([
       sql.column("user_id")
-      |> sql.column_for("new_emails")
-      |> sql.eq(sql.column("id") |> sql.column_for("users"), of: sql.col),
+      |> sql.column_for(new_emails)
+      |> sql.eq(sql.column("id") |> sql.column_for(users), of: sql.col),
     ])
 
   let q =
-    sql.update(table: sql.table("users"))
+    sql.update(table: users)
     |> sql.set("email", sub, of: sql.subquery)
     |> sql.set("name", sql.text("Alice"), of: sql.val)
     |> sql.to_query(a())
@@ -3267,20 +3330,23 @@ pub fn cte_multiple_with_semicolon_test() {
     ])
     |> sql.group_by([sql.column("user_id")])
 
+  let active_users = sql.table("active_users") |> sql.table_as("au")
+  let user_orders = sql.table("user_orders") |> sql.table_as("uo")
+
   let q =
-    sql.from(sql.table("active_users") |> sql.table_as("au"))
+    sql.from(active_users)
     |> sql.select([
-      sql.column("name") |> sql.column_for("au"),
-      sql.column("total") |> sql.column_for("uo"),
+      sql.column("name") |> sql.column_for(active_users),
+      sql.column("total") |> sql.column_for(user_orders),
     ])
-    |> sql.inner_join(
-      table: sql.table("user_orders") |> sql.table_as("uo"),
-      on: [
-        sql.column("id")
-        |> sql.column_for("au")
-        |> sql.eq(sql.column("user_id") |> sql.column_for("uo"), of: sql.col),
-      ],
-    )
+    |> sql.inner_join(table: user_orders, on: [
+      sql.column("id")
+      |> sql.column_for(active_users)
+      |> sql.eq(
+        sql.column("user_id") |> sql.column_for(user_orders),
+        of: sql.col,
+      ),
+    ])
     |> sql.with([
       sql.cte(name: "active_users", query: cte1),
       sql.cte(name: "user_orders", query: cte2),

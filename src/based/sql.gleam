@@ -242,12 +242,12 @@ type Aggregate {
 /// or wrapped in an aggregate function.
 pub opaque type Column {
   Column(
-    table: Option(String),
+    table: Option(Table),
     name: String,
     alias: Option(String),
     func: Option(Aggregate),
   )
-  All(table: Option(String))
+  All(table: Option(Table))
 }
 
 /// Creates a plain column reference.
@@ -281,7 +281,7 @@ pub fn min(name: String) -> Column {
 }
 
 /// Qualifies a column with a table name. Renders as `table.column`.
-pub fn column_for(column: Column, table: String) -> Column {
+pub fn column_for(column: Column, table: Table) -> Column {
   case column {
     Column(..) -> Column(..column, table: Some(table))
     All(..) -> All(table: Some(table))
@@ -1880,7 +1880,7 @@ fn build_column(column: Column, adapter: Adapter(v)) -> String {
   case column {
     All(table:) -> {
       case table {
-        Some(tbl) -> adapter.handle_identifier(tbl) <> ".*"
+        Some(tbl) -> build_table_ref(tbl, adapter) <> ".*"
         None -> "*"
       }
     }
@@ -1888,14 +1888,14 @@ fn build_column(column: Column, adapter: Adapter(v)) -> String {
       let col_ref = case name {
         "*" -> {
           case table {
-            Some(tbl) -> adapter.handle_identifier(tbl) <> ".*"
+            Some(tbl) -> build_table_ref(tbl, adapter) <> ".*"
             None -> "*"
           }
         }
         _ -> {
           case table {
             Some(tbl) ->
-              adapter.handle_identifier(tbl)
+              build_table_ref(tbl, adapter)
               <> "."
               <> adapter.handle_identifier(name)
             None -> adapter.handle_identifier(name)
@@ -1934,6 +1934,13 @@ fn build_table(tbl: Table, adapter: Adapter(v)) -> String {
         adapter.handle_identifier(tbl.name),
         adapter.handle_identifier(a),
       )
+  }
+}
+
+fn build_table_ref(tbl: Table, adapter: Adapter(v)) -> String {
+  case tbl.alias {
+    None -> adapter.handle_identifier(tbl.name)
+    Some(a) -> adapter.handle_identifier(a)
   }
 }
 
