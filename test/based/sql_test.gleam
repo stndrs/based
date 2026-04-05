@@ -65,33 +65,6 @@ pub fn sql_with_values_test() {
   assert list.length(query.values) == 1
 }
 
-pub fn table_test() {
-  let t = sql.table("users")
-  assert t == sql.table("users")
-}
-
-pub fn table_alias_test() {
-  let t = sql.table("users") |> sql.table_as("u")
-  assert t == sql.table("users") |> sql.table_as("u")
-}
-
-pub fn col_test() {
-  let c = sql.column("email")
-  assert c == sql.column("email")
-}
-
-pub fn col_of_table_test() {
-  let users = sql.table("users")
-  let c = sql.column("email") |> sql.column_for(users)
-  assert c == sql.column("email") |> sql.column_for(users)
-}
-
-pub fn col_alias_test() {
-  let users = sql.table("users")
-  let c = sql.column("email") |> sql.column_for(users) |> sql.column_as("e")
-  assert c == sql.column("email") |> sql.column_for(users) |> sql.column_as("e")
-}
-
 pub fn select_all_to_query_test() {
   let q =
     sql.from(sql.table("users"))
