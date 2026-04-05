@@ -364,9 +364,11 @@ pub fn insert_multiple_nullable_fields_test() {
 
 pub fn update_test() {
   let q =
-    sql.update(table: sql.table("users"))
-    |> sql.set("name", sql.text("Alice"), of: sql.val)
-    |> sql.set("age", sql.int(31), of: sql.val)
+    sql.table("users")
+    |> sql.update([
+      sql.set("name", sql.text("Alice"), of: sql.val),
+      sql.set("age", sql.int(31), of: sql.val),
+    ])
     |> sql.where([sql.column("id") |> sql.eq(sql.int(1), of: sql.val)])
     |> sql.to_query(a())
 
@@ -376,8 +378,8 @@ pub fn update_test() {
 
 pub fn update_no_where_test() {
   let q =
-    sql.update(table: sql.table("users"))
-    |> sql.set("active", sql.false, of: sql.val)
+    sql.table("users")
+    |> sql.update([sql.set("active", sql.false, of: sql.val)])
     |> sql.to_query(a())
 
   assert q.sql == "UPDATE users SET active = $1"
@@ -430,8 +432,8 @@ pub fn to_string_insert_test() {
 
 pub fn to_string_update_test() {
   let s =
-    sql.update(table: sql.table("users"))
-    |> sql.set("name", sql.text("Bob"), of: sql.val)
+    sql.table("users")
+    |> sql.update([sql.set("name", sql.text("Bob"), of: sql.val)])
     |> sql.where([sql.column("id") |> sql.eq(sql.int(1), of: sql.val)])
     |> sql.to_string(a())
 
@@ -956,8 +958,8 @@ pub fn insert_returning_test() {
 
 pub fn update_returning_test() {
   let q =
-    sql.update(table: sql.table("users"))
-    |> sql.set("name", sql.text("Bob"), of: sql.val)
+    sql.table("users")
+    |> sql.update([sql.set("name", sql.text("Bob"), of: sql.val)])
     |> sql.where([sql.column("id") |> sql.eq(sql.int(1), of: sql.val)])
     |> sql.returning([sql.column("id"), sql.column("name")])
     |> sql.to_query(a())
@@ -1437,8 +1439,8 @@ pub fn cte_with_update_test() {
     )
 
   let q =
-    sql.update(table: sql.table("users"))
-    |> sql.set("status", sql.text("inactive"), of: sql.val)
+    sql.table("users")
+    |> sql.update([sql.set("status", sql.text("inactive"), of: sql.val)])
     |> sql.where([
       sql.column("id") |> sql.in([sql.int(1), sql.int(2)], of: sql.val),
     ])
@@ -1624,8 +1626,8 @@ pub fn backtick_insert_test() {
 
 pub fn backtick_update_test() {
   let q =
-    sql.update(table: sql.table("users"))
-    |> sql.set("name", sql.text("Bob"), of: sql.val)
+    sql.table("users")
+    |> sql.update([sql.set("name", sql.text("Bob"), of: sql.val)])
     |> sql.where([sql.column("id") |> sql.eq(sql.int(1), of: sql.val)])
     |> sql.to_query(backtick_a())
 
@@ -2335,8 +2337,8 @@ pub fn insert_returning_backtick_test() {
 
 pub fn update_where_not_test() {
   let q =
-    sql.update(table: sql.table("users"))
-    |> sql.set("active", sql.false, of: sql.val)
+    sql.table("users")
+    |> sql.update([sql.set("active", sql.false, of: sql.val)])
     |> sql.where([
       sql.not(sql.column("role") |> sql.eq(sql.text("admin"), of: sql.val)),
     ])
@@ -2348,8 +2350,8 @@ pub fn update_where_not_test() {
 
 pub fn update_where_like_test() {
   let q =
-    sql.update(table: sql.table("users"))
-    |> sql.set("category", sql.text("vip"), of: sql.val)
+    sql.table("users")
+    |> sql.update([sql.set("category", sql.text("vip"), of: sql.val)])
     |> sql.where([
       sql.column("email") |> sql.like(sql.text("%@company.com"), of: sql.val),
     ])
@@ -2361,8 +2363,8 @@ pub fn update_where_like_test() {
 
 pub fn update_where_not_like_test() {
   let q =
-    sql.update(table: sql.table("users"))
-    |> sql.set("category", sql.text("standard"), of: sql.val)
+    sql.table("users")
+    |> sql.update([sql.set("category", sql.text("standard"), of: sql.val)])
     |> sql.where([
       sql.column("email")
       |> sql.not_like(sql.text("%@company.com"), of: sql.val),
@@ -2375,10 +2377,12 @@ pub fn update_where_not_like_test() {
 
 pub fn update_multiple_sets_test() {
   let q =
-    sql.update(table: sql.table("users"))
-    |> sql.set("name", sql.text("Bob"), of: sql.val)
-    |> sql.set("age", sql.int(30), of: sql.val)
-    |> sql.set("active", sql.true, of: sql.val)
+    sql.table("users")
+    |> sql.update([
+      sql.set("name", sql.text("Bob"), of: sql.val),
+      sql.set("age", sql.int(30), of: sql.val),
+      sql.set("active", sql.true, of: sql.val),
+    ])
     |> sql.where([sql.column("id") |> sql.eq(sql.int(1), of: sql.val)])
     |> sql.to_query(a())
 
@@ -2395,9 +2399,11 @@ pub fn update_multiple_sets_test() {
 
 pub fn update_multiple_sets_to_string_test() {
   let q =
-    sql.update(table: sql.table("users"))
-    |> sql.set("name", sql.text("Bob"), of: sql.val)
-    |> sql.set("age", sql.int(30), of: sql.val)
+    sql.table("users")
+    |> sql.update([
+      sql.set("name", sql.text("Bob"), of: sql.val),
+      sql.set("age", sql.int(30), of: sql.val),
+    ])
     |> sql.where([sql.column("id") |> sql.eq(sql.int(1), of: sql.val)])
     |> sql.to_string(a())
 
@@ -2406,8 +2412,8 @@ pub fn update_multiple_sets_to_string_test() {
 
 pub fn update_where_not_to_string_test() {
   let q =
-    sql.update(table: sql.table("users"))
-    |> sql.set("active", sql.false, of: sql.val)
+    sql.table("users")
+    |> sql.update([sql.set("active", sql.false, of: sql.val)])
     |> sql.where([
       sql.not(sql.column("role") |> sql.eq(sql.text("admin"), of: sql.val)),
     ])
@@ -2418,8 +2424,8 @@ pub fn update_where_not_to_string_test() {
 
 pub fn update_returning_to_string_test() {
   let q =
-    sql.update(table: sql.table("users"))
-    |> sql.set("active", sql.true, of: sql.val)
+    sql.table("users")
+    |> sql.update([sql.set("active", sql.true, of: sql.val)])
     |> sql.where([sql.column("id") |> sql.eq(sql.int(1), of: sql.val)])
     |> sql.returning([sql.column("id"), sql.column("active")])
     |> sql.to_string(a())
@@ -2975,8 +2981,8 @@ pub fn delete_where_raw_test() {
 
 pub fn update_where_raw_test() {
   let q =
-    sql.update(table: sql.table("users"))
-    |> sql.set("status", sql.text("inactive"), of: sql.val)
+    sql.table("users")
+    |> sql.update([sql.set("status", sql.text("inactive"), of: sql.val)])
     |> sql.where([
       sql.raw("age > 65 AND active = TRUE"),
     ])
@@ -3155,8 +3161,8 @@ pub fn mapper_handle_null_test() {
 
 pub fn update_with_order_by_test() {
   let q =
-    sql.update(table: sql.table("users"))
-    |> sql.set("active", sql.false, of: sql.val)
+    sql.table("users")
+    |> sql.update([sql.set("active", sql.false, of: sql.val)])
     |> sql.order_by([sql.column("created_at") |> sql.asc])
     |> sql.to_query(a())
 
@@ -3166,8 +3172,8 @@ pub fn update_with_order_by_test() {
 
 pub fn update_with_limit_test() {
   let q =
-    sql.update(table: sql.table("users"))
-    |> sql.set("active", sql.false, of: sql.val)
+    sql.table("users")
+    |> sql.update([sql.set("active", sql.false, of: sql.val)])
     |> sql.limit(10)
     |> sql.to_query(a())
 
@@ -3177,8 +3183,8 @@ pub fn update_with_limit_test() {
 
 pub fn update_with_order_by_limit_returning_test() {
   let q =
-    sql.update(table: sql.table("users"))
-    |> sql.set("active", sql.false, of: sql.val)
+    sql.table("users")
+    |> sql.update([sql.set("active", sql.false, of: sql.val)])
     |> sql.order_by([sql.column("created_at") |> sql.asc])
     |> sql.limit(10)
     |> sql.returning([sql.column("id")])
@@ -3191,8 +3197,8 @@ pub fn update_with_order_by_limit_returning_test() {
 
 pub fn update_with_limit_offset_test() {
   let q =
-    sql.update(table: sql.table("users"))
-    |> sql.set("active", sql.false, of: sql.val)
+    sql.table("users")
+    |> sql.update([sql.set("active", sql.false, of: sql.val)])
     |> sql.limit(10)
     |> sql.offset(20)
     |> sql.to_query(a())
@@ -3203,8 +3209,8 @@ pub fn update_with_limit_offset_test() {
 
 pub fn update_offset_without_limit_test() {
   let q =
-    sql.update(table: sql.table("users"))
-    |> sql.set("active", sql.false, of: sql.val)
+    sql.table("users")
+    |> sql.update([sql.set("active", sql.false, of: sql.val)])
     |> sql.offset(5)
     |> sql.to_query(a())
 
@@ -3226,8 +3232,8 @@ pub fn update_set_from_subquery_test() {
     ])
 
   let q =
-    sql.update(table: users)
-    |> sql.set("email", sub, of: sql.subquery)
+    users
+    |> sql.update([sql.set("email", sub, of: sql.subquery)])
     |> sql.to_query(a())
 
   assert q.sql
@@ -3256,9 +3262,11 @@ pub fn update_set_from_subquery_and_value_test() {
     )
 
   let q =
-    sql.update(table: users)
-    |> sql.set("email", sub, of: sql.subquery)
-    |> sql.set("updated_at", sql.timestamp(ts), of: sql.val)
+    users
+    |> sql.update([
+      sql.set("email", sub, of: sql.subquery),
+      sql.set("updated_at", sql.timestamp(ts), of: sql.val),
+    ])
     |> sql.to_query(a())
 
   assert q.sql
@@ -3290,9 +3298,11 @@ pub fn update_set_from_subquery_and_value_string_test() {
   let ts_string = ts |> sql.timestamp |> sql.value_to_string
 
   let q =
-    sql.update(table: users)
-    |> sql.set("email", sub, of: sql.subquery)
-    |> sql.set("updated_at", sql.timestamp(ts), of: sql.val)
+    users
+    |> sql.update([
+      sql.set("email", sub, of: sql.subquery),
+      sql.set("updated_at", sql.timestamp(ts), of: sql.val),
+    ])
     |> sql.to_string(a())
 
   assert q
@@ -3314,9 +3324,11 @@ pub fn update_set_from_subquery_with_scalar_test() {
     ])
 
   let q =
-    sql.update(table: users)
-    |> sql.set("email", sub, of: sql.subquery)
-    |> sql.set("name", sql.text("Alice"), of: sql.val)
+    users
+    |> sql.update([
+      sql.set("email", sub, of: sql.subquery),
+      sql.set("name", sql.text("Alice"), of: sql.val),
+    ])
     |> sql.to_query(a())
 
   assert q.sql
@@ -3326,8 +3338,8 @@ pub fn update_set_from_subquery_with_scalar_test() {
 
 pub fn update_set_from_column_test() {
   let q =
-    sql.update(sql.table("accounts"))
-    |> sql.set("balance", sql.column("balance + 10"), of: sql.col)
+    sql.table("accounts")
+    |> sql.update([sql.set("balance", sql.column("balance + 10"), of: sql.col)])
     |> sql.where([sql.column("id") |> sql.eq(sql.int(1), of: sql.val)])
     |> sql.to_query(a())
 
@@ -3412,8 +3424,8 @@ pub fn cte_with_column_aliases_semicolon_test() {
 
 pub fn update_where_is_false_test() {
   let q =
-    sql.update(table: sql.table("users"))
-    |> sql.set("status", sql.text("inactive"), of: sql.val)
+    sql.table("users")
+    |> sql.update([sql.set("status", sql.text("inactive"), of: sql.val)])
     |> sql.where([sql.column("active") |> sql.is_false])
     |> sql.to_query(a())
 
@@ -3690,8 +3702,10 @@ pub fn insert_empty_values_to_query_test() {
 
 pub fn update_set_nullable_some_test() {
   let q =
-    sql.update(table: sql.table("users"))
-    |> sql.set("name", sql.nullable(Some("Jane"), of: sql.text), of: sql.val)
+    sql.table("users")
+    |> sql.update([
+      sql.set("name", sql.nullable(Some("Jane"), of: sql.text), of: sql.val),
+    ])
     |> sql.where([sql.column("id") |> sql.eq(sql.int(1), of: sql.val)])
     |> sql.to_query(a())
 
@@ -3701,8 +3715,10 @@ pub fn update_set_nullable_some_test() {
 
 pub fn update_set_nullable_none_test() {
   let q =
-    sql.update(table: sql.table("users"))
-    |> sql.set("name", sql.nullable(None, of: sql.text), of: sql.val)
+    sql.table("users")
+    |> sql.update([
+      sql.set("name", sql.nullable(None, of: sql.text), of: sql.val),
+    ])
     |> sql.where([sql.column("id") |> sql.eq(sql.int(1), of: sql.val)])
     |> sql.to_query(a())
 

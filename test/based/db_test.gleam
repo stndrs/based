@@ -335,8 +335,8 @@ pub fn to_query_update_test() {
   let database = database()
 
   let q =
-    sql.update(table: sql.table("users"))
-    |> sql.set("name", sql.text("Bob"), of: sql.val)
+    sql.table("users")
+    |> sql.update([sql.set("name", sql.text("Bob"), of: sql.val)])
     |> sql.where([sql.column("id") |> sql.eq(sql.int(1), of: sql.val)])
     |> db.to_query(database)
 
@@ -407,8 +407,8 @@ pub fn to_sql_update_test() {
   let database = database()
 
   let sql_string =
-    sql.update(table: sql.table("users"))
-    |> sql.set("name", sql.text("Bob"), of: sql.val)
+    sql.table("users")
+    |> sql.update([sql.set("name", sql.text("Bob"), of: sql.val)])
     |> sql.where([sql.column("id") |> sql.eq(sql.int(1), of: sql.val)])
     |> db.to_sql(database)
 
