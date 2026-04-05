@@ -616,7 +616,7 @@ type InsertQuery(v) {
 type UpdateQuery(v) {
   UpdateQuery(
     table: Table,
-    sets: List(#(String, Operand(v))),
+    sets: List(Set(v)),
     wheres: List(List(Condition(v))),
     returning: List(Column),
     order_by: List(Order),
@@ -801,10 +801,10 @@ pub fn insert(into tbl: Table) -> Builder(Insert, v) {
 }
 
 /// Creates a new UPDATE query builder for the given table.
-pub fn update(table tbl: Table) -> Builder(Update, v) {
+pub fn update(tbl: Table, sets: List(Set(v))) -> Builder(Update, v) {
   UpdateQuery(
     table: tbl,
-    sets: [],
+    sets:,
     wheres: [],
     returning: [],
     order_by: [],
@@ -1016,22 +1016,13 @@ pub fn list(of map: fn(a) -> v) -> Kind(a, v) {
   Kind(to_operand: fn(x) { Val(map(x)) })
 }
 
+pub opaque type Set(v) {
+  Set(column: String, operand: Operand(v))
+}
+
 /// Sets a column to a value in an UPDATE query. Can be called multiple times.
-pub fn set(
-  builder: Builder(Update, v),
-  column: String,
-  input: a,
-  of kind: Kind(a, v),
-) -> Builder(Update, v) {
-  case builder {
-    UpdateBuilder(query:, ctes:, recursive:) ->
-      UpdateQuery(
-        ..query,
-        sets: list.prepend(query.sets, #(column, kind.to_operand(input))),
-      )
-      |> UpdateBuilder(ctes:, recursive:)
-    _ -> panic as "unreachable: set called on non-Update builder"
-  }
+pub fn set(column: String, input: a, of kind: Kind(a, v)) -> Set(v) {
+  Set(column:, operand: kind.to_operand(input))
 }
 
 /// Creates a Common Table Expression (CTE).
@@ -1639,26 +1630,26 @@ fn build_update(query: UpdateQuery(v), adapter: Adapter(v)) -> SqlBuilder(v) {
 
 fn append_sets(
   builder: SqlBuilder(v),
-  sets: List(#(String, Operand(v))),
+  sets: List(Set(v)),
   adapter: Adapter(v),
 ) -> SqlBuilder(v) {
   let #(sets_sql, values) = {
-    use #(sql, values), #(column, operand) <- list.fold(sets, #([], []))
+    use #(sql, values), set <- list.fold(sets, #([], []))
 
-    let #(set, operand_values) = build_operand(operand, adapter)
+    let #(set_string, operand_values) = build_operand(set.operand, adapter)
     let values = list.prepend(values, operand_values)
 
     let sql =
-      column
+      set.column
       |> adapter.handle_identifier
-      |> fmt.eq(set)
+      |> fmt.eq(set_string)
       |> list.prepend(sql, _)
 
     #(sql, values)
   }
 
-  let sets_sql = string.join(sets_sql, ", ")
-  let values = values |> list.flatten |> list.flatten
+  let sets_sql = sets_sql |> list.reverse |> string.join(", ")
+  let values = values |> list.reverse |> list.flatten |> list.flatten
 
   builder.sql
   |> fmt.set(sets_sql)
