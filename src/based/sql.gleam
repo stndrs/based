@@ -421,9 +421,9 @@ pub fn rows(values: List(a)) -> Rows(a, v) {
 }
 
 type Operand(v) {
-  Col(Column)
-  Val(v)
-  NullVal
+  ColumnRef(Column)
+  ValueRef(v)
+  NullRef
   SubQuery(Builder(Select, v))
   AnyQuery(Builder(Select, v))
   AllQuery(Builder(Select, v))
@@ -659,32 +659,32 @@ pub opaque type Cte(v) {
 
 /// Creates an equality condition.
 pub fn eq(column: Column, input: a, of kind: Kind(a, v)) -> Condition(v) {
-  Equal(Col(column), kind.to_operand(input))
+  Equal(ColumnRef(column), kind.to_operand(input))
 }
 
 /// Creates an inequality condition.
 pub fn not_eq(column: Column, input: a, of kind: Kind(a, v)) -> Condition(v) {
-  NotEqual(Col(column), kind.to_operand(input))
+  NotEqual(ColumnRef(column), kind.to_operand(input))
 }
 
 /// Creates a greater-than condition.
 pub fn gt(column: Column, input: a, of kind: Kind(a, v)) -> Condition(v) {
-  GreaterThan(Col(column), kind.to_operand(input))
+  GreaterThan(ColumnRef(column), kind.to_operand(input))
 }
 
 /// Creates a less-than condition.
 pub fn lt(column: Column, input: a, of kind: Kind(a, v)) -> Condition(v) {
-  LessThan(Col(column), kind.to_operand(input))
+  LessThan(ColumnRef(column), kind.to_operand(input))
 }
 
 /// Creates a greater-than-or-equal condition.
 pub fn gt_eq(column: Column, input: a, of kind: Kind(a, v)) -> Condition(v) {
-  GreaterThanOrEqual(Col(column), kind.to_operand(input))
+  GreaterThanOrEqual(ColumnRef(column), kind.to_operand(input))
 }
 
 /// Creates a less-than-or-equal condition.
 pub fn lt_eq(column: Column, input: a, of kind: Kind(a, v)) -> Condition(v) {
-  LessThanOrEqual(Col(column), kind.to_operand(input))
+  LessThanOrEqual(ColumnRef(column), kind.to_operand(input))
 }
 
 /// Creates a BETWEEN condition.
@@ -694,42 +694,42 @@ pub fn between(
   high: a,
   of kind: Kind(a, v),
 ) -> Condition(v) {
-  Between(Col(column), kind.to_operand(low), kind.to_operand(high))
+  Between(ColumnRef(column), kind.to_operand(low), kind.to_operand(high))
 }
 
 /// Creates a LIKE condition.
 pub fn like(column: Column, input: a, of kind: Kind(a, v)) -> Condition(v) {
-  Like(Col(column), kind.to_operand(input))
+  Like(ColumnRef(column), kind.to_operand(input))
 }
 
 /// Creates a NOT LIKE condition.
 pub fn not_like(column: Column, input: a, of kind: Kind(a, v)) -> Condition(v) {
-  NotLike(Col(column), kind.to_operand(input))
+  NotLike(ColumnRef(column), kind.to_operand(input))
 }
 
 /// Creates an IN condition.
 pub fn in(column: Column, values: List(a), of kind: Kind(a, v)) -> Condition(v) {
-  In(Col(column), list.map(values, kind.to_operand))
+  In(ColumnRef(column), list.map(values, kind.to_operand))
 }
 
 /// Creates an IS NULL condition.
 pub fn is_null(column: Column) -> Condition(v) {
-  IsNull(Col(column))
+  IsNull(ColumnRef(column))
 }
 
 /// Creates an IS NOT NULL condition.
 pub fn is_not_null(column: Column) -> Condition(v) {
-  IsNotNull(Col(column))
+  IsNotNull(ColumnRef(column))
 }
 
 /// Creates an IS TRUE condition.
 pub fn is_true(column: Column) -> Condition(v) {
-  IsTrue(Col(column))
+  IsTrue(ColumnRef(column))
 }
 
 /// Creates an IS FALSE condition.
 pub fn is_false(column: Column) -> Condition(v) {
-  IsFalse(Col(column))
+  IsFalse(ColumnRef(column))
 }
 
 /// Combines two conditions with OR.
@@ -995,14 +995,14 @@ pub fn on_conflict(
 }
 
 /// Kind that treats the input as a parameterized value.
-pub const val = Kind(to_operand: Val)
+pub const val = Kind(to_operand: ValueRef)
 
 /// Kind that treats the input as a subquery for scalar comparisons.
 pub const subquery = Kind(to_operand: SubQuery)
 
 /// Kind that treats the input as a column reference for column-to-column
 /// comparisons.
-pub const col = Kind(to_operand: Col)
+pub const col = Kind(to_operand: ColumnRef)
 
 /// Kind that wraps a subquery with `ANY(...)`.
 pub const any = Kind(to_operand: AnyQuery)
@@ -1013,7 +1013,7 @@ pub const all = Kind(to_operand: AllQuery)
 /// Creates a kind that maps an arbitrary type to a value using a conversion
 /// function. Useful for `in` clauses with custom types.
 pub fn list(of map: fn(a) -> v) -> Kind(a, v) {
-  Kind(to_operand: fn(x) { Val(map(x)) })
+  Kind(to_operand: fn(x) { ValueRef(map(x)) })
 }
 
 pub opaque type Set(v) {
@@ -1670,9 +1670,9 @@ fn build_operand(
   adapter: Adapter(v),
 ) -> #(String, List(List(v))) {
   case operand {
-    Col(column) -> #(build_column(column, adapter), [])
-    Val(value) -> #(fmt.placeholder, [[value]])
-    NullVal -> #(fmt.placeholder, [[adapter.handle_null()]])
+    ColumnRef(column) -> #(build_column(column, adapter), [])
+    ValueRef(value) -> #(fmt.placeholder, [[value]])
+    NullRef -> #(fmt.placeholder, [[adapter.handle_null()]])
     SubQuery(query) -> {
       let SqlBuilder(sql, vals) = build_single_select(query, adapter)
       #(fmt.subquery(sql), vals)
