@@ -282,8 +282,10 @@ pub fn select_order_by_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.star])
-    |> sql.order_by(sql.column("name"), sql.asc)
-    |> sql.order_by(sql.column("age"), sql.desc)
+    |> sql.order_by([
+      sql.column("name") |> sql.asc,
+      sql.column("age") |> sql.desc,
+    ])
     |> sql.to_query(a())
 
   assert q.sql == "SELECT * FROM users ORDER BY name ASC, age DESC"
@@ -760,7 +762,7 @@ pub fn complex_query_test() {
         |> sql.column_for(users)
         |> sql.eq(sql.true, of: sql.val),
     ])
-    |> sql.order_by(sql.column("total") |> sql.column_for(orders), sql.desc)
+    |> sql.order_by([sql.column("total") |> sql.column_for(orders) |> sql.desc])
     |> sql.limit(10)
     |> sql.offset(0)
     |> sql.to_query(a())
@@ -1123,7 +1125,7 @@ pub fn complex_query_with_aggregates_having_test() {
     |> sql.where([sql.column("active") |> sql.eq(sql.true, of: sql.val)])
     |> sql.group_by([sql.column("department")])
     |> sql.having([sql.count("*") |> sql.gt(sql.int(3), of: sql.val)])
-    |> sql.order_by(sql.column("department"), sql.asc)
+    |> sql.order_by([sql.column("department") |> sql.asc])
     |> sql.limit(10)
     |> sql.to_query(a())
 
@@ -1543,7 +1545,7 @@ pub fn for_update_with_order_by_and_limit_test() {
     sql.from(sql.table("users"))
     |> sql.select([sql.column("id"), sql.column("name")])
     |> sql.where([sql.column("age") |> sql.gt(sql.int(18), of: sql.val)])
-    |> sql.order_by(sql.column("name"), sql.asc)
+    |> sql.order_by([sql.column("name") |> sql.asc])
     |> sql.limit(10)
     |> sql.for_update
     |> sql.to_query(a())
@@ -2150,8 +2152,10 @@ pub fn select_order_by_to_string_test() {
   let q =
     sql.from(sql.table("users"))
     |> sql.select([sql.column("id"), sql.column("name")])
-    |> sql.order_by(sql.column("name"), sql.asc)
-    |> sql.order_by(sql.column("id"), sql.desc)
+    |> sql.order_by([
+      sql.column("name") |> sql.asc,
+      sql.column("id") |> sql.desc,
+    ])
     |> sql.to_string(a())
 
   assert q == "SELECT id, name FROM users ORDER BY name ASC, id DESC"
@@ -3165,7 +3169,7 @@ pub fn update_with_order_by_test() {
   let q =
     sql.update(table: sql.table("users"))
     |> sql.set("active", sql.false, of: sql.val)
-    |> sql.order_by(sql.column("created_at"), sql.asc)
+    |> sql.order_by([sql.column("created_at") |> sql.asc])
     |> sql.to_query(a())
 
   assert q.sql == "UPDATE users SET active = $1 ORDER BY created_at ASC"
@@ -3187,7 +3191,7 @@ pub fn update_with_order_by_limit_returning_test() {
   let q =
     sql.update(table: sql.table("users"))
     |> sql.set("active", sql.false, of: sql.val)
-    |> sql.order_by(sql.column("created_at"), sql.asc)
+    |> sql.order_by([sql.column("created_at") |> sql.asc])
     |> sql.limit(10)
     |> sql.returning([sql.column("id")])
     |> sql.to_query(a())

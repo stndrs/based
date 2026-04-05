@@ -520,21 +520,18 @@ fn prepend_join(builder: Builder(Select, v), j: Join(v)) -> Builder(Select, v) {
 
 /// Sort direction for ORDER BY clauses.
 pub opaque type Order {
-  Asc
-  Desc
+  Asc(column: Column)
+  Desc(column: Column)
 }
 
-/// Ascending sort order.
-pub const asc = Asc
+/// Returns an ascending `Order` for the column.
+pub fn asc(column: Column) -> Order {
+  Asc(column:)
+}
 
-/// Descending sort order.
-pub const desc = Desc
-
-/// An ORDER BY clause entry pairing a column with a sort direction.
-///
-/// Created internally by the `order_by` function — not constructed directly.
-pub opaque type OrderBy {
-  OrderBy(column: Column, direction: Order)
+/// Returns a descending `Order` for the column.
+pub fn desc(column: Column) -> Order {
+  Desc(column:)
 }
 
 /// The action to take when an INSERT conflict occurs.
@@ -603,7 +600,7 @@ type SelectQuery(v) {
     from: TableOrSubquery(v),
     wheres: List(List(Condition(v))),
     joins: List(Join(v)),
-    order_by: List(OrderBy),
+    order_by: List(Order),
     limit: Option(Int),
     offset: Option(Int),
     group_by: List(Column),
@@ -629,7 +626,7 @@ type UpdateQuery(v) {
     sets: List(#(String, Operand(v))),
     wheres: List(List(Condition(v))),
     returning: List(Column),
-    order_by: List(OrderBy),
+    order_by: List(Order),
     limit: Option(Int),
     offset: Option(Int),
   )
@@ -882,23 +879,13 @@ pub fn returning(builder: Builder(a, v), columns: List(Column)) -> Builder(a, v)
 
 /// Adds an ORDER BY clause. Can be called multiple times to sort by
 /// multiple columns. Applies to SELECT and UPDATE queries.
-pub fn order_by(
-  builder: Builder(a, v),
-  column: Column,
-  direction: Order,
-) -> Builder(a, v) {
+pub fn order_by(builder: Builder(a, v), order_by: List(Order)) -> Builder(a, v) {
   case builder {
     SelectBuilder(query:, ctes:, recursive:) ->
-      SelectQuery(
-        ..query,
-        order_by: list.prepend(query.order_by, OrderBy(column, direction)),
-      )
+      SelectQuery(..query, order_by:)
       |> SelectBuilder(ctes:, recursive:)
     UpdateBuilder(query:, ctes:, recursive:) ->
-      UpdateQuery(
-        ..query,
-        order_by: list.prepend(query.order_by, OrderBy(column, direction)),
-      )
+      UpdateQuery(..query, order_by:)
       |> UpdateBuilder(ctes:, recursive:)
     _ -> builder
   }
@@ -1396,14 +1383,12 @@ fn append_group_by(
 
 fn append_order_by(
   builder: SqlBuilder(v),
-  orders: List(OrderBy),
+  orders: List(Order),
   adapter: Adapter(v),
 ) -> SqlBuilder(v) {
   case orders {
     [] -> builder
     _ -> {
-      let orders = list.reverse(orders)
-
       builder.sql
       |> fmt.order_by(build_order_by(orders, adapter))
       |> SqlBuilder(builder.values)
@@ -1944,13 +1929,12 @@ fn build_table_ref(tbl: Table, adapter: Adapter(v)) -> String {
   }
 }
 
-fn build_order_by(orders: List(OrderBy), adapter: Adapter(v)) -> String {
+fn build_order_by(orders: List(Order), adapter: Adapter(v)) -> String {
   orders
   |> list.map(fn(o) {
-    let col_str = build_column(o.column, adapter)
-    case o.direction {
-      Asc -> fmt.asc(col_str)
-      Desc -> fmt.desc(col_str)
+    case o {
+      Asc(column:) -> column |> build_column(adapter) |> fmt.asc
+      Desc(column:) -> column |> build_column(adapter) |> fmt.desc
     }
   })
   |> string.join(", ")
