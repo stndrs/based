@@ -1,25 +1,13 @@
 import based/interval
 import based/sql
 import based/uuid
-import gleam/float
 import gleam/int
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/string
 import gleam/time/calendar
+import gleam/time/duration
 import gleam/time/timestamp
-
-fn sql_value_to_string(value: sql.Value) -> String {
-  case value {
-    sql.Int(n) -> int.to_string(n)
-    sql.Float(f) -> float.to_string(f)
-    sql.Text(s) -> "'" <> s <> "'"
-    sql.Bool(True) -> "TRUE"
-    sql.Bool(False) -> "FALSE"
-    sql.Null -> "NULL"
-    _ -> "?"
-  }
-}
 
 fn a() -> sql.Adapter(sql.Value) {
   sql.adapter()
@@ -27,7 +15,7 @@ fn a() -> sql.Adapter(sql.Value) {
   |> sql.on_null(with: fn() { sql.null })
   |> sql.on_int(with: fn(i) { sql.int(i) })
   |> sql.on_text(with: fn(s) { sql.text(s) })
-  |> sql.on_value(with: sql_value_to_string)
+  |> sql.on_value(with: sql.value_to_string)
 }
 
 fn backtick_a() -> sql.Adapter(sql.Value) {
@@ -36,7 +24,7 @@ fn backtick_a() -> sql.Adapter(sql.Value) {
   |> sql.on_int(with: fn(i) { sql.int(i) })
   |> sql.on_text(with: fn(s) { sql.text(s) })
   |> sql.on_placeholder(with: fn(_i) { "?" })
-  |> sql.on_value(with: sql_value_to_string)
+  |> sql.on_value(with: sql.value_to_string)
   |> sql.on_identifier(with: fn(name) { "`" <> name <> "`" })
 }
 
@@ -566,7 +554,7 @@ pub fn custom_backtick_formatter_test() {
     |> sql.on_int(with: fn(i) { sql.int(i) })
     |> sql.on_text(with: fn(s) { sql.text(s) })
     |> sql.on_placeholder(with: fn(_) { "?" })
-    |> sql.on_value(with: sql_value_to_string)
+    |> sql.on_value(with: sql.value_to_string)
     |> sql.on_identifier(with: fn(name) { "`" <> name <> "`" })
 
   let q =
@@ -586,7 +574,7 @@ pub fn backtick_quote_identifier_test() {
     |> sql.on_int(with: fn(i) { sql.int(i) })
     |> sql.on_text(with: fn(s) { sql.text(s) })
     |> sql.on_placeholder(with: fn(_) { "?" })
-    |> sql.on_value(with: sql_value_to_string)
+    |> sql.on_value(with: sql.value_to_string)
     |> sql.on_identifier(with: fn(name) { "`" <> name <> "`" })
 
   let q =
@@ -612,7 +600,7 @@ pub fn double_quote_quote_identifier_test() {
     |> sql.on_null(with: fn() { sql.null })
     |> sql.on_int(with: fn(i) { sql.int(i) })
     |> sql.on_text(with: fn(s) { sql.text(s) })
-    |> sql.on_value(with: sql_value_to_string)
+    |> sql.on_value(with: sql.value_to_string)
     |> sql.on_identifier(with: fn(name) { "\"" <> name <> "\"" })
     |> sql.on_placeholder(fn(idx) { "$" <> int.to_string(idx) })
 
@@ -639,7 +627,7 @@ pub fn double_quote_aliased_identifiers_test() {
     |> sql.on_null(with: fn() { sql.null })
     |> sql.on_int(with: fn(i) { sql.int(i) })
     |> sql.on_text(with: fn(s) { sql.text(s) })
-    |> sql.on_value(with: sql_value_to_string)
+    |> sql.on_value(with: sql.value_to_string)
     |> sql.on_identifier(with: fn(name) { "\"" <> name <> "\"" })
     |> sql.on_placeholder(fn(idx) { "$" <> int.to_string(idx) })
 
@@ -678,7 +666,7 @@ pub fn double_quote_question_mark_identifier_test() {
     |> sql.on_int(with: fn(i) { sql.int(i) })
     |> sql.on_text(with: fn(s) { sql.text(s) })
     |> sql.on_placeholder(with: fn(_) { "?" })
-    |> sql.on_value(with: sql_value_to_string)
+    |> sql.on_value(with: sql.value_to_string)
     |> sql.on_identifier(with: fn(name) { "\"" <> name <> "\"" })
 
   let q =
@@ -3150,7 +3138,7 @@ pub fn mapper_handle_null_test() {
     |> sql.on_null(with: fn() { sql.null })
     |> sql.on_int(with: fn(i) { sql.int(i) })
     |> sql.on_text(with: fn(s) { sql.text(s) })
-    |> sql.on_value(with: sql_value_to_string)
+    |> sql.on_value(with: sql.value_to_string)
 
   let q =
     sql.from(sql.table("users"))
@@ -3247,7 +3235,7 @@ pub fn update_set_from_subquery_test() {
   assert q.values == []
 }
 
-pub fn update_set_from_subquery_literal_test() {
+pub fn update_set_from_subquery_and_value_test() {
   let new_emails = sql.table("new_emails")
   let users = sql.table("users")
 
@@ -3260,13 +3248,56 @@ pub fn update_set_from_subquery_literal_test() {
       |> sql.eq(sql.column("id") |> sql.column_for(users), of: sql.col),
     ])
 
+  let ts =
+    calendar.Date(year: 2026, month: calendar.April, day: 5)
+    |> timestamp.from_calendar(
+      calendar.TimeOfDay(23, 59, 50, 0),
+      duration.seconds(0),
+    )
+
   let q =
     sql.update(table: users)
     |> sql.set("email", sub, of: sql.subquery)
+    |> sql.set("updated_at", sql.timestamp(ts), of: sql.val)
+    |> sql.to_query(a())
+
+  assert q.sql
+    == "UPDATE users SET email = (SELECT email FROM new_emails WHERE new_emails.user_id = users.id), updated_at = $1"
+
+  assert q.values == [sql.timestamp(ts)]
+}
+
+pub fn update_set_from_subquery_and_value_string_test() {
+  let new_emails = sql.table("new_emails")
+  let users = sql.table("users")
+
+  let sub =
+    sql.from(new_emails)
+    |> sql.select([sql.column("email")])
+    |> sql.where([
+      sql.column("user_id")
+      |> sql.column_for(new_emails)
+      |> sql.eq(sql.column("id") |> sql.column_for(users), of: sql.col),
+    ])
+
+  let ts =
+    calendar.Date(year: 2026, month: calendar.April, day: 5)
+    |> timestamp.from_calendar(
+      calendar.TimeOfDay(23, 59, 50, 0),
+      duration.seconds(0),
+    )
+
+  let ts_string = ts |> sql.timestamp |> sql.value_to_string
+
+  let q =
+    sql.update(table: users)
+    |> sql.set("email", sub, of: sql.subquery)
+    |> sql.set("updated_at", sql.timestamp(ts), of: sql.val)
     |> sql.to_string(a())
 
   assert q
-    == "UPDATE users SET email = (SELECT email FROM new_emails WHERE new_emails.user_id = users.id)"
+    == "UPDATE users SET email = (SELECT email FROM new_emails WHERE new_emails.user_id = users.id), updated_at = "
+    <> ts_string
 }
 
 pub fn update_set_from_subquery_with_scalar_test() {

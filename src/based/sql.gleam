@@ -391,8 +391,8 @@ pub fn on_text(
 /// ```gleam
 /// let users =
 ///   sql.rows([alice, bob])
-///   |> sql.val("name", fn(u) { sql.text(u.name) })
-///   |> sql.val("age", fn(u) { sql.int(u.age) })
+///   |> sql.value("name", fn(u) { sql.text(u.name) })
+///   |> sql.value("age", fn(u) { sql.int(u.age) })
 ///
 /// sql.insert(into: sql.table("users"))
 /// |> sql.values(users)
@@ -402,13 +402,6 @@ pub opaque type Rows(a, v) {
 }
 
 /// Adds a column to the rows being inserted, with a function to extract the SQL value.
-///
-/// ```gleam
-/// let rows =
-///   sql.rows([#("Alice", 30)])
-///   |> sql.val("name", fn(r) { sql.text(r.0) })
-///   |> sql.val("age", fn(r) { sql.int(r.1) })
-/// ```
 pub fn value(
   rows: Rows(a, v),
   column: String,
@@ -1126,7 +1119,7 @@ pub fn to_string(builder: Builder(a, v), adapter: Adapter(v)) -> String {
   placeholders(sql, with)
 }
 
-fn value_to_string(value: Value) -> String {
+pub fn value_to_string(value: Value) -> String {
   case value {
     Uuid(val) -> uuid.to_string(val)
     Null -> "NULL"
