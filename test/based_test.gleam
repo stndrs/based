@@ -289,150 +289,6 @@ pub fn batch_error_test() {
   let assert Error(_) = based.batch(queries, database)
 }
 
-pub fn to_query_select_test() {
-  let database =
-    based.driver(
-      Conn,
-      on_query: fn(_, _) { Ok(based.Queried(0, [], [])) },
-      on_execute: fn(_, _) { Ok(0) },
-      on_batch: fn(_, _) { Ok([]) },
-    )
-    |> based.new(sql_adapter())
-
-  let q =
-    sql.from(sql.table("users"))
-    |> sql.select([sql.column("id"), sql.column("name")])
-    |> sql.where([sql.column("id") |> sql.eq(value.int(1), of: sql.val)])
-    |> based.to_query(database)
-
-  assert q.sql == "SELECT id, name FROM users WHERE id = $1;"
-  assert q.values == [value.int(1)]
-}
-
-pub fn to_query_select_no_params_test() {
-  let database = database()
-
-  let q =
-    sql.from(sql.table("users"))
-    |> sql.select([sql.column("name")])
-    |> based.to_query(database)
-
-  assert q.sql == "SELECT name FROM users;"
-  assert q.values == []
-}
-
-pub fn to_query_insert_test() {
-  let database = database()
-
-  let row =
-    sql.rows([#("Alice", 30)])
-    |> sql.value("name", fn(r) { value.text(r.0) })
-    |> sql.value("age", fn(r) { value.int(r.1) })
-  let q =
-    sql.insert(into: sql.table("users"))
-    |> sql.values(row)
-    |> based.to_query(database)
-
-  assert q.sql == "INSERT INTO users (name, age) VALUES ($1, $2);"
-  assert q.values == [value.text("Alice"), value.int(30)]
-}
-
-pub fn to_query_update_test() {
-  let database = database()
-
-  let q =
-    sql.table("users")
-    |> sql.update([sql.set("name", value.text("Bob"), of: sql.val)])
-    |> sql.where([sql.column("id") |> sql.eq(value.int(1), of: sql.val)])
-    |> based.to_query(database)
-
-  assert q.sql == "UPDATE users SET name = $1 WHERE id = $2;"
-  assert q.values == [value.text("Bob"), value.int(1)]
-}
-
-pub fn to_query_delete_test() {
-  let database = database()
-
-  let q =
-    sql.from(sql.table("users"))
-    |> sql.delete
-    |> sql.where([sql.column("id") |> sql.eq(value.int(42), of: sql.val)])
-    |> based.to_query(database)
-
-  assert q.sql == "DELETE FROM users WHERE id = $1;"
-  assert q.values == [value.int(42)]
-}
-
-pub fn to_sql_select_test() {
-  let database =
-    based.driver(
-      Conn,
-      on_query: fn(_, _) { Ok(based.Queried(0, [], [])) },
-      on_execute: fn(_, _) { Ok(0) },
-      on_batch: fn(_, _) { Ok([]) },
-    )
-    |> based.new(sql_adapter())
-
-  let sql_string =
-    sql.from(sql.table("users"))
-    |> sql.select([sql.column("id"), sql.column("name")])
-    |> sql.where([sql.column("id") |> sql.eq(value.int(1), of: sql.val)])
-    |> based.to_sql(database)
-
-  assert sql_string == "SELECT id, name FROM users WHERE id = 1;"
-}
-
-pub fn to_sql_select_no_params_test() {
-  let database = database()
-
-  let sql_string =
-    sql.from(sql.table("users"))
-    |> sql.select([sql.column("name")])
-    |> based.to_sql(database)
-
-  assert sql_string == "SELECT name FROM users;"
-}
-
-pub fn to_sql_insert_test() {
-  let database = database()
-
-  let row =
-    sql.rows([#("Alice", 30)])
-    |> sql.value("name", fn(r) { value.text(r.0) })
-    |> sql.value("age", fn(r) { value.int(r.1) })
-
-  let sql_string =
-    sql.insert(into: sql.table("users"))
-    |> sql.values(row)
-    |> based.to_sql(database)
-
-  assert sql_string == "INSERT INTO users (name, age) VALUES ('Alice', 30);"
-}
-
-pub fn to_sql_update_test() {
-  let database = database()
-
-  let sql_string =
-    sql.table("users")
-    |> sql.update([sql.set("name", value.text("Bob"), of: sql.val)])
-    |> sql.where([sql.column("id") |> sql.eq(value.int(1), of: sql.val)])
-    |> based.to_sql(database)
-
-  assert sql_string == "UPDATE users SET name = 'Bob' WHERE id = 1;"
-}
-
-pub fn to_sql_delete_test() {
-  let database = database()
-
-  let sql_string =
-    sql.from(sql.table("users"))
-    |> sql.delete
-    |> sql.where([sql.column("id") |> sql.eq(value.int(42), of: sql.val)])
-    |> based.to_sql(database)
-
-  assert sql_string == "DELETE FROM users WHERE id = 42;"
-}
-
 fn sql_adapter() -> sql.Adapter(Value) {
   value.adapter()
   |> sql.on_placeholder(fn(idx) { "$" <> int.to_string(idx) })
@@ -466,24 +322,10 @@ pub fn decode_empty_rows_test() {
 }
 
 pub fn decode_error_test() {
-  // Provide a row that doesn't match the decoder (string where int expected)
   let rows = [
     dynamic.array([dynamic.string("not_an_int"), dynamic.string("Steve")]),
   ]
   let queried = based.Queried(count: 1, fields: ["id", "name"], rows:)
 
   let assert Error(based.DecodeError(_)) = based.decode(queried, user_decoder())
-}
-
-fn database() -> based.Db(Value, Conn) {
-  let database =
-    based.driver(
-      Conn,
-      on_query: fn(_, _) { Ok(based.Queried(0, [], [])) },
-      on_execute: fn(_, _) { Ok(0) },
-      on_batch: fn(_, _) { Ok([]) },
-    )
-    |> based.new(sql_adapter())
-
-  database
 }

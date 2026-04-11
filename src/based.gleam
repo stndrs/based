@@ -170,13 +170,13 @@ pub type BatchQueryHandler(v, conn) =
 
 /// A configured database connection bundling a connection value, a
 /// `Driver` with query handlers, and a `sql.Adapter` for query rendering.
-pub opaque type Db(v, conn) {
-  Db(driver: Driver(v, conn), adapter: sql.Adapter(v))
+pub type Db(v, conn) {
+  Db(driver: Driver(v, conn), sql: sql.Adapter(v))
 }
 
 /// Creates a new `Db` from a driver and adapter.
-pub fn new(driver: Driver(v, conn), adapter: sql.Adapter(v)) -> Db(v, conn) {
-  Db(driver:, adapter:)
+pub fn new(driver: Driver(v, conn), sql: sql.Adapter(v)) -> Db(v, conn) {
+  Db(driver:, sql:)
 }
 
 /// An opaque driver that holds the query, execute, and batch handler
@@ -198,17 +198,6 @@ pub fn driver(
   on_batch handle_batch: BatchQueryHandler(v, conn),
 ) -> Driver(v, conn) {
   Driver(conn, handle_query:, handle_execute:, handle_batch:)
-}
-
-/// Returns a `sql.Query` record holding a SQL string formatted according
-/// to the `Db` adapter.
-pub fn to_query(qb: sql.Builder(a, v), db: Db(v, conn)) -> sql.Query(v) {
-  sql.to_query(qb, db.adapter)
-}
-
-/// Returns a SQL string formatted according to the `Db` adapter.
-pub fn to_sql(qb: sql.Builder(a, v), db: Db(v, conn)) -> String {
-  sql.to_string(qb, db.adapter)
 }
 
 /// Executes a query using the configured driver.
