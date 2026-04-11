@@ -10,42 +10,42 @@ import gleam/string
 
 /// Error types covering database-specific errors, decoding failures,
 /// and application-level errors.
-pub type DbError {
+pub type BasedError {
   ConnectionTimeout
   ConnectionUnavailable
   ConnectionError(message: String)
   DatabaseError(code: String, name: String, message: String)
   ConstraintError(code: String, name: String, message: String)
   SyntaxError(code: String, name: String, message: String)
-  DbError(message: String)
+  BasedError(message: String)
   DecodeError(errors: List(decode.DecodeError))
   NotFound
 }
 
-/// Formats the provided `DbError` as a string.
-pub fn error_to_string(err: DbError) -> String {
+/// Formats the provided `BasedError` as a string.
+pub fn error_to_string(err: BasedError) -> String {
   case err {
-    ConnectionTimeout -> format_error_kind(["based", "db"], "ConnectionTimeout")
+    ConnectionTimeout -> format_error_kind(["based"], "ConnectionTimeout")
     ConnectionUnavailable ->
-      format_error_kind(["based", "db"], "ConnectionUnavailable")
+      format_error_kind(["based"], "ConnectionUnavailable")
     ConnectionError(message:) ->
-      format_error_kind(["based", "db"], "ConnectionError")
+      format_error_kind(["based"], "ConnectionError")
       |> string.append(" ")
       |> string.append(message)
     DatabaseError(code:, name:, message:) ->
-      format_error_kind(["based", "db"], "DatabaseError")
+      format_error_kind(["based"], "DatabaseError")
       |> format_db_error(code, name, message)
     ConstraintError(code:, name:, message:) ->
-      format_error_kind(["based", "db"], "ConstraintError")
+      format_error_kind(["based"], "ConstraintError")
       |> format_db_error(code, name, message)
     SyntaxError(code:, name:, message:) ->
-      format_error_kind(["based", "db"], "SyntaxError")
+      format_error_kind(["based"], "SyntaxError")
       |> format_db_error(code, name, message)
-    DbError(message:) ->
-      format_error_kind(["based", "db"], "DbError")
+    BasedError(message:) ->
+      format_error_kind(["based"], "BasedError")
       |> string.append(" ")
       |> string.append(message)
-    NotFound -> format_error_kind(["based", "db"], "NotFound")
+    NotFound -> format_error_kind(["based"], "NotFound")
     DecodeError(errors:) -> {
       let error_string =
         list.map(errors, fn(err) {
@@ -66,7 +66,7 @@ pub fn error_to_string(err: DbError) -> String {
         })
         |> string.join(", ")
 
-      ["based", "db"]
+      ["based"]
       |> format_error_kind("DecodeError")
       |> string.append(" errors: ")
       |> string.append(error_string)
@@ -156,17 +156,17 @@ pub fn transaction(
 
 /// A function that executes a parameterized query and returns rows.
 pub type QueryHandler(v, conn) =
-  fn(sql.Query(v), conn) -> Result(Queried, DbError)
+  fn(sql.Query(v), conn) -> Result(Queried, BasedError)
 
 /// A function that executes a raw SQL string and returns a count of
 /// affected rows.
 pub type ExecuteHandler(conn) =
-  fn(String, conn) -> Result(Int, DbError)
+  fn(String, conn) -> Result(Int, BasedError)
 
 /// A function that executes a list of parameterized queries and returns
 /// a list of results.
 pub type BatchQueryHandler(v, conn) =
-  fn(List(sql.Query(v)), conn) -> Result(List(Queried), DbError)
+  fn(List(sql.Query(v)), conn) -> Result(List(Queried), BasedError)
 
 /// A configured database connection bundling a connection value, a
 /// `Driver` with query handlers, and a `sql.Adapter` for query rendering.
@@ -212,12 +212,15 @@ pub fn to_sql(qb: sql.Builder(a, v), db: Db(v, conn)) -> String {
 }
 
 /// Executes a query using the configured driver.
-pub fn query(query: sql.Query(v), db: Db(v, conn)) -> Result(Queried, DbError) {
+pub fn query(
+  query: sql.Query(v),
+  db: Db(v, conn),
+) -> Result(Queried, BasedError) {
   db.driver.handle_query(query, db.driver.conn)
 }
 
 /// Executes a raw SQL string using the configured driver.
-pub fn execute(sql: String, db: Db(v, conn)) -> Result(Int, DbError) {
+pub fn execute(sql: String, db: Db(v, conn)) -> Result(Int, BasedError) {
   db.driver.handle_execute(sql, db.driver.conn)
 }
 
@@ -225,7 +228,7 @@ pub fn execute(sql: String, db: Db(v, conn)) -> Result(Int, DbError) {
 pub fn batch(
   queries: List(sql.Query(v)),
   db: Db(v, conn),
-) -> Result(List(Queried), DbError) {
+) -> Result(List(Queried), BasedError) {
   db.driver.handle_batch(queries, db.driver.conn)
 }
 
@@ -235,7 +238,7 @@ pub fn all(
   query: sql.Query(v),
   db: Db(v, conn),
   decoder: decode.Decoder(a),
-) -> Result(List(a), DbError) {
+) -> Result(List(a), BasedError) {
   use queried <- result.try(db.driver.handle_query(query, db.driver.conn))
   use returning <- result.map(decode(queried, decoder))
 
@@ -250,7 +253,7 @@ pub fn one(
   query: sql.Query(v),
   db: Db(v, conn),
   decoder: decode.Decoder(a),
-) -> Result(a, DbError) {
+) -> Result(a, BasedError) {
   use queried <- result.try(db.driver.handle_query(query, db.driver.conn))
   use returning <- result.try(decode(queried, decoder))
 
@@ -264,7 +267,7 @@ pub fn one(
 pub fn decode(
   queried: Queried,
   decoder: decode.Decoder(a),
-) -> Result(Returning(a), DbError) {
+) -> Result(Returning(a), BasedError) {
   queried.rows
   |> list.try_map(with: decode.run(_, decoder))
   |> result.map_error(DecodeError)
