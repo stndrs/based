@@ -1,6 +1,5 @@
 import based/interval
 import based/sql
-import based/uuid
 import gleam/bit_array
 import gleam/float
 import gleam/function
@@ -42,7 +41,6 @@ pub fn minutes(offset: Offset, minutes: Int) -> Offset {
 
 /// Example value type covering common SQL data types.
 pub type Value {
-  Uuid(uuid.Uuid)
   Null
   Bool(Bool)
   Int(Int)
@@ -56,11 +54,6 @@ pub type Value {
   Timestamptz(timestamp.Timestamp, Offset)
   Interval(interval.Interval)
   Array(List(Value))
-}
-
-/// Wraps a `Uuid` as a `Value`.
-pub fn uuid(uuid: uuid.Uuid) -> Value {
-  Uuid(uuid)
 }
 
 /// The SQL `NULL` value.
@@ -145,7 +138,6 @@ pub fn nullable(value: Option(a), of kind: fn(a) -> Value) -> Value {
 
 pub fn to_string(value: Value) -> String {
   case value {
-    Uuid(val) -> uuid.to_string(val)
     Null -> "NULL"
     Bool(val) -> bool_to_string(val)
     Int(val) -> int.to_string(val)

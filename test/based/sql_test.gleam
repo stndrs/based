@@ -1,6 +1,5 @@
 import based/interval
 import based/sql
-import based/uuid
 import based/value.{type Value}
 import gleam/int
 import gleam/list
@@ -3531,28 +3530,6 @@ pub fn interval_to_query_test() {
 
   assert q.sql == "SELECT * FROM tasks WHERE duration = $1;"
   assert q.values == [value.interval(iv)]
-}
-
-pub fn uuid_nil_to_string_test() {
-  let s =
-    sql.from(sql.table("users"))
-    |> sql.select([sql.star])
-    |> sql.where([sql.column("id") |> sql.eq(value.uuid(uuid.nil), of: sql.val)])
-    |> sql.to_string(adapter())
-
-  assert s
-    == "SELECT * FROM users WHERE id = 00000000-0000-0000-0000-000000000000;"
-}
-
-pub fn uuid_to_query_test() {
-  let q =
-    sql.from(sql.table("users"))
-    |> sql.select([sql.star])
-    |> sql.where([sql.column("id") |> sql.eq(value.uuid(uuid.nil), of: sql.val)])
-    |> sql.to_query(adapter())
-
-  assert q.sql == "SELECT * FROM users WHERE id = $1;"
-  assert q.values == [value.uuid(uuid.nil)]
 }
 
 pub fn array_to_string_test() {
