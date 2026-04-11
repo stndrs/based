@@ -97,7 +97,7 @@ pub fn table(name: String) -> Table {
   Table(name: name, alias: None)
 }
 
-/// Sets an alias on a table. Renders as `table AS alias`.
+/// Sets an alias on a table.
 pub fn table_as(table: Table, alias: String) -> Table {
   Table(..table, alias: Some(alias))
 }
@@ -152,7 +152,7 @@ pub fn min(name: String) -> Column {
   Column(table: None, name: name, alias: None, func: Some(Min))
 }
 
-/// Qualifies a column with a table name. Renders as `table.column`.
+/// Qualifies a column with a table name.
 pub fn column_for(column: Column, table: Table) -> Column {
   case column {
     Column(..) -> Column(..column, table: Some(table))
@@ -160,8 +160,7 @@ pub fn column_for(column: Column, table: Table) -> Column {
   }
 }
 
-/// Sets an alias on a column. Renders as `column AS alias`.
-/// No-ops on `star`.
+/// Sets an alias on a column. No-ops on `star`.
 pub fn column_as(column: Column, alias alias: String) -> Column {
   case column {
     Column(..) -> Column(..column, alias: Some(alias))
@@ -902,7 +901,7 @@ pub fn cte(name name: String, query builder: Builder(Select, v)) -> Cte(v) {
   Cte(name: name, columns: [], builder: builder)
 }
 
-/// Sets explicit column names on a CTE. Renders as `name(col1, col2) AS (...)`.
+/// Sets explicit column names on a CTE.
 pub fn cte_columns(cte c: Cte(v), columns cols: List(String)) -> Cte(v) {
   Cte(..c, columns: cols)
 }
