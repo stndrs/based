@@ -1197,13 +1197,8 @@ fn apply_ctes(
 ) -> SqlBuilder(v) {
   let cte_builder = build_ctes(ctes, recursive, adapter)
 
-  let body_with_suffix = case ctes {
-    [] -> builder.sql
-    _ -> fmt.terminate(builder.sql)
-  }
-
   SqlBuilder(
-    sql: cte_builder.sql <> body_with_suffix,
+    sql: cte_builder.sql <> fmt.terminate(builder.sql),
     values: list.append(builder.values, cte_builder.values),
   )
 }

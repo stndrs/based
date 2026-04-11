@@ -300,7 +300,7 @@ pub fn to_query_select_test() {
     |> sql.where([sql.column("id") |> sql.eq(value.int(1), of: sql.val)])
     |> db.to_query(database)
 
-  assert q.sql == "SELECT id, name FROM users WHERE id = $1"
+  assert q.sql == "SELECT id, name FROM users WHERE id = $1;"
   assert q.values == [value.int(1)]
 }
 
@@ -312,7 +312,7 @@ pub fn to_query_select_no_params_test() {
     |> sql.select([sql.column("name")])
     |> db.to_query(database)
 
-  assert q.sql == "SELECT name FROM users"
+  assert q.sql == "SELECT name FROM users;"
   assert q.values == []
 }
 
@@ -328,7 +328,7 @@ pub fn to_query_insert_test() {
     |> sql.values(row)
     |> db.to_query(database)
 
-  assert q.sql == "INSERT INTO users (name, age) VALUES ($1, $2)"
+  assert q.sql == "INSERT INTO users (name, age) VALUES ($1, $2);"
   assert q.values == [value.text("Alice"), value.int(30)]
 }
 
@@ -341,7 +341,7 @@ pub fn to_query_update_test() {
     |> sql.where([sql.column("id") |> sql.eq(value.int(1), of: sql.val)])
     |> db.to_query(database)
 
-  assert q.sql == "UPDATE users SET name = $1 WHERE id = $2"
+  assert q.sql == "UPDATE users SET name = $1 WHERE id = $2;"
   assert q.values == [value.text("Bob"), value.int(1)]
 }
 
@@ -354,7 +354,7 @@ pub fn to_query_delete_test() {
     |> sql.where([sql.column("id") |> sql.eq(value.int(42), of: sql.val)])
     |> db.to_query(database)
 
-  assert q.sql == "DELETE FROM users WHERE id = $1"
+  assert q.sql == "DELETE FROM users WHERE id = $1;"
   assert q.values == [value.int(42)]
 }
 
@@ -374,7 +374,7 @@ pub fn to_sql_select_test() {
     |> sql.where([sql.column("id") |> sql.eq(value.int(1), of: sql.val)])
     |> db.to_sql(database)
 
-  assert sql_string == "SELECT id, name FROM users WHERE id = 1"
+  assert sql_string == "SELECT id, name FROM users WHERE id = 1;"
 }
 
 pub fn to_sql_select_no_params_test() {
@@ -385,7 +385,7 @@ pub fn to_sql_select_no_params_test() {
     |> sql.select([sql.column("name")])
     |> db.to_sql(database)
 
-  assert sql_string == "SELECT name FROM users"
+  assert sql_string == "SELECT name FROM users;"
 }
 
 pub fn to_sql_insert_test() {
@@ -401,7 +401,7 @@ pub fn to_sql_insert_test() {
     |> sql.values(row)
     |> db.to_sql(database)
 
-  assert sql_string == "INSERT INTO users (name, age) VALUES ('Alice', 30)"
+  assert sql_string == "INSERT INTO users (name, age) VALUES ('Alice', 30);"
 }
 
 pub fn to_sql_update_test() {
@@ -413,7 +413,7 @@ pub fn to_sql_update_test() {
     |> sql.where([sql.column("id") |> sql.eq(value.int(1), of: sql.val)])
     |> db.to_sql(database)
 
-  assert sql_string == "UPDATE users SET name = 'Bob' WHERE id = 1"
+  assert sql_string == "UPDATE users SET name = 'Bob' WHERE id = 1;"
 }
 
 pub fn to_sql_delete_test() {
@@ -425,7 +425,7 @@ pub fn to_sql_delete_test() {
     |> sql.where([sql.column("id") |> sql.eq(value.int(42), of: sql.val)])
     |> db.to_sql(database)
 
-  assert sql_string == "DELETE FROM users WHERE id = 42"
+  assert sql_string == "DELETE FROM users WHERE id = 42;"
 }
 
 fn sql_adapter() -> sql.Adapter(Value) {
