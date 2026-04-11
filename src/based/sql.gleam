@@ -975,9 +975,9 @@ pub fn values(
 /// Adds an ON CONFLICT clause to an INSERT query (upsert).
 pub fn on_conflict(
   builder: Builder(Insert, v),
-  target target: String,
-  action action: ConflictAction,
-  where wheres: List(Condition(v)),
+  target: String,
+  action: ConflictAction,
+  wheres: List(Condition(v)),
 ) -> Builder(Insert, v) {
   case builder {
     InsertBuilder(query:, ctes:, recursive:) ->

@@ -1001,7 +1001,7 @@ pub fn on_conflict_do_nothing_test() {
   let q =
     sql.insert(into: sql.table("users"))
     |> sql.values(inserter)
-    |> sql.on_conflict(target: "id", action: sql.DoNothing, where: [])
+    |> sql.on_conflict("id", sql.DoNothing, [])
     |> sql.to_query(a())
 
   assert q.sql
@@ -1018,9 +1018,9 @@ pub fn on_conflict_do_update_test() {
     sql.insert(into: sql.table("counts"))
     |> sql.values(inserter)
     |> sql.on_conflict(
-      target: "id",
-      action: sql.DoUpdate(sets: [#("quantity", "excluded.quantity")]),
-      where: [],
+      "id",
+      sql.DoUpdate(sets: [#("quantity", "excluded.quantity")]),
+      [],
     )
     |> sql.to_query(a())
 
@@ -1038,9 +1038,9 @@ pub fn on_conflict_do_update_with_where_test() {
     sql.insert(into: sql.table("counts"))
     |> sql.values(inserter)
     |> sql.on_conflict(
-      target: "id",
-      action: sql.DoUpdate(sets: [#("quantity", "excluded.quantity")]),
-      where: [sql.column("quantity") |> sql.gt(sql.int(5), of: sql.val)],
+      "id",
+      sql.DoUpdate(sets: [#("quantity", "excluded.quantity")]),
+      [sql.column("quantity") |> sql.gt(sql.int(5), of: sql.val)],
     )
     |> sql.to_query(a())
 
@@ -1057,7 +1057,7 @@ pub fn on_conflict_do_nothing_returning_test() {
   let q =
     sql.insert(into: sql.table("counts"))
     |> sql.values(inserter)
-    |> sql.on_conflict(target: "id", action: sql.DoNothing, where: [])
+    |> sql.on_conflict("id", sql.DoNothing, [])
     |> sql.returning([sql.column("id")])
     |> sql.to_query(a())
 
@@ -1075,9 +1075,9 @@ pub fn on_conflict_to_string_test() {
     sql.insert(into: sql.table("counts"))
     |> sql.values(inserter)
     |> sql.on_conflict(
-      target: "id",
-      action: sql.DoUpdate(sets: [#("quantity", "excluded.quantity")]),
-      where: [],
+      "id",
+      sql.DoUpdate(sets: [#("quantity", "excluded.quantity")]),
+      [],
     )
     |> sql.to_string(a())
 
@@ -1094,9 +1094,9 @@ pub fn on_conflict_where_to_string_test() {
     sql.insert(into: sql.table("counts"))
     |> sql.values(inserter)
     |> sql.on_conflict(
-      target: "id",
-      action: sql.DoUpdate(sets: [#("quantity", "excluded.quantity")]),
-      where: [sql.column("quantity") |> sql.gt(sql.int(5), of: sql.val)],
+      "id",
+      sql.DoUpdate(sets: [#("quantity", "excluded.quantity")]),
+      [sql.column("quantity") |> sql.gt(sql.int(5), of: sql.val)],
     )
     |> sql.to_string(a())
 
@@ -2311,7 +2311,7 @@ pub fn insert_on_conflict_do_nothing_backtick_test() {
   let q =
     sql.insert(into: sql.table("users"))
     |> sql.values(inserter)
-    |> sql.on_conflict(target: "email", action: sql.DoNothing, where: [])
+    |> sql.on_conflict("email", sql.DoNothing, [])
     |> sql.to_query(backtick_a())
 
   assert q.sql
@@ -2796,9 +2796,9 @@ pub fn on_conflict_do_update_to_string_test() {
     sql.insert(into: sql.table("users"))
     |> sql.values(inserter)
     |> sql.on_conflict(
-      target: "email",
-      action: sql.DoUpdate(sets: [#("name", "EXCLUDED.name")]),
-      where: [],
+      "email",
+      sql.DoUpdate(sets: [#("name", "EXCLUDED.name")]),
+      [],
     )
     |> sql.to_string(a())
 
@@ -2814,7 +2814,7 @@ pub fn on_conflict_do_nothing_to_string_test() {
   let q =
     sql.insert(into: sql.table("users"))
     |> sql.values(inserter)
-    |> sql.on_conflict(target: "email", action: sql.DoNothing, where: [])
+    |> sql.on_conflict("email", sql.DoNothing, [])
     |> sql.to_string(a())
 
   assert q
