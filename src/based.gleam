@@ -11,36 +11,23 @@ import gleam/string
 /// Error types covering database-specific errors, decoding failures,
 /// and application-level errors.
 pub type BasedError {
-  ConnectionTimeout
-  ConnectionUnavailable
-  ConnectionError(message: String)
+  BasedError(message: String)
+  NotFound
+  DecodeError(errors: List(decode.DecodeError))
+  DbError(error: DatabaseError)
+}
+
+pub type DatabaseError {
   DatabaseError(code: String, name: String, message: String)
   ConstraintError(code: String, name: String, message: String)
   SyntaxError(code: String, name: String, message: String)
-  BasedError(message: String)
-  DecodeError(errors: List(decode.DecodeError))
-  NotFound
+  ConnectionError(message: String)
+  ConnectionUnavailable
+  ConnectionTimeout
 }
 
-/// Formats the provided `BasedError` as a string.
 pub fn error_to_string(err: BasedError) -> String {
   case err {
-    ConnectionTimeout -> format_error_kind(["based"], "ConnectionTimeout")
-    ConnectionUnavailable ->
-      format_error_kind(["based"], "ConnectionUnavailable")
-    ConnectionError(message:) ->
-      format_error_kind(["based"], "ConnectionError")
-      |> string.append(" ")
-      |> string.append(message)
-    DatabaseError(code:, name:, message:) ->
-      format_error_kind(["based"], "DatabaseError")
-      |> format_db_error(code, name, message)
-    ConstraintError(code:, name:, message:) ->
-      format_error_kind(["based"], "ConstraintError")
-      |> format_db_error(code, name, message)
-    SyntaxError(code:, name:, message:) ->
-      format_error_kind(["based"], "SyntaxError")
-      |> format_db_error(code, name, message)
     BasedError(message:) ->
       format_error_kind(["based"], "BasedError")
       |> string.append(" ")
@@ -71,6 +58,29 @@ pub fn error_to_string(err: BasedError) -> String {
       |> string.append(" errors: ")
       |> string.append(error_string)
     }
+    DbError(error:) -> database_error_to_string(error)
+  }
+}
+
+/// Formats the provided `BasedError` as a string.
+pub fn database_error_to_string(err: DatabaseError) -> String {
+  case err {
+    ConnectionTimeout -> format_error_kind(["based"], "ConnectionTimeout")
+    ConnectionUnavailable ->
+      format_error_kind(["based"], "ConnectionUnavailable")
+    ConnectionError(message:) ->
+      format_error_kind(["based"], "ConnectionError")
+      |> string.append(" ")
+      |> string.append(message)
+    DatabaseError(code:, name:, message:) ->
+      format_error_kind(["based"], "DatabaseError")
+      |> format_db_error(code, name, message)
+    ConstraintError(code:, name:, message:) ->
+      format_error_kind(["based"], "ConstraintError")
+      |> format_db_error(code, name, message)
+    SyntaxError(code:, name:, message:) ->
+      format_error_kind(["based"], "SyntaxError")
+      |> format_db_error(code, name, message)
   }
 }
 

@@ -179,24 +179,27 @@ fn tx_handler(
 }
 
 pub fn error_to_string_connection_timeout_test() {
-  let result = based.error_to_string(based.ConnectionTimeout)
+  let result = based.ConnectionTimeout |> based.DbError |> based.error_to_string
 
   assert result == "[based.ConnectionTimeout]"
 }
 
 pub fn error_to_string_connection_error_test() {
-  let result = based.error_to_string(based.ConnectionError("refused"))
+  let result =
+    based.ConnectionError("refused") |> based.DbError |> based.error_to_string
 
   assert result == "[based.ConnectionError] refused"
 }
 
 pub fn error_to_string_database_error_test() {
   let result =
-    based.error_to_string(based.DatabaseError(
+    based.DatabaseError(
       code: "42P01",
       name: "undefined_table",
       message: "relation does not exist",
-    ))
+    )
+    |> based.DbError
+    |> based.error_to_string
 
   assert result
     == "[based.DatabaseError] code: 42P01, name: undefined_table, message: relation does not exist"
@@ -204,11 +207,13 @@ pub fn error_to_string_database_error_test() {
 
 pub fn error_to_string_constraint_error_test() {
   let result =
-    based.error_to_string(based.ConstraintError(
+    based.ConstraintError(
       code: "23505",
       name: "unique_violation",
       message: "duplicate key",
-    ))
+    )
+    |> based.DbError
+    |> based.error_to_string
 
   assert result
     == "[based.ConstraintError] code: 23505, name: unique_violation, message: duplicate key"
@@ -216,11 +221,13 @@ pub fn error_to_string_constraint_error_test() {
 
 pub fn error_to_string_syntax_error_test() {
   let result =
-    based.error_to_string(based.SyntaxError(
+    based.SyntaxError(
       code: "42601",
       name: "syntax_error",
       message: "unexpected token",
-    ))
+    )
+    |> based.DbError
+    |> based.error_to_string
 
   assert result
     == "[based.SyntaxError] code: 42601, name: syntax_error, message: unexpected token"
