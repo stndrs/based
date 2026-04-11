@@ -525,7 +525,11 @@ pub opaque type Builder(kind, v) {
 ///
 /// Created with `cte` and optionally refined with `cte_columns`.
 pub opaque type Cte(v) {
-  Cte(name: String, columns: List(String), builder: Builder(Select, v))
+  Cte(
+    name: String,
+    columns: List(String),
+    build: fn(Adapter(v)) -> SqlBuilder(v),
+  )
 }
 
 /// Creates an equality condition.
@@ -897,8 +901,8 @@ pub fn set(column: String, input: a, of kind: Kind(a, v)) -> Set(v) {
 }
 
 /// Creates a Common Table Expression (CTE).
-pub fn cte(name name: String, query builder: Builder(Select, v)) -> Cte(v) {
-  Cte(name: name, columns: [], builder: builder)
+pub fn cte(name name: String, query builder: Builder(a, v)) -> Cte(v) {
+  Cte(name: name, columns: [], build: build_inner(builder, _))
 }
 
 /// Sets explicit column names on a CTE.
@@ -1213,7 +1217,7 @@ fn build_ctes(
       let #(cte_parts, all_vals) = {
         use #(parts, vals), cte <- list.fold(ctes, #([], []))
 
-        let sql_builder = build_single_select(cte.builder, adapter)
+        let sql_builder = cte.build(adapter)
         let col_part = case cte.columns {
           [] -> ""
           cols -> fmt.enclose(string.join(cols, ", "))
@@ -1554,6 +1558,16 @@ fn build_union(query: UnionQuery(v), adapter: Adapter(v)) -> SqlBuilder(v) {
     [first, ..rest] -> list.fold(rest, first, union_fn)
   }
   SqlBuilder(sql, values)
+}
+
+fn build_inner(builder: Builder(a, v), adapter: Adapter(v)) -> SqlBuilder(v) {
+  case builder {
+    SelectBuilder(query:, ..) -> build_select(query, adapter)
+    InsertBuilder(query:, ..) -> build_insert(query, adapter)
+    UpdateBuilder(query:, ..) -> build_update(query, adapter)
+    DeleteBuilder(query:, ..) -> build_delete(query, adapter)
+    UnionBuilder(query:, ..) -> build_union(query, adapter)
+  }
 }
 
 fn build_single_select(

@@ -3689,3 +3689,130 @@ pub fn update_set_nullable_none_test() {
   assert q.sql == "UPDATE users SET name = $1 WHERE id = $2;"
   assert q.values == [value.Null, value.int(1)]
 }
+
+pub fn cte_insert_subquery_test() {
+  let moved_rows =
+    sql.cte(
+      name: "moved_rows",
+      query: sql.insert(into: sql.table("archive"))
+        |> sql.values(
+          sql.rows(["Alice"])
+          |> sql.value("name", fn(name) { value.text(name) }),
+        )
+        |> sql.returning([sql.column("id")]),
+    )
+
+  let q =
+    sql.from(sql.table("moved_rows"))
+    |> sql.select([sql.column("id")])
+    |> sql.with(ctes: [moved_rows])
+    |> sql.to_query(adapter())
+
+  assert q.sql
+    == "WITH moved_rows AS (INSERT INTO archive (name) VALUES ($1) RETURNING id) SELECT id FROM moved_rows;"
+  assert q.values == [value.text("Alice")]
+}
+
+pub fn cte_update_subquery_test() {
+  let updated =
+    sql.cte(
+      name: "updated",
+      query: sql.table("users")
+        |> sql.update([sql.set("active", value.bool(False), of: sql.val)])
+        |> sql.where([
+          sql.column("last_login")
+          |> sql.lt(value.text("2025-01-01"), of: sql.val),
+        ])
+        |> sql.returning([sql.column("id"), sql.column("email")]),
+    )
+
+  let q =
+    sql.from(sql.table("updated"))
+    |> sql.select([sql.column("id"), sql.column("email")])
+    |> sql.with(ctes: [updated])
+    |> sql.to_query(adapter())
+
+  assert q.sql
+    == "WITH updated AS (UPDATE users SET active = $1 WHERE last_login < $2 RETURNING id, email) SELECT id, email FROM updated;"
+  assert q.values == [value.bool(False), value.text("2025-01-01")]
+}
+
+pub fn cte_delete_subquery_test() {
+  let deleted =
+    sql.cte(
+      name: "deleted",
+      query: sql.from(sql.table("sessions"))
+        |> sql.delete()
+        |> sql.where([
+          sql.column("expired") |> sql.eq(value.bool(True), of: sql.val),
+        ])
+        |> sql.returning([sql.column("user_id")]),
+    )
+
+  let q =
+    sql.from(sql.table("deleted"))
+    |> sql.select([sql.column("user_id")])
+    |> sql.with(ctes: [deleted])
+    |> sql.to_query(adapter())
+
+  assert q.sql
+    == "WITH deleted AS (DELETE FROM sessions WHERE expired = $1 RETURNING user_id) SELECT user_id FROM deleted;"
+  assert q.values == [value.bool(True)]
+}
+
+pub fn cte_mixed_data_modifying_test() {
+  let active_users =
+    sql.cte(
+      name: "active_users",
+      query: sql.from(sql.table("users"))
+        |> sql.select([sql.column("id"), sql.column("name")])
+        |> sql.where([
+          sql.column("active") |> sql.eq(value.bool(True), of: sql.val),
+        ]),
+    )
+
+  let archived =
+    sql.cte(
+      name: "archived",
+      query: sql.insert(into: sql.table("archive"))
+        |> sql.values(
+          sql.rows(["snapshot"])
+          |> sql.value("label", fn(l) { value.text(l) }),
+        )
+        |> sql.returning([sql.column("id")]),
+    )
+
+  let q =
+    sql.from(sql.table("active_users"))
+    |> sql.select([sql.column("id"), sql.column("name")])
+    |> sql.with(ctes: [active_users, archived])
+    |> sql.to_query(adapter())
+
+  assert q.sql
+    == "WITH active_users AS (SELECT id, name FROM users WHERE active = $1), archived AS (INSERT INTO archive (label) VALUES ($2) RETURNING id) SELECT id, name FROM active_users;"
+  assert q.values == [value.bool(True), value.text("snapshot")]
+}
+
+pub fn cte_delete_subquery_with_column_aliases_test() {
+  let deleted =
+    sql.cte(
+      name: "removed",
+      query: sql.from(sql.table("temp_data"))
+        |> sql.delete()
+        |> sql.where([
+          sql.column("stale") |> sql.eq(value.bool(True), of: sql.val),
+        ])
+        |> sql.returning([sql.column("id"), sql.column("category")]),
+    )
+    |> sql.cte_columns(columns: ["removed_id", "removed_cat"])
+
+  let q =
+    sql.from(sql.table("removed"))
+    |> sql.select([sql.column("removed_id"), sql.column("removed_cat")])
+    |> sql.with(ctes: [deleted])
+    |> sql.to_query(adapter())
+
+  assert q.sql
+    == "WITH removed(removed_id, removed_cat) AS (DELETE FROM temp_data WHERE stale = $1 RETURNING id, category) SELECT removed_id, removed_cat FROM removed;"
+  assert q.values == [value.bool(True)]
+}
