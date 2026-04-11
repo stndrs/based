@@ -1231,8 +1231,8 @@ pub fn union_three_way_to_string_test() {
 pub fn cte_basic_to_query_test() {
   let active_users =
     sql.cte(
-      name: "active_users",
-      query: sql.from(sql.table("users"))
+      "active_users",
+      sql.from(sql.table("users"))
         |> sql.select([sql.column("id"), sql.column("name")])
         |> sql.where([sql.column("active") |> sql.eq(value.true, of: sql.val)]),
     )
@@ -1251,8 +1251,8 @@ pub fn cte_basic_to_query_test() {
 pub fn cte_basic_to_string_test() {
   let active_users =
     sql.cte(
-      name: "active_users",
-      query: sql.from(sql.table("users"))
+      "active_users",
+      sql.from(sql.table("users"))
         |> sql.select([sql.column("id"), sql.column("name")])
         |> sql.where([sql.column("active") |> sql.eq(value.true, of: sql.val)]),
     )
@@ -1273,16 +1273,16 @@ pub fn cte_multiple_test() {
 
   let active_users_cte =
     sql.cte(
-      name: "active_users",
-      query: sql.from(sql.table("users"))
+      "active_users",
+      sql.from(sql.table("users"))
         |> sql.select([sql.column("id")])
         |> sql.where([sql.column("active") |> sql.eq(value.true, of: sql.val)]),
     )
 
   let recent_orders_cte =
     sql.cte(
-      name: "recent_orders",
-      query: sql.from(sql.table("orders"))
+      "recent_orders",
+      sql.from(sql.table("orders"))
         |> sql.select([sql.column("user_id"), sql.column("total")])
         |> sql.where([
           sql.column("total") |> sql.gt(value.float(100.0), of: sql.val),
@@ -1311,11 +1311,11 @@ pub fn cte_multiple_test() {
 pub fn cte_with_column_aliases_test() {
   let totals =
     sql.cte(
-      name: "totals",
-      query: sql.from(sql.table("orders"))
+      "totals",
+      sql.from(sql.table("orders"))
         |> sql.select([sql.column("user_id"), sql.column("amount")]),
     )
-    |> sql.cte_columns(columns: ["uid", "total"])
+    |> sql.cte_columns(["uid", "total"])
 
   let s =
     sql.from(sql.table("totals"))
@@ -1337,7 +1337,7 @@ pub fn cte_recursive_test() {
     ])
     |> sql.where([sql.column("parent_id") |> sql.is_null])
 
-  let category_tree = sql.cte(name: "category_tree", query: base)
+  let category_tree = sql.cte("category_tree", base)
 
   let s =
     sql.from(sql.table("category_tree"))
@@ -1353,8 +1353,8 @@ pub fn cte_recursive_test() {
 pub fn cte_with_insert_test() {
   let new_users =
     sql.cte(
-      name: "new_users",
-      query: sql.from(sql.table("users"))
+      "new_users",
+      sql.from(sql.table("users"))
         |> sql.select([sql.column("id")])
         |> sql.where([
           sql.column("status") |> sql.eq(value.text("new"), of: sql.val),
@@ -1379,8 +1379,8 @@ pub fn cte_with_insert_test() {
 pub fn cte_with_update_test() {
   let target_users =
     sql.cte(
-      name: "target_users",
-      query: sql.from(sql.table("users"))
+      "target_users",
+      sql.from(sql.table("users"))
         |> sql.select([sql.column("id")])
         |> sql.where([sql.column("score") |> sql.lt(value.int(10), of: sql.val)]),
     )
@@ -1408,8 +1408,8 @@ pub fn cte_with_update_test() {
 pub fn cte_with_delete_test() {
   let old_orders =
     sql.cte(
-      name: "old_orders",
-      query: sql.from(sql.table("orders"))
+      "old_orders",
+      sql.from(sql.table("orders"))
         |> sql.select([sql.column("id")])
         |> sql.where([
           sql.column("year") |> sql.lt(value.int(2020), of: sql.val),
@@ -1440,16 +1440,16 @@ pub fn cte_with_delete_test() {
 pub fn cte_placeholder_threading_test() {
   let cte1 =
     sql.cte(
-      name: "cte1",
-      query: sql.from(sql.table("t1"))
+      "cte1",
+      sql.from(sql.table("t1"))
         |> sql.select([sql.column("id")])
         |> sql.where([sql.column("a") |> sql.eq(value.int(1), of: sql.val)]),
     )
 
   let cte2 =
     sql.cte(
-      name: "cte2",
-      query: sql.from(sql.table("t2"))
+      "cte2",
+      sql.from(sql.table("t2"))
         |> sql.select([sql.column("id")])
         |> sql.where([sql.column("b") |> sql.eq(value.int(2), of: sql.val)]),
     )
@@ -2571,7 +2571,7 @@ pub fn cte_with_join_test() {
       |> sql.column_for(active_users)
       |> sql.eq(sql.column("user_id") |> sql.column_for(orders), of: sql.col),
     ])
-    |> sql.with([sql.cte(name: "active_users", query: cte_query)])
+    |> sql.with([sql.cte("active_users", cte_query)])
     |> sql.to_query(adapter())
 
   assert q.sql
@@ -2595,7 +2595,7 @@ pub fn cte_with_union_body_test() {
 
   let q =
     sql.union([main2, main1])
-    |> sql.with([sql.cte(name: "active_users", query: cte_query1)])
+    |> sql.with([sql.cte("active_users", cte_query1)])
     |> sql.to_query(adapter())
 
   assert q.sql
@@ -2612,7 +2612,7 @@ pub fn cte_basic_to_string_with_values_test() {
   let q =
     sql.from(sql.table("active_users"))
     |> sql.select([sql.column("id"), sql.column("name")])
-    |> sql.with([sql.cte(name: "active_users", query: cte_query)])
+    |> sql.with([sql.cte("active_users", cte_query)])
     |> sql.to_string(adapter())
 
   assert q
@@ -2639,7 +2639,7 @@ pub fn cte_recursive_union_all_test() {
       sql.column("parent_id"),
       sql.column("name"),
     ])
-    |> sql.with([sql.cte(name: "category_tree", query: base_query)])
+    |> sql.with([sql.cte("category_tree", base_query)])
     |> sql.recursive
     |> sql.to_query(adapter())
 
@@ -2680,8 +2680,8 @@ pub fn cte_multiple_to_string_test() {
       ),
     ])
     |> sql.with([
-      sql.cte(name: "active_users", query: cte1),
-      sql.cte(name: "user_orders", query: cte2),
+      sql.cte("active_users", cte1),
+      sql.cte("user_orders", cte2),
     ])
     |> sql.to_string(adapter())
 
@@ -3319,7 +3319,7 @@ pub fn cte_basic_with_semicolon_test() {
   let q =
     sql.from(sql.table("active_users"))
     |> sql.select([sql.column("id"), sql.column("name")])
-    |> sql.with([sql.cte(name: "active_users", query: cte_query)])
+    |> sql.with([sql.cte("active_users", cte_query)])
     |> sql.to_query(adapter())
 
   assert q.sql
@@ -3358,8 +3358,8 @@ pub fn cte_multiple_with_semicolon_test() {
       ),
     ])
     |> sql.with([
-      sql.cte(name: "active_users", query: cte1),
-      sql.cte(name: "user_orders", query: cte2),
+      sql.cte("active_users", cte1),
+      sql.cte("user_orders", cte2),
     ])
     |> sql.to_query(adapter())
 
@@ -3376,8 +3376,8 @@ pub fn cte_with_column_aliases_semicolon_test() {
     sql.from(sql.table("u"))
     |> sql.select([sql.column("user_id"), sql.column("user_name")])
     |> sql.with([
-      sql.cte(name: "u", query: cte_query)
-      |> sql.cte_columns(columns: ["user_id", "user_name"]),
+      sql.cte("u", cte_query)
+      |> sql.cte_columns(["user_id", "user_name"]),
     ])
     |> sql.to_query(adapter())
 
@@ -3693,8 +3693,8 @@ pub fn update_set_nullable_none_test() {
 pub fn cte_insert_subquery_test() {
   let moved_rows =
     sql.cte(
-      name: "moved_rows",
-      query: sql.insert(into: sql.table("archive"))
+      "moved_rows",
+      sql.insert(into: sql.table("archive"))
         |> sql.values(
           sql.rows(["Alice"])
           |> sql.value("name", fn(name) { value.text(name) }),
@@ -3716,8 +3716,8 @@ pub fn cte_insert_subquery_test() {
 pub fn cte_update_subquery_test() {
   let updated =
     sql.cte(
-      name: "updated",
-      query: sql.table("users")
+      "updated",
+      sql.table("users")
         |> sql.update([sql.set("active", value.bool(False), of: sql.val)])
         |> sql.where([
           sql.column("last_login")
@@ -3740,8 +3740,8 @@ pub fn cte_update_subquery_test() {
 pub fn cte_delete_subquery_test() {
   let deleted =
     sql.cte(
-      name: "deleted",
-      query: sql.from(sql.table("sessions"))
+      "deleted",
+      sql.from(sql.table("sessions"))
         |> sql.delete()
         |> sql.where([
           sql.column("expired") |> sql.eq(value.bool(True), of: sql.val),
@@ -3763,8 +3763,8 @@ pub fn cte_delete_subquery_test() {
 pub fn cte_mixed_data_modifying_test() {
   let active_users =
     sql.cte(
-      name: "active_users",
-      query: sql.from(sql.table("users"))
+      "active_users",
+      sql.from(sql.table("users"))
         |> sql.select([sql.column("id"), sql.column("name")])
         |> sql.where([
           sql.column("active") |> sql.eq(value.bool(True), of: sql.val),
@@ -3773,8 +3773,8 @@ pub fn cte_mixed_data_modifying_test() {
 
   let archived =
     sql.cte(
-      name: "archived",
-      query: sql.insert(into: sql.table("archive"))
+      "archived",
+      sql.insert(into: sql.table("archive"))
         |> sql.values(
           sql.rows(["snapshot"])
           |> sql.value("label", fn(l) { value.text(l) }),
@@ -3796,15 +3796,15 @@ pub fn cte_mixed_data_modifying_test() {
 pub fn cte_delete_subquery_with_column_aliases_test() {
   let deleted =
     sql.cte(
-      name: "removed",
-      query: sql.from(sql.table("temp_data"))
+      "removed",
+      sql.from(sql.table("temp_data"))
         |> sql.delete()
         |> sql.where([
           sql.column("stale") |> sql.eq(value.bool(True), of: sql.val),
         ])
         |> sql.returning([sql.column("id"), sql.column("category")]),
     )
-    |> sql.cte_columns(columns: ["removed_id", "removed_cat"])
+    |> sql.cte_columns(["removed_id", "removed_cat"])
 
   let q =
     sql.from(sql.table("removed"))

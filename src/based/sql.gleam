@@ -901,12 +901,12 @@ pub fn set(column: String, input: a, of kind: Kind(a, v)) -> Set(v) {
 }
 
 /// Creates a Common Table Expression (CTE).
-pub fn cte(name name: String, query builder: Builder(a, v)) -> Cte(v) {
-  Cte(name: name, columns: [], build: build_inner(builder, _))
+pub fn cte(name: String, builder: Builder(a, v)) -> Cte(v) {
+  Cte(name:, columns: [], build: build_inner(builder, _))
 }
 
 /// Sets explicit column names on a CTE.
-pub fn cte_columns(cte c: Cte(v), columns cols: List(String)) -> Cte(v) {
+pub fn cte_columns(c: Cte(v), cols: List(String)) -> Cte(v) {
   Cte(..c, columns: cols)
 }
 
