@@ -1,4 +1,3 @@
-import based/interval
 import based/sql
 import gleam/bit_array
 import gleam/float
@@ -52,7 +51,6 @@ pub type Value {
   Datetime(calendar.Date, calendar.TimeOfDay)
   Timestamp(timestamp.Timestamp)
   Timestamptz(timestamp.Timestamp, Offset)
-  Interval(interval.Interval)
   Array(List(Value))
 }
 
@@ -116,11 +114,6 @@ pub fn timestamptz(timestamp: timestamp.Timestamp, offset: Offset) -> Value {
   Timestamptz(timestamp, offset)
 }
 
-/// Wraps an `interval.Interval` as a `Value`.
-pub fn interval(interval: interval.Interval) -> Value {
-  Interval(interval)
-}
-
 /// Wraps a list of elements as an `Array` value.
 ///
 /// The `of` parameter specifies how to convert each element to a `Value`.
@@ -149,7 +142,6 @@ pub fn to_string(value: Value) -> String {
     Datetime(date, time) -> datetime_to_string(date, time)
     Timestamp(val) -> timestamp_to_string(val)
     Timestamptz(ts, offset) -> timestamptz_to_string(ts, offset)
-    Interval(val) -> interval.to_iso8601_string(val)
     Array(val) -> array_to_string(val)
   }
 }

@@ -1,4 +1,3 @@
-import based/interval
 import based/sql
 import based/value.{type Value}
 import gleam/int
@@ -3503,33 +3502,6 @@ pub fn timestamptz_to_query_test() {
 
   assert q.sql == "SELECT * FROM events WHERE ts = $1;"
   assert q.values == [value.timestamptz(ts, value.Offset(hours: 5, minutes: 0))]
-}
-
-pub fn interval_to_string_test() {
-  let s =
-    sql.from(sql.table("tasks"))
-    |> sql.select([sql.star])
-    |> sql.where([
-      sql.column("duration")
-      |> sql.eq(value.interval(interval.months(2)), of: sql.val),
-    ])
-    |> sql.to_string(adapter())
-
-  assert s == "SELECT * FROM tasks WHERE duration = P2M;"
-}
-
-pub fn interval_to_query_test() {
-  let iv = interval.months(2)
-  let q =
-    sql.from(sql.table("tasks"))
-    |> sql.select([sql.star])
-    |> sql.where([
-      sql.column("duration") |> sql.eq(value.interval(iv), of: sql.val),
-    ])
-    |> sql.to_query(adapter())
-
-  assert q.sql == "SELECT * FROM tasks WHERE duration = $1;"
-  assert q.values == [value.interval(iv)]
 }
 
 pub fn array_to_string_test() {
