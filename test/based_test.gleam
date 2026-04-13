@@ -336,3 +336,36 @@ pub fn decode_error_test() {
 
   let assert Error(based.DecodeError(_)) = based.decode(queried, user_decoder())
 }
+
+pub fn one_returns_first_of_multiple_rows_test() {
+  let sql = "SELECT * FROM users;"
+  let rows = [
+    dynamic.array([dynamic.int(1), dynamic.string("Steve")]),
+    dynamic.array([dynamic.int(2), dynamic.string("Alice")]),
+  ]
+
+  let returning = Ok(based.Queried(count: 2, fields: ["id", "name"], rows:))
+
+  let assert Ok(#(1, "Steve")) =
+    sql.query(sql)
+    |> based.one(query_handler(returning:), user_decoder())
+}
+
+pub fn error_to_string_connection_unavailable_test() {
+  let result =
+    based.ConnectionUnavailable |> based.DbError |> based.error_to_string
+
+  assert result == "[based.ConnectionUnavailable]"
+}
+
+pub fn database_error_to_string_test() {
+  let result =
+    based.database_error_to_string(based.DatabaseError(
+      code: "42P01",
+      name: "undefined_table",
+      message: "relation does not exist",
+    ))
+
+  assert result
+    == "[based.DatabaseError] code: 42P01, name: undefined_table, message: relation does not exist"
+}

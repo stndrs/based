@@ -9,9 +9,9 @@ composable, database-agnostic SQL query builder and type system.
 
 ### Added
 
-- **Database layer** (`based/db`): Value types covering common SQL data types
+- **Database layer** (`based`): Value types covering common SQL data types
   (text, int, float, bool, bytea, date, time, datetime, timestamp, timestamptz,
-  interval, uuid, array, null), structured error types, parameterized queries,
+  array, null), structured error types, parameterized queries,
   connection/driver abstraction, transaction support, batch queries, and row
   decoding via `gleam/decode`.
 - **SQL query builder** (`based/sql`): Composable, type-safe builders for
@@ -26,10 +26,6 @@ composable, database-agnostic SQL query builder and type system.
 - **Joins**: `INNER`, `LEFT`, `RIGHT`, and `FULL` joins with condition-based `ON`
   clauses.
 - **Subqueries**: `WHERE EXISTS`, `IN (subquery)`, `ANY`, and `ALL` support.
-- **UUID** (`based/uuid`): Generation of v4 (random) and v7 (time-ordered) UUIDs,
-  parsing, formatting, nil UUID, and version detection.
-- **Interval** (`based/interval`): ISO 8601 duration type with months, days,
-  seconds, and microseconds. Includes addition and string formatting.
 
 ### Removed
 
@@ -41,5 +37,4 @@ composable, database-agnostic SQL query builder and type system.
 ### Changed
 
 - Minimum Gleam version is now `>= 1.11.0`.
-- Dependencies: `gleam_stdlib >= 0.44.0`, `gleam_time >= 1.6.0`,
-  `gleam_crypto >= 1.5.1`.
+- Dependencies: `gleam_stdlib >= 0.44.0`, `gleam_time >= 1.6.0`.

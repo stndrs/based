@@ -20,16 +20,14 @@ Build type-safe SQL queries using `based/sql`:
 ```gleam
 import based/sql
 
-let adapter = sql.adapter()
-
 let query =
   sql.from(sql.table("users"))
-  |> sql.select([sql.col("id"), sql.col("name")])
-  |> sql.where([sql.col("id") |> sql.eq(sql.int(1), of: sql.value)])
+  |> sql.select([sql.column("id"), sql.column("name")])
+  |> sql.where([sql.column("id") |> sql.eq(value.int(1), of: sql.val)])
   |> sql.to_query(adapter)
 
 // query.sql == "SELECT id, name FROM users WHERE id = ?"
-// query.values == [sql.Int(1)]
+// query.values == [value.Int(1)]
 ```
 
 ### Insert
@@ -37,16 +35,15 @@ let query =
 ```gleam
 import based/sql
 
-let inserter = {
-  use <- sql.val("name", fn(user: #(String, String)) { sql.text(user.0) })
-  use <- sql.val("email", fn(user: #(String, String)) { sql.text(user.1) })
-  sql.row()
-}
+let inserter =
+  sql.rows([#("John", "john@example.com")])
+  |> sql.value("name", fn(user) { value.text(user.0) })
+  |> sql.value("email", fn(user) { value.text(user.1) })
 
 let query =
   sql.insert(into: sql.table("users"))
-  |> sql.values(inserter, [#("John", "john@example.com")])
-  |> sql.to_query(sql.adapter())
+  |> sql.values(inserter)
+  |> sql.to_query(adapter)
 
 // query.sql == "INSERT INTO users (name, email) VALUES (?, ?)"
 ```
@@ -57,10 +54,10 @@ let query =
 import based/sql
 
 let query =
-  sql.update(table: sql.table("users"))
-  |> sql.set("name", sql.text("Jane"), of: sql.value)
-  |> sql.where([sql.col("id") |> sql.eq(sql.int(1), of: sql.value)])
-  |> sql.to_query(sql.adapter())
+  sql.table("users")
+  |> sql.update([sql.set("name", value.text("Jane"), of: sql.val)])
+  |> sql.where([sql.column("id") |> sql.eq(value.int(1), of: sql.val)])
+  |> sql.to_query(adapter)
 
 // query.sql == "UPDATE users SET name = ? WHERE id = ?"
 ```
@@ -73,18 +70,19 @@ import based/sql
 let query =
   sql.from(sql.table("users"))
   |> sql.delete()
-  |> sql.where([sql.col("id") |> sql.eq(sql.int(1), of: sql.value)])
-  |> sql.to_query(sql.adapter())
+  |> sql.where([sql.column("id") |> sql.eq(value.int(1), of: sql.val)])
+  |> sql.to_query(adapter)
 
 // query.sql == "DELETE FROM users WHERE id = ?"
 ```
 
 ## Running Queries
 
-Use `db.query`, `db.all`, or `db.one` with a configured `Db` from an adapter package:
+Use `based.query`, `based.all`, or `based.one` with a configured `Db` from an
+adapter package:
 
 ```gleam
-import based/db
+import based
 import gleam/dynamic/decode
 
 let user_decoder = {
@@ -95,7 +93,7 @@ let user_decoder = {
 }
 
 // `database` is provided by an adapter package
-let assert Ok(users) = db.all(query, database, user_decoder)
+let assert Ok(users) = based.all(query, database, user_decoder)
 ```
 
 ## Custom Adapters
@@ -108,7 +106,7 @@ import based/sql
 import gleam/int
 
 let mysql_adapter =
-  sql.new_adapter()
+  sql.adapter()
   |> sql.on_placeholder(with: fn(_) { "?" })
   |> sql.on_identifier(with: fn(name) { "`" <> name <> "`" })
   |> sql.on_value(with: my_value_to_string)

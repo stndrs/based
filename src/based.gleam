@@ -62,7 +62,7 @@ pub fn error_to_string(err: BasedError) -> String {
   }
 }
 
-/// Formats the provided `BasedError` as a string.
+/// Formats the provided `DatabaseError` as a string.
 pub fn database_error_to_string(err: DatabaseError) -> String {
   case err {
     ConnectionTimeout -> format_error_kind(["based"], "ConnectionTimeout")

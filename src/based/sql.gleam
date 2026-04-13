@@ -14,33 +14,33 @@
 ////
 //// let query =
 ////   sql.from(sql.table("users"))
-////   |> sql.select([sql.col("name"), sql.col("email")])
-////   |> sql.where([sql.col("active") |> sql.eq(sql.true, of: sql.value)])
-////   |> sql.order_by(sql.col("name"), sql.asc)
+////   |> sql.select([sql.column("name"), sql.column("email")])
+////   |> sql.where([sql.column("active") |> sql.is_true()])
+////   |> sql.order_by([sql.asc(sql.column("name"))])
 ////   |> sql.limit(10)
 ////   |> sql.to_query(adapter)
 ////
 //// query.sql
-//// // -> "SELECT name, email FROM users WHERE active = ? ORDER BY name ASC LIMIT 10"
+//// // -> "SELECT name, email FROM users WHERE active IS TRUE ORDER BY name ASC LIMIT 10"
 ////
 //// query.values
-//// // -> [sql.Bool(True)]
+//// // -> []
 //// ```
 ////
 //// ## Custom adapters
 ////
-//// Use `new_adapter()` with builder functions to configure how queries are
+//// Use `adapter()` with builder functions to configure how queries are
 //// rendered for a specific database backend. This controls placeholder style,
 //// identifier quoting, and value type mapping.
 ////
 //// ```gleam
 //// let mysql_adapter =
-////   sql.new_adapter()
+////   sql.adapter()
 ////   |> sql.on_null(fn() { mysql.null })
 ////   |> sql.on_int(fn(i) { mysql.int(i) })
 ////   |> sql.on_text(fn(s) { mysql.text(s) })
 ////   |> sql.on_placeholder(fn(_) { "?" })
-////   |> sql.on_value(myslq_value_to_string)
+////   |> sql.on_value(mysql_value_to_string)
 ////   |> sql.on_identifier(fn(name) { "`" <> name <> "`" })
 //// ```
 ////
@@ -67,7 +67,7 @@ import gleam/string
 ///
 /// ```gleam
 /// let q = sql.from(sql.table("users"))
-///   |> sql.select([sql.col("name")])
+///   |> sql.select([sql.column("name")])
 ///   |> sql.to_query(adapter)
 ///
 /// q.sql     // -> "SELECT name FROM users"
@@ -174,7 +174,7 @@ pub const star = All(table: None)
 /// Database adapter that controls how queries are serialized.
 ///
 /// An adapter defines how placeholders, identifiers, and values are formatted
-/// for a specific database backend. Create one with `new_adapter()` and
+/// for a specific database backend. Create one with `adapter()` and
 /// configure it using the `on_*` builder functions.
 pub opaque type Adapter(v) {
   Adapter(
@@ -255,7 +255,7 @@ pub fn on_text(
 }
 
 /// A reusable specification for INSERT rows. Defines the column names and
-/// how to map inputs too values.
+/// how to map inputs to values.
 ///
 /// Built using `rows` and piping through `val`:
 ///
@@ -628,6 +628,11 @@ pub fn exists(builder: Builder(Select, v)) -> Condition(v) {
 }
 
 /// Creates a raw SQL condition.
+///
+/// **Warning:** The given SQL string is embedded directly in the query
+/// without any escaping or parameterization. Never pass untrusted user
+/// input to this function — doing so may expose your application to SQL
+/// injection attacks.
 pub fn raw(sql: String) -> Condition(v) {
   Raw(sql:)
 }
@@ -876,7 +881,14 @@ pub const val = Kind(to_operand: ValueRef)
 pub const subquery = Kind(to_operand: SubQuery)
 
 /// Kind that treats the input as a column reference for column-to-column
-/// comparisons.
+/// comparisons. Not to be confused with the `column()` function, which
+/// creates a `Column` — this constant is a `Kind` used with the `of:`
+/// parameter in condition functions like `eq`, `gt`, etc.
+///
+/// ```gleam
+/// sql.column("id")
+/// |> sql.eq(sql.column("user_id") |> sql.column_for(orders), of: sql.col)
+/// ```
 pub const col = Kind(to_operand: ColumnRef)
 
 /// Kind that wraps a subquery with `ANY(...)`.
