@@ -2,6 +2,7 @@ name = "based"
 version = "4.0.0"
 description = "Database-agnostic types and a composable SQL query builder for Gleam"
 gleam = ">= 1.11.0"
+licences = ["Apache-2.0"]
 
 repository = { type = "github", user = "stndrs", repo = "based" }
 internal_modules = [
