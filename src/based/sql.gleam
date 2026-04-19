@@ -752,8 +752,7 @@ pub fn returning(builder: Builder(a, v), columns: List(Column)) -> Builder(a, v)
   }
 }
 
-/// Adds an ORDER BY clause. Can be called multiple times to sort by
-/// multiple columns. Applies to SELECT and UPDATE queries.
+/// Add an ORDER BY clauses.
 pub fn order_by(builder: Builder(a, v), order_by: List(Order)) -> Builder(a, v) {
   case builder {
     SelectBuilder(query:, ctes:, recursive:) ->

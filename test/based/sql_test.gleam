@@ -3558,7 +3558,7 @@ pub fn timestamp_to_query_test() {
 
 pub fn timestamptz_zero_offset_to_string_test() {
   let ts = timestamp.from_unix_seconds(0)
-  let offset = value.utc_offset(0)
+  let offset = duration.seconds(0)
   let s =
     sql.from(sql.table("events"))
     |> sql.select([sql.star])
@@ -3576,7 +3576,7 @@ pub fn timestamptz_positive_offset_to_string_test() {
   // 5 hours in seconds = 18000; timestamp at 18000 UTC with +5 offset
   // should subtract 5h to produce epoch
   let ts = timestamp.from_unix_seconds(18_000)
-  let offset = value.utc_offset(5)
+  let offset = duration.hours(5)
   let s =
     sql.from(sql.table("events"))
     |> sql.select([sql.star])
@@ -3586,13 +3586,13 @@ pub fn timestamptz_positive_offset_to_string_test() {
     ])
     |> sql.to_string(adapter())
 
-  // +5 offset subtracts 5 hours → back to epoch
+  // +5 duration subtracts 5 hours → back to epoch
   assert string.contains(s, "'1970-01-01T00:00:00")
 }
 
 pub fn timestamptz_to_query_test() {
   let ts = timestamp.from_unix_seconds(0)
-  let offset = value.utc_offset(5)
+  let offset = duration.hours(5)
   let q =
     sql.from(sql.table("events"))
     |> sql.select([sql.star])
@@ -3603,7 +3603,7 @@ pub fn timestamptz_to_query_test() {
     |> sql.to_query(adapter())
 
   assert q.sql == "SELECT * FROM events WHERE ts = $1;"
-  assert q.values == [value.timestamptz(ts, value.Offset(hours: 5, minutes: 0))]
+  assert q.values == [value.timestamptz(ts, offset)]
 }
 
 pub fn array_to_string_test() {
@@ -3657,23 +3657,6 @@ pub fn array_to_query_test() {
 
   assert q.sql == "SELECT * FROM data WHERE tags = $1;"
   assert q.values == [value.Array([value.int(1), value.int(2)])]
-}
-
-pub fn utc_offset_test() {
-  assert value.utc_offset(5) == value.Offset(hours: 5, minutes: 0)
-}
-
-pub fn utc_offset_negative_test() {
-  assert value.utc_offset(-3) == value.Offset(hours: -3, minutes: 0)
-}
-
-pub fn utc_offset_zero_test() {
-  assert value.utc_offset(0) == value.Offset(hours: 0, minutes: 0)
-}
-
-pub fn utc_offset_with_minutes_test() {
-  assert value.utc_offset(5) |> value.minutes(30)
-    == value.Offset(hours: 5, minutes: 30)
 }
 
 pub fn in_empty_list_to_string_test() {
