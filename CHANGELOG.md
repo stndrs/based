@@ -1,7 +1,5 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
-
 ## [4.0.0]
 
 Complete rewrite of the library. The v3 actor-based API has been replaced with a
