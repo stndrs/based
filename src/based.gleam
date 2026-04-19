@@ -130,7 +130,7 @@ pub type TransactionError(error) {
 
 /// Holds a count of affected rows, a list of queried fields, and
 /// a list of `Dynamic` rows returned from the database. A `Queried`
-/// record can be passed to `db.decode` with a decoder, returning
+/// record can be passed to `based.decode` with a decoder, returning
 /// a `Returning` record containing the decoded rows.
 pub type Queried {
   Queried(count: Int, fields: List(String), rows: List(Dynamic))

@@ -193,8 +193,8 @@ pub opaque type Adapter(v) {
 /// The `on_value`, `on_null`, `on_int`, and `on_text` handlers
 /// will panic if left unconfigured.
 ///
-/// Use `adapter()` for a ready-to-use adapter that works with the
-/// built-in `Value` type.
+/// Configure the returned adapter using the `on_*` builder functions
+/// before passing it to `to_query` or `to_string`.
 pub fn adapter() -> Adapter(v) {
   Adapter(
     handle_placeholder: fn(_) { "?" },
@@ -231,22 +231,22 @@ pub fn on_identifier(
 }
 
 /// Sets the function that produces the null representation for type `v`.
-///
-/// Used when a `nullable` kind resolves to `None`.
 pub fn on_null(adapter: Adapter(v), with handle_null: fn() -> v) -> Adapter(v) {
   Adapter(..adapter, handle_null:)
 }
 
 /// Sets the function that wraps an `Int` into the value type `v`.
 ///
-/// Used internally when rendering `LIMIT`, `OFFSET`, and other integer literals.
+/// Adapter packages use this to convert Gleam `Int` values into
+/// their value type `v`.
 pub fn on_int(adapter: Adapter(v), with handle_int: fn(Int) -> v) -> Adapter(v) {
   Adapter(..adapter, handle_int:)
 }
 
 /// Sets the function that wraps a `String` into the value type `v`.
 ///
-/// Used internally when rendering `LIKE` patterns and other string literals.
+/// Adapter packages use this to convert Gleam `String` values into
+/// their value type `v`.
 pub fn on_text(
   adapter: Adapter(v),
   with handle_text: fn(String) -> v,
@@ -287,7 +287,7 @@ pub fn value(
   )
 }
 
-/// Creates a new `Rows` with the given values. Pipe through `val` to add
+/// Creates a new `Rows` with the given values. Pipe through `value` to add
 /// columns and extractors.
 pub fn rows(values: List(a)) -> Rows(a, v) {
   Rows(columns: [], extractors: [], values:)
@@ -752,7 +752,7 @@ pub fn returning(builder: Builder(a, v), columns: List(Column)) -> Builder(a, v)
   }
 }
 
-/// Add an ORDER BY clauses.
+/// Sets the ORDER BY clause. Applies to SELECT and UPDATE queries.
 pub fn order_by(builder: Builder(a, v), order_by: List(Order)) -> Builder(a, v) {
   case builder {
     SelectBuilder(query:, ctes:, recursive:) ->
