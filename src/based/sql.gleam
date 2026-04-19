@@ -257,13 +257,15 @@ pub fn on_text(
 /// A reusable specification for INSERT rows. Defines the column names and
 /// how to map inputs to values.
 ///
-/// Built using `rows` and piping through `val`:
+/// Built using `rows` and piping through `value`. The value constructor
+/// functions (e.g. `text`, `int`) are provided by your database adapter
+/// package.
 ///
 /// ```gleam
 /// let users =
 ///   sql.rows([alice, bob])
-///   |> sql.value("name", fn(u) { sql.text(u.name) })
-///   |> sql.value("age", fn(u) { sql.int(u.age) })
+///   |> sql.value("name", fn(u) { db.text(u.name) })
+///   |> sql.value("age", fn(u) { db.int(u.age) })
 ///
 /// sql.insert(into: sql.table("users"))
 /// |> sql.values(users)

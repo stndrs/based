@@ -2,16 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.0.0] - 2026-03-08
+## [4.0.0]
 
 Complete rewrite of the library. The v3 actor-based API has been replaced with a
 composable, database-agnostic SQL query builder and type system.
 
 ### Added
 
-- **Database layer** (`based`): Value types covering common SQL data types
-  (text, int, float, bool, bytea, date, time, datetime, timestamp, timestamptz,
-  array, null), structured error types, parameterized queries,
+- **Database layer** (`based`): Structured error types, parameterized queries,
   connection/driver abstraction, transaction support, batch queries, and row
   decoding via `gleam/decode`.
 - **SQL query builder** (`based/sql`): Composable, type-safe builders for

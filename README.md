@@ -18,16 +18,17 @@ gleam add based
 Build type-safe SQL queries using `based/sql`:
 
 ```gleam
+import database as db
 import based/sql
 
 let query =
   sql.from(sql.table("users"))
   |> sql.select([sql.column("id"), sql.column("name")])
-  |> sql.where([sql.column("id") |> sql.eq(value.int(1), of: sql.val)])
+  |> sql.where([sql.column("id") |> sql.eq(db.int(1), of: sql.val)])
   |> sql.to_query(adapter)
 
 // query.sql == "SELECT id, name FROM users WHERE id = ?"
-// query.values == [value.Int(1)]
+// query.values == [db.Int(1)]
 ```
 
 ### Insert
@@ -37,8 +38,8 @@ import based/sql
 
 let inserter =
   sql.rows([#("John", "john@example.com")])
-  |> sql.value("name", fn(user) { value.text(user.0) })
-  |> sql.value("email", fn(user) { value.text(user.1) })
+  |> sql.value("name", fn(user) { db.text(user.0) })
+  |> sql.value("email", fn(user) { db.text(user.1) })
 
 let query =
   sql.insert(into: sql.table("users"))
@@ -55,8 +56,8 @@ import based/sql
 
 let query =
   sql.table("users")
-  |> sql.update([sql.set("name", value.text("Jane"), of: sql.val)])
-  |> sql.where([sql.column("id") |> sql.eq(value.int(1), of: sql.val)])
+  |> sql.update([sql.set("name", db.text("Jane"), of: sql.val)])
+  |> sql.where([sql.column("id") |> sql.eq(db.int(1), of: sql.val)])
   |> sql.to_query(adapter)
 
 // query.sql == "UPDATE users SET name = ? WHERE id = ?"
@@ -70,7 +71,7 @@ import based/sql
 let query =
   sql.from(sql.table("users"))
   |> sql.delete()
-  |> sql.where([sql.column("id") |> sql.eq(value.int(1), of: sql.val)])
+  |> sql.where([sql.column("id") |> sql.eq(db.int(1), of: sql.val)])
   |> sql.to_query(adapter)
 
 // query.sql == "DELETE FROM users WHERE id = ?"
