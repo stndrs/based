@@ -21,23 +21,6 @@ pub fn adapter() -> sql.Adapter(Value) {
   |> sql.on_null(fn() { Null })
 }
 
-/// A UTC offset composed of hours and minutes.
-///
-/// Used with `Timestamptz` to encode a timestamp relative to UTC.
-pub type Offset {
-  Offset(hours: Int, minutes: Int)
-}
-
-/// Returns an Offset with the provided hours and 0 minutes.
-pub fn utc_offset(hours: Int) -> Offset {
-  Offset(hours:, minutes: 0)
-}
-
-/// Applies some number of minutes to the Offset.
-pub fn minutes(offset: Offset, minutes: Int) -> Offset {
-  Offset(..offset, minutes:)
-}
-
 /// Example value type covering common SQL data types.
 pub type Value {
   Null
@@ -50,7 +33,7 @@ pub type Value {
   Time(calendar.TimeOfDay)
   Datetime(calendar.Date, calendar.TimeOfDay)
   Timestamp(timestamp.Timestamp)
-  Timestamptz(timestamp.Timestamp, Offset)
+  Timestamptz(timestamp.Timestamp, duration.Duration)
   Array(List(Value))
 }
 
@@ -110,7 +93,10 @@ pub fn timestamp(timestamp: timestamp.Timestamp) -> Value {
 
 /// Wraps a `timestamp.Timestamp` and `Offset` as a `Value` for
 /// timestamp-with-timezone columns.
-pub fn timestamptz(timestamp: timestamp.Timestamp, offset: Offset) -> Value {
+pub fn timestamptz(
+  timestamp: timestamp.Timestamp,
+  offset: duration.Duration,
+) -> Value {
   Timestamptz(timestamp, offset)
 }
 
@@ -226,24 +212,16 @@ fn timestamp_to_string(ts: timestamp.Timestamp) -> String {
 
 fn timestamptz_to_string(
   timestamp: timestamp.Timestamp,
-  offset: Offset,
+  offset: duration.Duration,
 ) -> String {
-  offset_to_duration(offset)
+  offset
+  |> negate_duration
   |> timestamp.add(timestamp, _)
   |> timestamp_to_string
 }
 
-fn offset_to_duration(offset: Offset) -> duration.Duration {
-  let sign = case offset.hours < 0 {
-    True -> 1
-    False -> -1
-  }
-
-  int.absolute_value(offset.hours)
-  |> int.multiply(60)
-  |> int.add(offset.minutes)
-  |> int.multiply(sign)
-  |> duration.minutes
+fn negate_duration(d: duration.Duration) -> duration.Duration {
+  duration.difference(d, duration.seconds(0))
 }
 
 fn single_quote(val: String) -> String {
