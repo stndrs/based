@@ -3,7 +3,7 @@
 
 import based/sql
 import gleam/dynamic.{type Dynamic}
-import gleam/dynamic/decode
+import gleam/dynamic/decode.{type Decoder}
 import gleam/list
 import gleam/result
 import gleam/string
@@ -223,12 +223,49 @@ pub fn execute(sql: String, db: Db(v, conn)) -> Result(Int, BasedError) {
   db.driver.handle_execute(sql, db.driver.conn)
 }
 
-/// Executes a list of queries as a batch.
-pub fn batch(
-  queries: List(sql.Query(v)),
-  db: Db(v, conn),
-) -> Result(List(Queried), BasedError) {
-  db.driver.handle_batch(queries, db.driver.conn)
+pub opaque type Batch(t, v) {
+  Batch(
+    queries: List(sql.Query(v)),
+    decode: fn(List(Queried)) -> Result(t, BasedError),
+  )
+}
+
+/// Terminate a batch chain with a value. This is used as the final step
+/// when building a batch with `add`.
+pub fn done(value: t) -> Batch(t, v) {
+  Batch(queries: [], decode: fn(_) { Ok(value) })
+}
+
+/// Add a query to a batch. The query results will be decoded using the
+/// provided decoder, and the decoded rows are passed to the `next`
+/// continuation function.
+pub fn add(
+  q: sql.Query(v),
+  decoder: Decoder(a),
+  next: fn(List(a)) -> Batch(final, v),
+) -> Batch(final, v) {
+  // Call next with an empty list to discover the remaining queries
+  // in the chain. This is safe because next only builds more Batch values.
+  let Batch(rest_queries, _) = next([])
+
+  Batch(queries: [q, ..rest_queries], decode: fn(results) {
+    let assert [first, ..rest] = results
+
+    // Decode all rows from this query's result
+    case list.try_map(first.rows, decode.run(_, decoder)) {
+      Error(errors) -> Error(DecodeError(errors))
+      Ok(rows) -> {
+        let Batch(_, rest_decode) = next(rows)
+        rest_decode(rest)
+      }
+    }
+  })
+}
+
+pub fn batch(batch: Batch(a, v), db: Db(v, conn)) -> Result(a, BasedError) {
+  batch.queries
+  |> db.driver.handle_batch(db.driver.conn)
+  |> result.try(batch.decode)
 }
 
 /// A convenience function for callers performing a query that will return
