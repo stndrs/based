@@ -1,6 +1,10 @@
 # Changelog
 
-## [4.0.0]
+## 4.0.1
+
+- Updated `gleam_stdlib`
+
+## 4.0.0
 
 Complete rewrite of the library. The v3 actor-based API has been replaced with a
 composable, database-agnostic SQL query builder and type system.
