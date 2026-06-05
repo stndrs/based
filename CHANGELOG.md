@@ -1,5 +1,9 @@
 # Changelog
 
+## 4.1.0
+
+- Deprecate `based.transaction` and `based.TxHandler`
+
 ## 4.0.1
 
 - Updated `gleam_stdlib`

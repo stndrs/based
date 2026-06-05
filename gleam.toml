@@ -1,5 +1,5 @@
 name = "based"
-version = "4.0.1"
+version = "4.1.0"
 description = "Database-agnostic types and a composable SQL query builder for Gleam"
 gleam = ">= 1.11.0"
 licences = ["Apache-2.0"]
