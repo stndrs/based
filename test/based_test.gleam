@@ -315,6 +315,132 @@ pub fn error_to_string_connection_unavailable_test() {
   assert result == "[based.ConnectionUnavailable]"
 }
 
+pub fn error_to_string_unique_violation_test() {
+  let result =
+    based.UniqueViolation(
+      code: "23505",
+      name: "unique_violation",
+      message: "duplicate key value violates unique constraint",
+    )
+    |> based.DbError
+    |> based.error_to_string
+
+  assert result
+    == "[based.UniqueViolation] code: 23505, name: unique_violation, message: duplicate key value violates unique constraint"
+}
+
+pub fn error_to_string_foreign_key_violation_test() {
+  let result =
+    based.ForeignKeyViolation(
+      code: "23503",
+      name: "foreign_key_violation",
+      message: "insert or update on table violates foreign key constraint",
+    )
+    |> based.DbError
+    |> based.error_to_string
+
+  assert result
+    == "[based.ForeignKeyViolation] code: 23503, name: foreign_key_violation, message: insert or update on table violates foreign key constraint"
+}
+
+pub fn error_to_string_not_null_violation_test() {
+  let result =
+    based.NotNullViolation(
+      code: "23502",
+      name: "not_null_violation",
+      message: "null value in column violates not-null constraint",
+    )
+    |> based.DbError
+    |> based.error_to_string
+
+  assert result
+    == "[based.NotNullViolation] code: 23502, name: not_null_violation, message: null value in column violates not-null constraint"
+}
+
+pub fn error_to_string_check_violation_test() {
+  let result =
+    based.CheckViolation(
+      code: "23514",
+      name: "check_violation",
+      message: "new row for relation violates check constraint",
+    )
+    |> based.DbError
+    |> based.error_to_string
+
+  assert result
+    == "[based.CheckViolation] code: 23514, name: check_violation, message: new row for relation violates check constraint"
+}
+
+pub fn error_to_string_deadlock_detected_test() {
+  let result =
+    based.DeadlockDetected(
+      code: "40P01",
+      name: "deadlock_detected",
+      message: "detected deadlock while trying to acquire lock",
+    )
+    |> based.DbError
+    |> based.error_to_string
+
+  assert result
+    == "[based.DeadlockDetected] code: 40P01, name: deadlock_detected, message: detected deadlock while trying to acquire lock"
+}
+
+pub fn error_to_string_serialization_failure_test() {
+  let result =
+    based.SerializationFailure(
+      code: "40001",
+      name: "serialization_failure",
+      message: "could not serialize access due to concurrent update",
+    )
+    |> based.DbError
+    |> based.error_to_string
+
+  assert result
+    == "[based.SerializationFailure] code: 40001, name: serialization_failure, message: could not serialize access due to concurrent update"
+}
+
+pub fn error_to_string_query_timeout_test() {
+  let result =
+    based.QueryTimeout(
+      code: "57014",
+      name: "query_canceled",
+      message: "canceling statement due to statement timeout",
+    )
+    |> based.DbError
+    |> based.error_to_string
+
+  assert result
+    == "[based.QueryTimeout] code: 57014, name: query_canceled, message: canceling statement due to statement timeout"
+}
+
+pub fn error_to_string_permission_denied_test() {
+  let result =
+    based.PermissionDenied(
+      code: "42501",
+      name: "insufficient_privilege",
+      message: "permission denied for table",
+    )
+    |> based.DbError
+    |> based.error_to_string
+
+  assert result
+    == "[based.PermissionDenied] code: 42501, name: insufficient_privilege, message: permission denied for table"
+}
+
+pub fn error_to_string_read_only_transaction_test() {
+  let result =
+    based.ReadOnlyTransaction(
+      code: "25006",
+      name: "read_only_sql_transaction",
+      message: "cannot execute write in a read-only transaction",
+    )
+    |> based.DbError
+    |> based.error_to_string
+
+  assert result
+    == "[based.ReadOnlyTransaction] code: 25006, name: read_only_sql_transaction, message: cannot execute write in a read-only transaction"
+}
+
 pub fn database_error_to_string_test() {
   let result =
     based.database_error_to_string(based.DatabaseError(
