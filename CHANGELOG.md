@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Removed previously deprecated `based.transaction` and `based.TxHandler`
+
 ## 4.1.0
 
 - Deprecate `based.transaction` and `based.TxHandler`
