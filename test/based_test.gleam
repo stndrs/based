@@ -213,46 +213,7 @@ pub fn error_to_string_decode_error_test() {
     == "[based.DecodeError] errors: [gleam/dynamic/decode.DecodeError] expected: Int, found: String, path: 0"
 }
 
-// pub fn batch_test() {
-//   let rows = [dynamic.array([dynamic.int(1), dynamic.string("Steve")])]
-//   let returning = Ok([based.Queried(count: 1, fields: ["id", "name"], rows:)])
-// 
-//   let database =
-//     based.driver(
-//       Conn,
-//       on_query: fn(_, _) { Ok(based.Queried(0, [], [])) },
-//       on_execute: fn(_, _) { Ok(0) },
-//       on_batch: fn(_, _) { returning },
-//     )
-//     |> based.new(sql_adapter())
-// 
-//   let queries = [
-//     sql.query("SELECT * FROM users WHERE id=$1;") |> sql.params([value.int(1)]),
-//     sql.query("SELECT * FROM users WHERE id=$1;") |> sql.params([value.int(2)]),
-//   ]
-// 
-//   let assert Ok(results) = based.batch(queries, database)
-//   assert list.length(results) == 1
-// }
-// 
-// pub fn batch_error_test() {
-//   let returning = Error(based.BasedError("batch failed"))
-// 
-//   let database =
-//     based.driver(
-//       Conn,
-//       on_query: fn(_, _) { Ok(based.Queried(0, [], [])) },
-//       on_execute: fn(_, _) { Ok(0) },
-//       on_batch: fn(_, _) { returning },
-//     )
-//     |> based.new(sql_adapter())
-// 
-//   let queries = [sql.query("SELECT 1;")]
-// 
-//   let assert Error(_) = based.batch(queries, database)
-// }
-
-pub fn multi_test() {
+pub fn batch_test() {
   let rows1 = [dynamic.array([dynamic.int(1), dynamic.string("Steve")])]
   let rows2 = [dynamic.array([dynamic.int(2), dynamic.string("Billiam")])]
 
@@ -294,7 +255,7 @@ pub fn multi_test() {
   let assert Ok(#([#(1)], [#(2)])) = based.batch(batch, database)
 }
 
-pub fn multi_different_test() {
+pub fn batch_different_test() {
   let rows1 = [dynamic.array([dynamic.int(1), dynamic.string("Steve")])]
   let rows2 = [dynamic.array([dynamic.int(2), dynamic.string("Billiam")])]
 
