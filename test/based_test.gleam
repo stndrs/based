@@ -5,7 +5,6 @@ import gleam/dynamic
 import gleam/dynamic/decode
 import gleam/int
 import gleam/list
-import gleam/result
 import gleeunit
 
 pub fn main() {
@@ -95,40 +94,6 @@ pub fn one_error_test() {
     |> based.one(query_handler(returning:), user_decoder())
 }
 
-pub fn transaction_test() {
-  let db =
-    based.driver(
-      Conn,
-      on_query: fn(_, _) { Ok(based.Queried(0, [], [])) },
-      on_execute: fn(_, _) { Ok(0) },
-      on_batch: fn(_, _) { Ok([]) },
-    )
-    |> based.new(sql_adapter())
-
-  let assert Ok("success") = {
-    use _tx <- based.transaction(db, tx_handler)
-
-    Ok("success")
-  }
-}
-
-pub fn transaction_error_test() {
-  let db =
-    based.driver(
-      Conn,
-      on_query: fn(_, _) { Ok(based.Queried(0, [], [])) },
-      on_execute: fn(_, _) { Ok(0) },
-      on_batch: fn(_, _) { Ok([]) },
-    )
-    |> based.new(sql_adapter())
-
-  let assert Error(based.Rollback("failure")) = {
-    use _tx <- based.transaction(db, tx_handler)
-
-    Error("failure")
-  }
-}
-
 pub type Conn {
   Conn
 }
@@ -168,14 +133,6 @@ fn execute_handler(
     |> based.new(sql_adapter())
 
   db
-}
-
-fn tx_handler(
-  conn: Conn,
-  next: fn(Conn) -> Result(t, error),
-) -> Result(t, based.TransactionError(error)) {
-  next(conn)
-  |> result.map_error(based.Rollback)
 }
 
 pub fn error_to_string_connection_timeout_test() {
