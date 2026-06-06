@@ -20,7 +20,16 @@ pub type BasedError {
 pub type DatabaseError {
   DatabaseError(code: String, name: String, message: String)
   ConstraintError(code: String, name: String, message: String)
+  UniqueViolation(code: String, name: String, message: String)
+  ForeignKeyViolation(code: String, name: String, message: String)
+  NotNullViolation(code: String, name: String, message: String)
+  CheckViolation(code: String, name: String, message: String)
   SyntaxError(code: String, name: String, message: String)
+  DeadlockDetected(code: String, name: String, message: String)
+  SerializationFailure(code: String, name: String, message: String)
+  QueryTimeout(code: String, name: String, message: String)
+  PermissionDenied(code: String, name: String, message: String)
+  ReadOnlyTransaction(code: String, name: String, message: String)
   ConnectionError(message: String)
   ConnectionUnavailable
   ConnectionTimeout
@@ -75,11 +84,38 @@ pub fn database_error_to_string(err: DatabaseError) -> String {
     DatabaseError(code:, name:, message:) ->
       format_error_kind(["based"], "DatabaseError")
       |> format_db_error(code, name, message)
+    SyntaxError(code:, name:, message:) ->
+      format_error_kind(["based"], "SyntaxError")
+      |> format_db_error(code, name, message)
+    DeadlockDetected(code:, name:, message:) ->
+      format_error_kind(["based"], "DeadlockDetected")
+      |> format_db_error(code, name, message)
+    SerializationFailure(code:, name:, message:) ->
+      format_error_kind(["based"], "SerializationFailure")
+      |> format_db_error(code, name, message)
+    QueryTimeout(code:, name:, message:) ->
+      format_error_kind(["based"], "QueryTimeout")
+      |> format_db_error(code, name, message)
+    PermissionDenied(code:, name:, message:) ->
+      format_error_kind(["based"], "PermissionDenied")
+      |> format_db_error(code, name, message)
+    ReadOnlyTransaction(code:, name:, message:) ->
+      format_error_kind(["based"], "ReadOnlyTransaction")
+      |> format_db_error(code, name, message)
     ConstraintError(code:, name:, message:) ->
       format_error_kind(["based"], "ConstraintError")
       |> format_db_error(code, name, message)
-    SyntaxError(code:, name:, message:) ->
-      format_error_kind(["based"], "SyntaxError")
+    UniqueViolation(code:, name:, message:) ->
+      format_error_kind(["based"], "UniqueViolation")
+      |> format_db_error(code, name, message)
+    ForeignKeyViolation(code:, name:, message:) ->
+      format_error_kind(["based"], "ForeignKeyViolation")
+      |> format_db_error(code, name, message)
+    NotNullViolation(code:, name:, message:) ->
+      format_error_kind(["based"], "NotNullViolation")
+      |> format_db_error(code, name, message)
+    CheckViolation(code:, name:, message:) ->
+      format_error_kind(["based"], "CheckViolation")
       |> format_db_error(code, name, message)
   }
 }
@@ -208,6 +244,10 @@ pub fn driver(
   on_batch handle_batch: BatchQueryHandler(v, conn),
 ) -> Driver(v, conn) {
   Driver(conn, handle_query:, handle_execute:, handle_batch:)
+}
+
+pub fn with_connection(db: Db(v, conn), next: fn(conn) -> t) -> t {
+  next(db.driver.conn)
 }
 
 /// Executes a query using the configured driver.

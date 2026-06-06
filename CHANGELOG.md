@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Added new `DatabaseError` variants for more precise error handling
+
 ## 4.0.1
 
 - Updated `gleam_stdlib`
