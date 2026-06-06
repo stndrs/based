@@ -280,22 +280,27 @@ pub fn add(
   decoder: Decoder(a),
   next: fn(List(a)) -> Batch(final, v),
 ) -> Batch(final, v) {
-  // Call next with an empty list to discover the remaining queries
-  // in the chain. This is safe because next only builds more Batch values.
-  let Batch(rest_queries, _) = next([])
+  let next_batch = next([])
 
-  Batch(queries: [q, ..rest_queries], decode: fn(results) {
-    let assert [first, ..rest] = results
+  let queries = list.prepend(next_batch.queries, q)
 
-    // Decode all rows from this query's result
-    case list.try_map(first.rows, decode.run(_, decoder)) {
-      Error(errors) -> Error(DecodeError(errors))
-      Ok(rows) -> {
-        let Batch(_, rest_decode) = next(rows)
-        rest_decode(rest)
+  let decode = fn(results: List(Queried)) {
+    case results {
+      [] -> Error(BasedError("Nothing to decode"))
+      [first, ..rest] -> {
+        first.rows
+        |> list.try_map(decode.run(_, decoder))
+        |> result.map_error(DecodeError)
+        |> result.try(fn(rows) {
+          let next_batch = next(rows)
+
+          next_batch.decode(rest)
+        })
       }
     }
-  })
+  }
+
+  Batch(queries:, decode:)
 }
 
 pub fn batch(batch: Batch(a, v), db: Db(v, conn)) -> Result(a, BasedError) {

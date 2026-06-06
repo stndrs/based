@@ -213,6 +213,30 @@ pub fn error_to_string_decode_error_test() {
     == "[based.DecodeError] errors: [gleam/dynamic/decode.DecodeError] expected: Int, found: String, path: 0"
 }
 
+pub fn batch_empty_test() {
+  let database =
+    based.driver(
+      Conn,
+      on_query: fn(_, _) { Ok(based.Queried(0, [], [])) },
+      on_execute: fn(_, _) { Ok(0) },
+      on_batch: fn(_, _) { Ok([]) },
+    )
+    |> based.new(sql_adapter())
+
+  let query1 =
+    sql.query("SELECT * FROM users WHERE id=$1;")
+    |> sql.params([value.int(1)])
+
+  let batch = {
+    use _ <- based.add(query1, decode.dynamic)
+
+    based.done(#(1))
+  }
+
+  assert Error(based.BasedError("Nothing to decode"))
+    == based.batch(batch, database)
+}
+
 pub fn batch_test() {
   let rows1 = [dynamic.array([dynamic.int(1), dynamic.string("Steve")])]
   let rows2 = [dynamic.array([dynamic.int(2), dynamic.string("Billiam")])]
