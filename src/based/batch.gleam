@@ -8,13 +8,13 @@ import gleam/result
 pub opaque type Batch(t, v) {
   Batch(
     queries: List(sql.Query(v)),
-    decode: fn(List(based.Queried)) -> Result(t, based.BasedError),
+    decode: fn(List(based.Queried)) -> Result(t, List(decode.DecodeError)),
   )
 }
 
 /// Terminate a batch chain with a value. This is used as the final step
 /// when building a batch with `add`.
-pub fn end(value: t) -> Batch(t, v) {
+pub fn ready(value: t) -> Batch(t, v) {
   Batch(queries: [], decode: fn(_) { Ok(value) })
 }
 
@@ -32,11 +32,10 @@ pub fn list(
 
   let decode = fn(results: List(based.Queried)) {
     case results {
-      [] -> Error(based.BasedError("Nothing to decode"))
+      [] -> next_batch.decode([])
       [first, ..rest] -> {
         first.rows
         |> list.try_map(decode.run(_, decoder))
-        |> result.map_error(based.DecodeError)
         |> result.try(fn(rows) {
           let next_batch = next(rows)
 
@@ -64,13 +63,12 @@ pub fn one(
 
   let decode = fn(results: List(based.Queried)) {
     case results {
-      [] -> Error(based.BasedError("Nothing to decode"))
+      [] -> next_batch.decode([])
       [first, ..rest] -> {
         case first.rows {
           [] -> next_batch.decode(rest)
           [row, ..] -> {
             decode.run(row, decoder)
-            |> result.map_error(based.DecodeError)
             |> result.try(fn(value) {
               let next_batch = next(Some(value))
 
@@ -91,5 +89,8 @@ pub fn run(
 ) -> Result(a, based.BasedError) {
   batch.queries
   |> based.batch(db)
-  |> result.try(batch.decode)
+  |> result.try(fn(queried) {
+    batch.decode(queried)
+    |> result.map_error(based.DecodeError)
+  })
 }

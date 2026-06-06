@@ -38,13 +38,12 @@ pub fn batch_empty_test() {
     |> sql.params([value.int(1)])
 
   let batch = {
-    use _ <- batch.list(query1, decode.dynamic)
+    use decoded <- batch.list(query1, decode.dynamic)
 
-    batch.end(#(1))
+    batch.ready(decoded)
   }
 
-  assert Error(based.BasedError("Nothing to decode"))
-    == batch.run(batch, database)
+  assert Ok([]) == batch.run(batch, database)
 }
 
 pub fn batch_test() {
@@ -83,7 +82,7 @@ pub fn batch_test() {
     use result1 <- batch.list(query1, decoder)
     use result2 <- batch.list(query2, decoder)
 
-    batch.end(#(result1, result2))
+    batch.ready(#(result1, result2))
   }
 
   let assert Ok(#([#(1)], [#(2)])) = batch.run(batch, database)
@@ -130,7 +129,7 @@ pub fn batch_different_test() {
     use result1 <- batch.list(query1, decoder1)
     use result2 <- batch.list(query2, decoder2)
 
-    batch.end(#(result1, result2))
+    batch.ready(#(result1, result2))
   }
 
   let assert Ok(#([#(1)], [#("Billiam")])) = batch.run(batch, database)
@@ -167,7 +166,7 @@ pub fn batch_add_one_test() {
     use users <- batch.list(query1, user_decoder())
     use admin <- batch.one(query2, user_decoder())
 
-    batch.end(#(users, admin))
+    batch.ready(#(users, admin))
   }
 
   let assert Ok(#([#(1, "Steve")], Some(#(2, "Billiam")))) =
@@ -204,7 +203,7 @@ pub fn batch_add_one_not_found_test() {
     use users <- batch.list(query1, user_decoder())
     use admin <- batch.one(query2, user_decoder())
 
-    batch.end(#(users, admin))
+    batch.ready(#(users, admin))
   }
 
   let assert Ok(#([#(1, "Steve")], None)) = batch.run(batch, database)
@@ -234,7 +233,7 @@ pub fn batch_add_one_only_test() {
   let batch = {
     use user <- batch.one(query, user_decoder())
 
-    batch.end(user)
+    batch.ready(user)
   }
 
   let assert Ok(Some(#(1, "Steve"))) = batch.run(batch, database)
