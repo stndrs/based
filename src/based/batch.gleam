@@ -54,38 +54,44 @@ pub fn list(
   Batch(queries:, decode:)
 }
 
-/// Add a query to a batch that expects zero or one row. The query result
-/// will be decoded using the provided decoder, and the decoded value is
-/// passed to the `next` continuation function as `Some(a)`. If the query
-/// returns zero rows, `None` is passed instead.
-pub fn one(
-  q: sql.Query(v),
-  decoder: Decoder(a),
-  next: fn(a) -> Batch(final, v),
-) -> Batch(final, v) {
-  let decode = fn(results: List(based.Queried)) {
-    case results {
-      [] -> Error(BatchError(message: "Empty results", error: based.NotFound))
-      [first, ..rest] -> {
-        case first.rows {
-          [] ->
-            Error(BatchError(message: "Empty results", error: based.NotFound))
-          [row, ..] -> {
-            decode.run(row, decoder)
-            |> result.map_error(DecodeError("Failed to decode row", _))
-            |> result.try(fn(value) {
-              let next_batch = next(value)
+// const empty_result = BatchError(message: "Empty results", error: based.NotFound)
 
-              next_batch.decode(rest)
-            })
-          }
-        }
-      }
-    }
-  }
-
-  Batch(queries: [q], decode:)
-}
+// Add a query to a batch that expects zero or one row. The query result
+// will be decoded using the provided decoder, and the decoded value is
+// passed to the `next` continuation function as `Some(a)`. If the query
+// returns zero rows, `None` is passed instead.
+// pub fn one(
+//   q: sql.Query(v),
+//   decoder: Decoder(a),
+//   next: fn(a) -> Batch(final, v),
+// ) -> Batch(final, v) {
+//   // Can we pass `Dynamic` to `next`?
+//   let next_batch = next(todo)
+// 
+//   let queries = list.prepend(next_batch.queries, q)
+// 
+//   let decode = fn(results: List(based.Queried)) {
+//     case results {
+//       [] -> Error(empty_result)
+//       [first, ..rest] -> {
+//         case first.rows {
+//           [] -> Error(empty_result)
+//           [row, ..] -> {
+//             decode.run(row, decoder)
+//             |> result.map_error(DecodeError("Failed to decode row", _))
+//             |> result.try(fn(value) {
+//               let next_batch = next(value)
+// 
+//               next_batch.decode(rest)
+//             })
+//           }
+//         }
+//       }
+//     }
+//   }
+// 
+//   Batch(queries:, decode:)
+// }
 
 pub fn optional(
   q: sql.Query(v),
