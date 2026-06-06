@@ -3,9 +3,8 @@
 
 import based/sql
 import gleam/dynamic.{type Dynamic}
-import gleam/dynamic/decode.{type Decoder}
+import gleam/dynamic/decode
 import gleam/list
-import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string
 
@@ -260,90 +259,12 @@ pub fn execute(sql: String, db: Db(v, conn)) -> Result(Int, BasedError) {
   db.driver.handle_execute(sql, db.driver.conn)
 }
 
-pub opaque type Batch(t, v) {
-  Batch(
-    queries: List(sql.Query(v)),
-    decode: fn(List(Queried)) -> Result(t, BasedError),
-  )
-}
-
-/// Terminate a batch chain with a value. This is used as the final step
-/// when building a batch with `add`.
-pub fn end(value: t) -> Batch(t, v) {
-  Batch(queries: [], decode: fn(_) { Ok(value) })
-}
-
-/// Add a query to a batch. The query results will be decoded using the
-/// provided decoder, and the decoded rows are passed to the `next`
-/// continuation function.
-pub fn add(
-  q: sql.Query(v),
-  decoder: Decoder(a),
-  next: fn(List(a)) -> Batch(final, v),
-) -> Batch(final, v) {
-  let next_batch = next([])
-
-  let queries = list.prepend(next_batch.queries, q)
-
-  let decode = fn(results: List(Queried)) {
-    case results {
-      [] -> Error(BasedError("Nothing to decode"))
-      [first, ..rest] -> {
-        first.rows
-        |> list.try_map(decode.run(_, decoder))
-        |> result.map_error(DecodeError)
-        |> result.try(fn(rows) {
-          let next_batch = next(rows)
-
-          next_batch.decode(rest)
-        })
-      }
-    }
-  }
-
-  Batch(queries:, decode:)
-}
-
-/// Add a query to a batch that expects zero or one row. The query result
-/// will be decoded using the provided decoder, and the decoded value is
-/// passed to the `next` continuation function as `Some(a)`. If the query
-/// returns zero rows, `None` is passed instead.
-pub fn add_one(
-  q: sql.Query(v),
-  decoder: Decoder(a),
-  next: fn(Option(a)) -> Batch(final, v),
-) -> Batch(final, v) {
-  let next_batch = next(None)
-
-  let queries = list.prepend(next_batch.queries, q)
-
-  let decode = fn(results: List(Queried)) {
-    case results {
-      [] -> Error(BasedError("Nothing to decode"))
-      [first, ..rest] -> {
-        case first.rows {
-          [] -> next_batch.decode(rest)
-          [row, ..] -> {
-            decode.run(row, decoder)
-            |> result.map_error(DecodeError)
-            |> result.try(fn(value) {
-              let next_batch = next(Some(value))
-
-              next_batch.decode(rest)
-            })
-          }
-        }
-      }
-    }
-  }
-
-  Batch(queries:, decode:)
-}
-
-pub fn batch(batch: Batch(a, v), db: Db(v, conn)) -> Result(a, BasedError) {
-  batch.queries
-  |> db.driver.handle_batch(db.driver.conn)
-  |> result.try(batch.decode)
+/// Executes a list of queries as a batch.
+pub fn batch(
+  queries: List(sql.Query(v)),
+  db: Db(v, conn),
+) -> Result(List(Queried), BasedError) {
+  db.driver.handle_batch(queries, db.driver.conn)
 }
 
 /// A convenience function for callers performing a query that will return
