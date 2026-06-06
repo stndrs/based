@@ -3,8 +3,9 @@
 
 import based/sql
 import gleam/dynamic.{type Dynamic}
-import gleam/dynamic/decode
+import gleam/dynamic/decode.{type Decoder}
 import gleam/list
+import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string
 
@@ -20,7 +21,16 @@ pub type BasedError {
 pub type DatabaseError {
   DatabaseError(code: String, name: String, message: String)
   ConstraintError(code: String, name: String, message: String)
+  UniqueViolation(code: String, name: String, message: String)
+  ForeignKeyViolation(code: String, name: String, message: String)
+  NotNullViolation(code: String, name: String, message: String)
+  CheckViolation(code: String, name: String, message: String)
   SyntaxError(code: String, name: String, message: String)
+  DeadlockDetected(code: String, name: String, message: String)
+  SerializationFailure(code: String, name: String, message: String)
+  QueryTimeout(code: String, name: String, message: String)
+  PermissionDenied(code: String, name: String, message: String)
+  ReadOnlyTransaction(code: String, name: String, message: String)
   ConnectionError(message: String)
   ConnectionUnavailable
   ConnectionTimeout
@@ -75,11 +85,38 @@ pub fn database_error_to_string(err: DatabaseError) -> String {
     DatabaseError(code:, name:, message:) ->
       format_error_kind(["based"], "DatabaseError")
       |> format_db_error(code, name, message)
+    SyntaxError(code:, name:, message:) ->
+      format_error_kind(["based"], "SyntaxError")
+      |> format_db_error(code, name, message)
+    DeadlockDetected(code:, name:, message:) ->
+      format_error_kind(["based"], "DeadlockDetected")
+      |> format_db_error(code, name, message)
+    SerializationFailure(code:, name:, message:) ->
+      format_error_kind(["based"], "SerializationFailure")
+      |> format_db_error(code, name, message)
+    QueryTimeout(code:, name:, message:) ->
+      format_error_kind(["based"], "QueryTimeout")
+      |> format_db_error(code, name, message)
+    PermissionDenied(code:, name:, message:) ->
+      format_error_kind(["based"], "PermissionDenied")
+      |> format_db_error(code, name, message)
+    ReadOnlyTransaction(code:, name:, message:) ->
+      format_error_kind(["based"], "ReadOnlyTransaction")
+      |> format_db_error(code, name, message)
     ConstraintError(code:, name:, message:) ->
       format_error_kind(["based"], "ConstraintError")
       |> format_db_error(code, name, message)
-    SyntaxError(code:, name:, message:) ->
-      format_error_kind(["based"], "SyntaxError")
+    UniqueViolation(code:, name:, message:) ->
+      format_error_kind(["based"], "UniqueViolation")
+      |> format_db_error(code, name, message)
+    ForeignKeyViolation(code:, name:, message:) ->
+      format_error_kind(["based"], "ForeignKeyViolation")
+      |> format_db_error(code, name, message)
+    NotNullViolation(code:, name:, message:) ->
+      format_error_kind(["based"], "NotNullViolation")
+      |> format_db_error(code, name, message)
+    CheckViolation(code:, name:, message:) ->
+      format_error_kind(["based"], "CheckViolation")
       |> format_db_error(code, name, message)
   }
 }
@@ -223,12 +260,90 @@ pub fn execute(sql: String, db: Db(v, conn)) -> Result(Int, BasedError) {
   db.driver.handle_execute(sql, db.driver.conn)
 }
 
-/// Executes a list of queries as a batch.
-pub fn batch(
-  queries: List(sql.Query(v)),
-  db: Db(v, conn),
-) -> Result(List(Queried), BasedError) {
-  db.driver.handle_batch(queries, db.driver.conn)
+pub opaque type Batch(t, v) {
+  Batch(
+    queries: List(sql.Query(v)),
+    decode: fn(List(Queried)) -> Result(t, BasedError),
+  )
+}
+
+/// Terminate a batch chain with a value. This is used as the final step
+/// when building a batch with `add`.
+pub fn end(value: t) -> Batch(t, v) {
+  Batch(queries: [], decode: fn(_) { Ok(value) })
+}
+
+/// Add a query to a batch. The query results will be decoded using the
+/// provided decoder, and the decoded rows are passed to the `next`
+/// continuation function.
+pub fn add(
+  q: sql.Query(v),
+  decoder: Decoder(a),
+  next: fn(List(a)) -> Batch(final, v),
+) -> Batch(final, v) {
+  let next_batch = next([])
+
+  let queries = list.prepend(next_batch.queries, q)
+
+  let decode = fn(results: List(Queried)) {
+    case results {
+      [] -> Error(BasedError("Nothing to decode"))
+      [first, ..rest] -> {
+        first.rows
+        |> list.try_map(decode.run(_, decoder))
+        |> result.map_error(DecodeError)
+        |> result.try(fn(rows) {
+          let next_batch = next(rows)
+
+          next_batch.decode(rest)
+        })
+      }
+    }
+  }
+
+  Batch(queries:, decode:)
+}
+
+/// Add a query to a batch that expects zero or one row. The query result
+/// will be decoded using the provided decoder, and the decoded value is
+/// passed to the `next` continuation function as `Some(a)`. If the query
+/// returns zero rows, `None` is passed instead.
+pub fn add_one(
+  q: sql.Query(v),
+  decoder: Decoder(a),
+  next: fn(Option(a)) -> Batch(final, v),
+) -> Batch(final, v) {
+  let next_batch = next(None)
+
+  let queries = list.prepend(next_batch.queries, q)
+
+  let decode = fn(results: List(Queried)) {
+    case results {
+      [] -> Error(BasedError("Nothing to decode"))
+      [first, ..rest] -> {
+        case first.rows {
+          [] -> next_batch.decode(rest)
+          [row, ..] -> {
+            decode.run(row, decoder)
+            |> result.map_error(DecodeError)
+            |> result.try(fn(value) {
+              let next_batch = next(Some(value))
+
+              next_batch.decode(rest)
+            })
+          }
+        }
+      }
+    }
+  }
+
+  Batch(queries:, decode:)
+}
+
+pub fn batch(batch: Batch(a, v), db: Db(v, conn)) -> Result(a, BasedError) {
+  batch.queries
+  |> db.driver.handle_batch(db.driver.conn)
+  |> result.try(batch.decode)
 }
 
 /// A convenience function for callers performing a query that will return

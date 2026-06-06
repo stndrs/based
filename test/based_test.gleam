@@ -4,7 +4,7 @@ import based/value.{type Value}
 import gleam/dynamic
 import gleam/dynamic/decode
 import gleam/int
-import gleam/list
+import gleam/option.{None, Some}
 import gleam/result
 import gleeunit
 
@@ -129,6 +129,14 @@ pub fn transaction_error_test() {
   }
 }
 
+fn tx_handler(
+  conn: Conn,
+  next: fn(Conn) -> Result(t, error),
+) -> Result(t, based.TransactionError(error)) {
+  next(conn)
+  |> result.map_error(based.Rollback)
+}
+
 pub type Conn {
   Conn
 }
@@ -168,14 +176,6 @@ fn execute_handler(
     |> based.new(sql_adapter())
 
   db
-}
-
-fn tx_handler(
-  conn: Conn,
-  next: fn(Conn) -> Result(t, error),
-) -> Result(t, based.TransactionError(error)) {
-  next(conn)
-  |> result.map_error(based.Rollback)
 }
 
 pub fn error_to_string_connection_timeout_test() {
@@ -257,30 +257,39 @@ pub fn error_to_string_decode_error_test() {
     == "[based.DecodeError] errors: [gleam/dynamic/decode.DecodeError] expected: Int, found: String, path: 0"
 }
 
-pub fn batch_test() {
-  let rows = [dynamic.array([dynamic.int(1), dynamic.string("Steve")])]
-  let returning = Ok([based.Queried(count: 1, fields: ["id", "name"], rows:)])
-
+pub fn batch_empty_test() {
   let database =
     based.driver(
       Conn,
       on_query: fn(_, _) { Ok(based.Queried(0, [], [])) },
       on_execute: fn(_, _) { Ok(0) },
-      on_batch: fn(_, _) { returning },
+      on_batch: fn(_, _) { Ok([]) },
     )
     |> based.new(sql_adapter())
 
-  let queries = [
-    sql.query("SELECT * FROM users WHERE id=$1;") |> sql.params([value.int(1)]),
-    sql.query("SELECT * FROM users WHERE id=$1;") |> sql.params([value.int(2)]),
-  ]
+  let query1 =
+    sql.query("SELECT * FROM users WHERE id=$1;")
+    |> sql.params([value.int(1)])
 
-  let assert Ok(results) = based.batch(queries, database)
-  assert list.length(results) == 1
+  let batch = {
+    use _ <- based.add(query1, decode.dynamic)
+
+    based.end(#(1))
+  }
+
+  assert Error(based.BasedError("Nothing to decode"))
+    == based.batch(batch, database)
 }
 
-pub fn batch_error_test() {
-  let returning = Error(based.BasedError("batch failed"))
+pub fn batch_test() {
+  let rows1 = [dynamic.array([dynamic.int(1), dynamic.string("Steve")])]
+  let rows2 = [dynamic.array([dynamic.int(2), dynamic.string("Billiam")])]
+
+  let returning =
+    Ok([
+      based.Queried(count: 1, fields: ["id", "name"], rows: rows1),
+      based.Queried(count: 1, fields: ["id", "name"], rows: rows2),
+    ])
 
   let database =
     based.driver(
@@ -291,9 +300,178 @@ pub fn batch_error_test() {
     )
     |> based.new(sql_adapter())
 
-  let queries = [sql.query("SELECT 1;")]
+  let decoder = {
+    use id <- decode.field(0, decode.int)
+    decode.success(#(id))
+  }
 
-  let assert Error(_) = based.batch(queries, database)
+  let query1 =
+    sql.query("SELECT * FROM users WHERE id=$1;")
+    |> sql.params([value.int(1)])
+
+  let query2 =
+    sql.query("SELECT * FROM users WHERE id=$1;")
+    |> sql.params([value.int(2)])
+
+  let batch = {
+    use result1 <- based.add(query1, decoder)
+    use result2 <- based.add(query2, decoder)
+
+    based.end(#(result1, result2))
+  }
+
+  let assert Ok(#([#(1)], [#(2)])) = based.batch(batch, database)
+}
+
+pub fn batch_different_test() {
+  let rows1 = [dynamic.array([dynamic.int(1), dynamic.string("Steve")])]
+  let rows2 = [dynamic.array([dynamic.int(2), dynamic.string("Billiam")])]
+
+  let returning =
+    Ok([
+      based.Queried(count: 1, fields: ["id", "name"], rows: rows1),
+      based.Queried(count: 1, fields: ["id", "name"], rows: rows2),
+    ])
+
+  let database =
+    based.driver(
+      Conn,
+      on_query: fn(_, _) { Ok(based.Queried(0, [], [])) },
+      on_execute: fn(_, _) { Ok(0) },
+      on_batch: fn(_, _) { returning },
+    )
+    |> based.new(sql_adapter())
+
+  let decoder1 = {
+    use id <- decode.field(0, decode.int)
+    decode.success(#(id))
+  }
+
+  let decoder2 = {
+    use name <- decode.field(1, decode.string)
+    decode.success(#(name))
+  }
+
+  let query1 =
+    sql.query("SELECT * FROM users WHERE id=$1;")
+    |> sql.params([value.int(1)])
+
+  let query2 =
+    sql.query("SELECT * FROM users WHERE id=$1;")
+    |> sql.params([value.int(2)])
+
+  let batch = {
+    use result1 <- based.add(query1, decoder1)
+    use result2 <- based.add(query2, decoder2)
+
+    based.end(#(result1, result2))
+  }
+
+  let assert Ok(#([#(1)], [#("Billiam")])) = based.batch(batch, database)
+}
+
+pub fn batch_add_one_test() {
+  let rows1 = [dynamic.array([dynamic.int(1), dynamic.string("Steve")])]
+  let rows2 = [dynamic.array([dynamic.int(2), dynamic.string("Billiam")])]
+
+  let returning =
+    Ok([
+      based.Queried(count: 1, fields: ["id", "name"], rows: rows1),
+      based.Queried(count: 1, fields: ["id", "name"], rows: rows2),
+    ])
+
+  let database =
+    based.driver(
+      Conn,
+      on_query: fn(_, _) { Ok(based.Queried(0, [], [])) },
+      on_execute: fn(_, _) { Ok(0) },
+      on_batch: fn(_, _) { returning },
+    )
+    |> based.new(sql_adapter())
+
+  let query1 =
+    sql.query("SELECT * FROM users WHERE id=$1;")
+    |> sql.params([value.int(1)])
+
+  let query2 =
+    sql.query("SELECT * FROM users WHERE id=$1;")
+    |> sql.params([value.int(2)])
+
+  let batch = {
+    use users <- based.add(query1, user_decoder())
+    use admin <- based.add_one(query2, user_decoder())
+
+    based.end(#(users, admin))
+  }
+
+  let assert Ok(#([#(1, "Steve")], Some(#(2, "Billiam")))) =
+    based.batch(batch, database)
+}
+
+pub fn batch_add_one_not_found_test() {
+  let rows1 = [dynamic.array([dynamic.int(1), dynamic.string("Steve")])]
+
+  let returning =
+    Ok([
+      based.Queried(count: 1, fields: ["id", "name"], rows: rows1),
+      based.Queried(count: 0, fields: ["id", "name"], rows: []),
+    ])
+
+  let database =
+    based.driver(
+      Conn,
+      on_query: fn(_, _) { Ok(based.Queried(0, [], [])) },
+      on_execute: fn(_, _) { Ok(0) },
+      on_batch: fn(_, _) { returning },
+    )
+    |> based.new(sql_adapter())
+
+  let query1 =
+    sql.query("SELECT * FROM users WHERE id=$1;")
+    |> sql.params([value.int(1)])
+
+  let query2 =
+    sql.query("SELECT * FROM users WHERE id=$1;")
+    |> sql.params([value.int(2)])
+
+  let batch = {
+    use users <- based.add(query1, user_decoder())
+    use admin <- based.add_one(query2, user_decoder())
+
+    based.end(#(users, admin))
+  }
+
+  let assert Ok(#([#(1, "Steve")], None)) = based.batch(batch, database)
+}
+
+pub fn batch_add_one_only_test() {
+  let rows = [dynamic.array([dynamic.int(1), dynamic.string("Steve")])]
+
+  let returning =
+    Ok([
+      based.Queried(count: 1, fields: ["id", "name"], rows:),
+    ])
+
+  let database =
+    based.driver(
+      Conn,
+      on_query: fn(_, _) { Ok(based.Queried(0, [], [])) },
+      on_execute: fn(_, _) { Ok(0) },
+      on_batch: fn(_, _) { returning },
+    )
+    |> based.new(sql_adapter())
+
+  let query =
+    sql.query("SELECT * FROM users WHERE id=$1;")
+    |> sql.params([value.int(1)])
+
+  let batch = {
+    use user <- based.add_one(query, user_decoder())
+
+    based.end(user)
+  }
+
+  let assert Ok(Some(#(1, "Steve"))) = based.batch(batch, database)
 }
 
 fn sql_adapter() -> sql.Adapter(Value) {
@@ -356,6 +534,132 @@ pub fn error_to_string_connection_unavailable_test() {
     based.ConnectionUnavailable |> based.DbError |> based.error_to_string
 
   assert result == "[based.ConnectionUnavailable]"
+}
+
+pub fn error_to_string_unique_violation_test() {
+  let result =
+    based.UniqueViolation(
+      code: "23505",
+      name: "unique_violation",
+      message: "duplicate key value violates unique constraint",
+    )
+    |> based.DbError
+    |> based.error_to_string
+
+  assert result
+    == "[based.UniqueViolation] code: 23505, name: unique_violation, message: duplicate key value violates unique constraint"
+}
+
+pub fn error_to_string_foreign_key_violation_test() {
+  let result =
+    based.ForeignKeyViolation(
+      code: "23503",
+      name: "foreign_key_violation",
+      message: "insert or update on table violates foreign key constraint",
+    )
+    |> based.DbError
+    |> based.error_to_string
+
+  assert result
+    == "[based.ForeignKeyViolation] code: 23503, name: foreign_key_violation, message: insert or update on table violates foreign key constraint"
+}
+
+pub fn error_to_string_not_null_violation_test() {
+  let result =
+    based.NotNullViolation(
+      code: "23502",
+      name: "not_null_violation",
+      message: "null value in column violates not-null constraint",
+    )
+    |> based.DbError
+    |> based.error_to_string
+
+  assert result
+    == "[based.NotNullViolation] code: 23502, name: not_null_violation, message: null value in column violates not-null constraint"
+}
+
+pub fn error_to_string_check_violation_test() {
+  let result =
+    based.CheckViolation(
+      code: "23514",
+      name: "check_violation",
+      message: "new row for relation violates check constraint",
+    )
+    |> based.DbError
+    |> based.error_to_string
+
+  assert result
+    == "[based.CheckViolation] code: 23514, name: check_violation, message: new row for relation violates check constraint"
+}
+
+pub fn error_to_string_deadlock_detected_test() {
+  let result =
+    based.DeadlockDetected(
+      code: "40P01",
+      name: "deadlock_detected",
+      message: "detected deadlock while trying to acquire lock",
+    )
+    |> based.DbError
+    |> based.error_to_string
+
+  assert result
+    == "[based.DeadlockDetected] code: 40P01, name: deadlock_detected, message: detected deadlock while trying to acquire lock"
+}
+
+pub fn error_to_string_serialization_failure_test() {
+  let result =
+    based.SerializationFailure(
+      code: "40001",
+      name: "serialization_failure",
+      message: "could not serialize access due to concurrent update",
+    )
+    |> based.DbError
+    |> based.error_to_string
+
+  assert result
+    == "[based.SerializationFailure] code: 40001, name: serialization_failure, message: could not serialize access due to concurrent update"
+}
+
+pub fn error_to_string_query_timeout_test() {
+  let result =
+    based.QueryTimeout(
+      code: "57014",
+      name: "query_canceled",
+      message: "canceling statement due to statement timeout",
+    )
+    |> based.DbError
+    |> based.error_to_string
+
+  assert result
+    == "[based.QueryTimeout] code: 57014, name: query_canceled, message: canceling statement due to statement timeout"
+}
+
+pub fn error_to_string_permission_denied_test() {
+  let result =
+    based.PermissionDenied(
+      code: "42501",
+      name: "insufficient_privilege",
+      message: "permission denied for table",
+    )
+    |> based.DbError
+    |> based.error_to_string
+
+  assert result
+    == "[based.PermissionDenied] code: 42501, name: insufficient_privilege, message: permission denied for table"
+}
+
+pub fn error_to_string_read_only_transaction_test() {
+  let result =
+    based.ReadOnlyTransaction(
+      code: "25006",
+      name: "read_only_sql_transaction",
+      message: "cannot execute write in a read-only transaction",
+    )
+    |> based.DbError
+    |> based.error_to_string
+
+  assert result
+    == "[based.ReadOnlyTransaction] code: 25006, name: read_only_sql_transaction, message: cannot execute write in a read-only transaction"
 }
 
 pub fn database_error_to_string_test() {
