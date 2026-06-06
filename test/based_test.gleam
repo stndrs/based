@@ -4,6 +4,7 @@ import based/value.{type Value}
 import gleam/dynamic
 import gleam/dynamic/decode
 import gleam/int
+import gleam/option.{None, Some}
 import gleeunit
 
 pub fn main() {
@@ -230,7 +231,7 @@ pub fn batch_empty_test() {
   let batch = {
     use _ <- based.add(query1, decode.dynamic)
 
-    based.done(#(1))
+    based.end(#(1))
   }
 
   assert Error(based.BasedError("Nothing to decode"))
@@ -273,7 +274,7 @@ pub fn batch_test() {
     use result1 <- based.add(query1, decoder)
     use result2 <- based.add(query2, decoder)
 
-    based.done(#(result1, result2))
+    based.end(#(result1, result2))
   }
 
   let assert Ok(#([#(1)], [#(2)])) = based.batch(batch, database)
@@ -320,10 +321,114 @@ pub fn batch_different_test() {
     use result1 <- based.add(query1, decoder1)
     use result2 <- based.add(query2, decoder2)
 
-    based.done(#(result1, result2))
+    based.end(#(result1, result2))
   }
 
   let assert Ok(#([#(1)], [#("Billiam")])) = based.batch(batch, database)
+}
+
+pub fn batch_add_one_test() {
+  let rows1 = [dynamic.array([dynamic.int(1), dynamic.string("Steve")])]
+  let rows2 = [dynamic.array([dynamic.int(2), dynamic.string("Billiam")])]
+
+  let returning =
+    Ok([
+      based.Queried(count: 1, fields: ["id", "name"], rows: rows1),
+      based.Queried(count: 1, fields: ["id", "name"], rows: rows2),
+    ])
+
+  let database =
+    based.driver(
+      Conn,
+      on_query: fn(_, _) { Ok(based.Queried(0, [], [])) },
+      on_execute: fn(_, _) { Ok(0) },
+      on_batch: fn(_, _) { returning },
+    )
+    |> based.new(sql_adapter())
+
+  let query1 =
+    sql.query("SELECT * FROM users WHERE id=$1;")
+    |> sql.params([value.int(1)])
+
+  let query2 =
+    sql.query("SELECT * FROM users WHERE id=$1;")
+    |> sql.params([value.int(2)])
+
+  let batch = {
+    use users <- based.add(query1, user_decoder())
+    use admin <- based.add_one(query2, user_decoder())
+
+    based.end(#(users, admin))
+  }
+
+  let assert Ok(#([#(1, "Steve")], Some(#(2, "Billiam")))) =
+    based.batch(batch, database)
+}
+
+pub fn batch_add_one_not_found_test() {
+  let rows1 = [dynamic.array([dynamic.int(1), dynamic.string("Steve")])]
+
+  let returning =
+    Ok([
+      based.Queried(count: 1, fields: ["id", "name"], rows: rows1),
+      based.Queried(count: 0, fields: ["id", "name"], rows: []),
+    ])
+
+  let database =
+    based.driver(
+      Conn,
+      on_query: fn(_, _) { Ok(based.Queried(0, [], [])) },
+      on_execute: fn(_, _) { Ok(0) },
+      on_batch: fn(_, _) { returning },
+    )
+    |> based.new(sql_adapter())
+
+  let query1 =
+    sql.query("SELECT * FROM users WHERE id=$1;")
+    |> sql.params([value.int(1)])
+
+  let query2 =
+    sql.query("SELECT * FROM users WHERE id=$1;")
+    |> sql.params([value.int(2)])
+
+  let batch = {
+    use users <- based.add(query1, user_decoder())
+    use admin <- based.add_one(query2, user_decoder())
+
+    based.end(#(users, admin))
+  }
+
+  let assert Ok(#([#(1, "Steve")], None)) = based.batch(batch, database)
+}
+
+pub fn batch_add_one_only_test() {
+  let rows = [dynamic.array([dynamic.int(1), dynamic.string("Steve")])]
+
+  let returning =
+    Ok([
+      based.Queried(count: 1, fields: ["id", "name"], rows:),
+    ])
+
+  let database =
+    based.driver(
+      Conn,
+      on_query: fn(_, _) { Ok(based.Queried(0, [], [])) },
+      on_execute: fn(_, _) { Ok(0) },
+      on_batch: fn(_, _) { returning },
+    )
+    |> based.new(sql_adapter())
+
+  let query =
+    sql.query("SELECT * FROM users WHERE id=$1;")
+    |> sql.params([value.int(1)])
+
+  let batch = {
+    use user <- based.add_one(query, user_decoder())
+
+    based.end(user)
+  }
+
+  let assert Ok(Some(#(1, "Steve"))) = based.batch(batch, database)
 }
 
 fn sql_adapter() -> sql.Adapter(Value) {
