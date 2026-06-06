@@ -1,8 +1,8 @@
 # Changelog
 
-## 4.1.0
+## Unreleased
 
-- Deprecate `based.transaction` and `based.TxHandler`
+- Added new `DatabaseError` variants for more precise error handling
 
 ## 4.0.1
 
