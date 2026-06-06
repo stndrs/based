@@ -145,7 +145,6 @@ pub type Returning(a) {
 /// A function provided by an adapter package that wraps a callback in a
 /// database transaction. The handler receives a connection and a callback;
 /// it is responsible for committing on `Ok` and rolling back on `Error`.
-@deprecated("Use the transaction function provided by an adapter package.")
 pub type TxHandler(conn, t, error) =
   fn(conn, fn(conn) -> Result(t, error)) -> Result(t, TransactionError(error))
 
@@ -153,7 +152,6 @@ pub type TxHandler(conn, t, error) =
 ///
 /// The handler (supplied by an adapter package) is responsible for beginning
 /// the transaction, committing on success, and rolling back on failure.
-@deprecated("Use the transaction function provided by an adapter package.")
 pub fn transaction(
   db: Db(v, conn),
   handler: TxHandler(conn, t, error),
