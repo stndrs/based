@@ -246,6 +246,10 @@ pub fn driver(
   Driver(conn, handle_query:, handle_execute:, handle_batch:)
 }
 
+pub fn with_connection(db: Db(v, conn), next: fn(conn) -> t) -> t {
+  next(db.driver.conn)
+}
+
 /// Executes a query using the configured driver.
 pub fn query(
   query: sql.Query(v),
