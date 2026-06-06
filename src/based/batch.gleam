@@ -5,10 +5,15 @@ import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
 
+pub type BatchError {
+  BatchError(message: String, error: based.BasedError)
+  DecodeError(message: String, errors: List(decode.DecodeError))
+}
+
 pub opaque type Batch(t, v) {
   Batch(
     queries: List(sql.Query(v)),
-    decode: fn(List(based.Queried)) -> Result(t, List(decode.DecodeError)),
+    decode: fn(List(based.Queried)) -> Result(t, BatchError),
   )
 }
 
@@ -36,6 +41,7 @@ pub fn list(
       [first, ..rest] -> {
         first.rows
         |> list.try_map(decode.run(_, decoder))
+        |> result.map_error(DecodeError("Failed to decode list", _))
         |> result.try(fn(rows) {
           let next_batch = next(rows)
 
@@ -55,6 +61,35 @@ pub fn list(
 pub fn one(
   q: sql.Query(v),
   decoder: Decoder(a),
+  next: fn(a) -> Batch(final, v),
+) -> Batch(final, v) {
+  let decode = fn(results: List(based.Queried)) {
+    case results {
+      [] -> Error(BatchError(message: "Empty results", error: based.NotFound))
+      [first, ..rest] -> {
+        case first.rows {
+          [] ->
+            Error(BatchError(message: "Empty results", error: based.NotFound))
+          [row, ..] -> {
+            decode.run(row, decoder)
+            |> result.map_error(DecodeError("Failed to decode row", _))
+            |> result.try(fn(value) {
+              let next_batch = next(value)
+
+              next_batch.decode(rest)
+            })
+          }
+        }
+      }
+    }
+  }
+
+  Batch(queries: [q], decode:)
+}
+
+pub fn optional(
+  q: sql.Query(v),
+  decoder: Decoder(a),
   next: fn(Option(a)) -> Batch(final, v),
 ) -> Batch(final, v) {
   let next_batch = next(None)
@@ -69,6 +104,7 @@ pub fn one(
           [] -> next_batch.decode(rest)
           [row, ..] -> {
             decode.run(row, decoder)
+            |> result.map_error(DecodeError("Failed to decode optional row", _))
             |> result.try(fn(value) {
               let next_batch = next(Some(value))
 
@@ -83,14 +119,9 @@ pub fn one(
   Batch(queries:, decode:)
 }
 
-pub fn run(
-  batch: Batch(a, v),
-  db: based.Db(v, conn),
-) -> Result(a, based.BasedError) {
+pub fn run(batch: Batch(a, v), db: based.Db(v, conn)) -> Result(a, BatchError) {
   batch.queries
   |> based.batch(db)
-  |> result.try(fn(queried) {
-    batch.decode(queried)
-    |> result.map_error(based.DecodeError)
-  })
+  |> result.map_error(BatchError("Failed to perform batch query", _))
+  |> result.try(fn(queried) { batch.decode(queried) })
 }

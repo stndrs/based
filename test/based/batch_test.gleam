@@ -5,7 +5,6 @@ import based/value.{type Value}
 import gleam/dynamic
 import gleam/dynamic/decode
 import gleam/int
-import gleam/option.{None, Some}
 
 fn user_decoder() -> decode.Decoder(#(Int, String)) {
   use id <- decode.field(0, decode.int)
@@ -169,7 +168,7 @@ pub fn batch_add_one_test() {
     batch.ready(#(users, admin))
   }
 
-  let assert Ok(#([#(1, "Steve")], Some(#(2, "Billiam")))) =
+  let assert Ok(#([#(1, "Steve")], #(2, "Billiam"))) =
     batch.run(batch, database)
 }
 
@@ -206,7 +205,8 @@ pub fn batch_add_one_not_found_test() {
     batch.ready(#(users, admin))
   }
 
-  let assert Ok(#([#(1, "Steve")], None)) = batch.run(batch, database)
+  let assert Error(batch.BatchError("Empty results", based.NotFound)) =
+    batch.run(batch, database)
 }
 
 pub fn batch_add_one_only_test() {
@@ -236,5 +236,5 @@ pub fn batch_add_one_only_test() {
     batch.ready(user)
   }
 
-  let assert Ok(Some(#(1, "Steve"))) = batch.run(batch, database)
+  let assert Ok(#(1, "Steve")) = batch.run(batch, database)
 }
